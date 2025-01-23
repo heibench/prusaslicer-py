@@ -1,0 +1,498 @@
+{
+    "Misc options:": [
+        {
+            "option": "--absolute-correction",
+            "description": "N"
+        },
+        {
+            "option": "--area-fill",
+            "description": "N ; The value is expressed as a percentage of the bed area. If the area of a"
+        },
+        {
+            "option": "--bed-custom-model",
+            "description": "ABCD"
+        },
+        {
+            "option": "--bed-custom-texture",
+            "description": "ABCD"
+        },
+        {
+            "option": "--bed-shape",
+            "description": "; (default: 0x0,200x0,200x200,0x200)"
+        },
+        {
+            "option": "--bottle-cost",
+            "description": "N ; Cost (money/bottle, default: 0)"
+        },
+        {
+            "option": "--bottle-volume",
+            "description": "N ; Bottle volume (ml, default: 1000)"
+        },
+        {
+            "option": "--bottle-weight",
+            "description": "N ; Bottle weight (kg, default: 1)"
+        },
+        {
+            "option": "--branchingsupport-max-bridges-on-pillar",
+            "description": "N"
+        },
+        {
+            "option": "--delay-after-exposure",
+            "description": "N"
+        },
+        {
+            "option": "--delay-before-exposure",
+            "description": "N"
+        },
+        {
+            "option": "--display-height",
+            "description": "N ; Height of the display (default: 68)"
+        },
+        {
+            "option": "--display-mirror-x",
+            "description": "Enable horizontal mirroring of output images"
+        },
+        {
+            "option": "--display-mirror-y",
+            "description": "Enable vertical mirroring of output images"
+        },
+        {
+            "option": "--display-pixels-x",
+            "description": "N"
+        },
+        {
+            "option": "--display-pixels-y",
+            "description": "N"
+        },
+        {
+            "option": "--display-width",
+            "description": "N ; Width of the display (default: 120)"
+        },
+        {
+            "option": "--exposure-time",
+            "description": "N ; Exposure time (s, default: 10)"
+        },
+        {
+            "option": "--faded-layers",
+            "description": "N ; Number of the layers needed for the exposure time fade from initial exposure"
+        },
+        {
+            "option": "--fast-tilt-time",
+            "description": "N ; Time of the fast tilt (s, default: 5)"
+        },
+        {
+            "option": "--gamma-correction",
+            "description": "N"
+        },
+        {
+            "option": "--high-viscosity-tilt-time",
+            "description": "N"
+        },
+        {
+            "option": "--idle-temperature",
+            "description": "N"
+        },
+        {
+            "option": "--initial-exposure-time",
+            "description": "N"
+        },
+        {
+            "option": "--initial-layer-height",
+            "description": "N"
+        },
+        {
+            "option": "--material-colour",
+            "description": "ABCD"
+        },
+        {
+            "option": "--material-correction",
+            "description": "N"
+        },
+        {
+            "option": "--material-correction-x",
+            "description": "N"
+        },
+        {
+            "option": "--material-correction-y",
+            "description": "N"
+        },
+        {
+            "option": "--material-correction-z",
+            "description": "N"
+        },
+        {
+            "option": "--material-density",
+            "description": "N"
+        },
+        {
+            "option": "--material-notes",
+            "description": "ABCD"
+        },
+        {
+            "option": "--material-ow-absolute-correction",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-branchingsupport-head-front-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-branchingsupport-head-penetration",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-branchingsupport-head-width",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-branchingsupport-pillar-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-elefant-foot-compensation",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-support-head-front-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-support-head-penetration",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-support-head-width",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-support-pillar-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--material-ow-support-points-density-relative",
+            "description": "N"
+        },
+        {
+            "option": "--material-type",
+            "description": "ABCD"
+        },
+        {
+            "option": "--max-exposure-time",
+            "description": "N"
+        },
+        {
+            "option": "--max-initial-exposure-time",
+            "description": "N"
+        },
+        {
+            "option": "--max-print-height",
+            "description": "N"
+        },
+        {
+            "option": "--min-exposure-time",
+            "description": "N"
+        },
+        {
+            "option": "--min-initial-exposure-time",
+            "description": "N"
+        },
+        {
+            "option": "--preset-name",
+            "description": "ABCD"
+        },
+        {
+            "option": "--preset-names",
+            "description": "ABCD Names of presets related to the physical printer (default: )"
+        },
+        {
+            "option": "--relative-correction",
+            "description": "N"
+        },
+        {
+            "option": "--relative-correction-x",
+            "description": "N"
+        },
+        {
+            "option": "--relative-correction-y",
+            "description": "N"
+        },
+        {
+            "option": "--relative-correction-z",
+            "description": "N"
+        },
+        {
+            "option": "--sla-archive-format",
+            "description": "ABCD"
+        },
+        {
+            "option": "--sla-output-precision",
+            "description": "N"
+        },
+        {
+            "option": "--slow-tilt-time",
+            "description": "N ; Time of the slow tilt (s, default: 8)"
+        },
+        {
+            "option": "--support-max-bridges-on-pillar",
+            "description": "N"
+        },
+        {
+            "option": "--support-tree-type",
+            "description": "Support tree building strategy (default, branching; default: default)"
+        },
+        {
+            "option": "--thumbnails",
+            "description": "ABCD ; Picture sizes to be stored into a .gcode / .bgcode and .sl1 / .sl1s files, in"
+        },
+        {
+            "option": "--thumbnails-format",
+            "description": "Format of G-code thumbnails: PNG for best quality, JPG for smallest size, QOI"
+        },
+        {
+            "option": "--tilt-down-cycles",
+            "description": "N"
+        },
+        {
+            "option": "--tilt-down-delay",
+            "description": "N The delay between tilt-down cycles. (s, default: 0,0)"
+        },
+        {
+            "option": "--tilt-down-offset-delay",
+            "description": "N"
+        },
+        {
+            "option": "--tilt-down-offset-steps",
+            "description": "N"
+        },
+        {
+            "option": "--tilt-up-cycles",
+            "description": "N ; Number of cycles to split the rest of the tilt-up. (default: 1,1)"
+        },
+        {
+            "option": "--tilt-up-delay",
+            "description": "N ; The delay between tilt-up cycles. (s, default: 0,0)"
+        },
+        {
+            "option": "--tilt-up-offset-delay",
+            "description": "N"
+        },
+        {
+            "option": "--tilt-up-offset-steps",
+            "description": "N"
+        },
+        {
+            "option": "--tower-hop-height",
+            "description": "N"
+        },
+        {
+            "option": "--tower-speed",
+            "description": "; Tower speed used for tower raise. (mm/s, default: ,layer22)"
+        },
+        {
+            "option": "--use-tilt",
+            "description": "; If enabled, tilt is used for layer separation. Otherwise, all the parameters"
+        }
+    ],
+    "Advanced:": [
+        {
+            "option": "--elefant-foot-compensation",
+            "description": "N"
+        },
+        {
+            "option": "--elefant-foot-min-width",
+            "description": "N"
+        },
+        {
+            "option": "--zcorrection-layers",
+            "description": "N"
+        }
+    ],
+    "Hollowing:": [
+        {
+            "option": "--hollowing-closing-distance",
+            "description": "N"
+        },
+        {
+            "option": "--hollowing-enable",
+            "description": "Hollow out a model to have an empty interior"
+        },
+        {
+            "option": "--hollowing-min-thickness",
+            "description": "N"
+        },
+        {
+            "option": "--hollowing-quality",
+            "description": "N"
+        }
+    ],
+    "Layers and Perimeters:": [
+        {
+            "option": "--layer-height",
+            "description": "N ; This setting controls the height (and thus the total number) of the"
+        }
+    ],
+    "Pad:": [
+        {
+            "option": "--pad-around-object",
+            "description": "Create pad around object and ignore the support elevation"
+        },
+        {
+            "option": "--pad-brim-size",
+            "description": "N ; How far should the pad extend around the contained geometry (mm, default: 1.6)"
+        },
+        {
+            "option": "--pad-enable",
+            "description": "; Add a pad underneath the supported model"
+        },
+        {
+            "option": "--pad-max-merge-distance",
+            "description": "N"
+        },
+        {
+            "option": "--pad-object-connector-penetration",
+            "description": "N"
+        },
+        {
+            "option": "--pad-object-connector-stride",
+            "description": "N"
+        },
+        {
+            "option": "--pad-object-connector-width",
+            "description": "N"
+        },
+        {
+            "option": "--pad-object-gap",
+            "description": "N ; The gap between the object bottom and the generated pad in zero elevation mode."
+        },
+        {
+            "option": "--pad-wall-height",
+            "description": "N Defines the pad cavity depth. Set to zero to disable the cavity. Be careful when"
+        },
+        {
+            "option": "--pad-wall-slope",
+            "description": "N ; The slope of the pad wall relative to the bed plane. 90 degrees means straight"
+        },
+        {
+            "option": "--pad-wall-thickness",
+            "description": "N"
+        }
+    ],
+    "Supports:": [
+        {
+            "option": "--branchingsupport-base-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-base-height",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-base-safety-distance",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-critical-angle",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-head-front-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-head-penetration",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-head-width",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-max-bridge-length",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-max-pillar-link-distance",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-max-weight-on-model",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-object-elevation",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-pillar-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--branchingsupport-pillar-widening-factor",
+            "description": "N"
+        },
+        {
+            "option": "--support-base-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--support-base-height",
+            "description": "N"
+        },
+        {
+            "option": "--support-base-safety-distance",
+            "description": "N"
+        },
+        {
+            "option": "--support-critical-angle",
+            "description": "N"
+        },
+        {
+            "option": "--support-head-front-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--support-head-penetration",
+            "description": "N"
+        },
+        {
+            "option": "--support-head-width",
+            "description": "N"
+        },
+        {
+            "option": "--support-max-bridge-length",
+            "description": "N"
+        },
+        {
+            "option": "--support-max-pillar-link-distance",
+            "description": "N"
+        },
+        {
+            "option": "--support-max-weight-on-model",
+            "description": "N"
+        },
+        {
+            "option": "--support-object-elevation",
+            "description": "N"
+        },
+        {
+            "option": "--support-pillar-diameter",
+            "description": "N"
+        },
+        {
+            "option": "--support-pillar-widening-factor",
+            "description": "N"
+        },
+        {
+            "option": "--support-points-density-relative",
+            "description": "N"
+        },
+        {
+            "option": "--support-points-minimal-distance",
+            "description": "N"
+        },
+        {
+            "option": "--supports-enable",
+            "description": "; Generate supports for the models"
+        }
+    ]
+}

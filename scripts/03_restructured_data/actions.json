@@ -1,0 +1,68 @@
+{
+    "actions:": [
+        {
+            "option": "--export-3mf",
+            "description": "Export the model(s) as 3MF."
+        },
+        {
+            "option": "--export-amf",
+            "description": "Export the model(s) as AMF."
+        },
+        {
+            "option": "--export-gcode,",
+            "description": "--gcode, -g Slice the model and export toolpaths as G-code."
+        },
+        {
+            "option": "--export-obj",
+            "description": "Export the model(s) as OBJ."
+        },
+        {
+            "option": "--export-sla,",
+            "description": "--sla Slice the model and export SLA printing layers as PNG."
+        },
+        {
+            "option": "--export-stl",
+            "description": "Export the model(s) as STL."
+        },
+        {
+            "option": "--gcodeviewer",
+            "description": "Visualize an already sliced and saved G-code"
+        },
+        {
+            "option": "--help,",
+            "description": "-h ; Show this help."
+        },
+        {
+            "option": "--help-fff",
+            "description": "Show the full list of print/G-code configuration options."
+        },
+        {
+            "option": "--help-sla",
+            "description": "Show the full list of SLA print configuration options."
+        },
+        {
+            "option": "--info",
+            "description": "Write information about the model to the console."
+        },
+        {
+            "option": "--opengl-aa",
+            "description": "Automatically select the highest number of samples for OpenGL antialiasing."
+        },
+        {
+            "option": "--opengl-debug",
+            "description": "Activate OpenGL debug output on graphic cards which support it (OpenGL 4.3 or higher)"
+        },
+        {
+            "option": "--opengl-version",
+            "description": "ABCD Select a specific version of OpenGL"
+        },
+        {
+            "option": "--save",
+            "description": "ABCD ; Save configuration to the specified file."
+        },
+        {
+            "option": "--slice,",
+            "description": "-s ; Slice the model as FFF or SLA based on the printer_technology configuration value."
+        }
+    ]
+}

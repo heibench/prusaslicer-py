@@ -1,0 +1,44 @@
+{
+    "other options:": [
+        {
+            "option": "--datadir",
+            "description": "ABCD ; Load and store settings at the given directory. This is useful for maintaining different profiles or including configurations from a network storage."
+        },
+        {
+            "option": "--load",
+            "description": "ABCD ; Load configuration from the specified file. It can be used more than once to load options from multiple files."
+        },
+        {
+            "option": "--loglevel",
+            "description": "N ; Sets logging sensitivity. 0:fatal, 1:error, 2:warning, 3:info, 4:debug, 5:trace For example. loglevel=2 logs fatal, error and warning level messages."
+        },
+        {
+            "option": "--material-profile",
+            "description": "ABCD Name(s) of the material preset(s) used for slicing. Could be filaments or sla_material preset name(s) depending on printer tochnology"
+        },
+        {
+            "option": "--output",
+            "description": "ABCD, -o ABCD The file where the output will be written (if not specified, it will be based on the input file)."
+        },
+        {
+            "option": "--print-profile",
+            "description": "ABCD Name of the print preset used for slicing."
+        },
+        {
+            "option": "--printer-profile",
+            "description": "ABCD Name of the printer preset used for slicing."
+        },
+        {
+            "option": "--single-instance",
+            "description": "If enabled, the command line arguments are sent to an existing instance of GUI PrusaSlicer, or an existing PrusaSlicer window is activated. Overrides the \"single_instance\" configuration value from application preferences."
+        },
+        {
+            "option": "--sw-renderer",
+            "description": "Render with a software renderer. The bundled MESA software renderer is loaded instead of the default OpenGL driver."
+        },
+        {
+            "option": "--threads",
+            "description": "N ; Sets the maximum number of threads the slicing process will use. If not defined, it will be decided automatically."
+        }
+    ]
+}
