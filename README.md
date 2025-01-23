@@ -6,8 +6,19 @@
 
 - Automate slicing operations using the PrusaSlicer CLI.
 - Customize slicing parameters dynamically.
-- Load and manage profiles from `.3MF` or `.AMF` files.
+- Load and manage shapes from `.stl` files or existing profiles from `.3MF` or `.AMF` files.
 - Support for generating G-code with fine-tuned settings for FFF and SLA printers.
+
+---
+
+- [PrusaSlicer-Py](#prusaslicer-py)
+  - [Features](#features)
+  - [Getting Started](#getting-started)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+    - [Usage](#usage)
+  - [Contributing](#contributing)
+  - [License](#license)
 
 ---
 
@@ -18,12 +29,16 @@
 1. **PrusaSlicer Installation**:
 
    - Download and install [PrusaSlicer](https://www.prusa3d.com/prusaslicer/).
-   - Ensure `prusa-slicer-console.exe` (Windows) or the equivalent CLI executable is installed.
-   - Add the directory containing the executable to your system PATH.
+   - Ensure `prusa-slicer-console.exe` (Windows) or the equivalent `prusa-slicer` CLI executable is installed.
+   - Add the directory containing the executable to your system's `PATH` environment variable (or the equivalent for your operating system).
+     - On Windows, this is the folder containing `prusa-slicer-console.exe`.
+     - On Linux, macOS, and other Unix-like systems, this is the folder containing `prusa-slicer`.
 
 2. **Python Setup**:
+
    - Python 3.8 or newer is recommended.
    - Install `virtualenv` (optional but recommended):
+
      ```bash
      pip install virtualenv
      ```
@@ -33,38 +48,36 @@
 ### Installation
 
 1. Clone the repository:
-2.
 
-```bash
-git clone https://github.com/CameronBrooks11/prusaslicer-py.git
-cd prusaslicer-py
-```
+   ```bash
+   git clone https://github.com/CameronBrooks11/prusaslicer-py.git
+   cd prusaslicer-py
+   ```
 
-1. Create and activate a virtual environment:
+2. Create and activate a virtual environment:
 
-```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-```
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
 
-3. Install dependencies (if any):
+3. Install dependencies (currently no python dependancies unless you intend to develop):
 
-```bash
-pip install -r requirements.txt
-```
+   ```bash
+   pip install -r requirements.txt
+   ```
 
 ### Usage
 
 Below is an example of running a basic slicing operation with the built-in example shapes provided as stl files with all prusaslicer installations:
 
 ```python
-
 import os
 from pathlib import Path
 from prusaslicer_py import PrusaSlicer
 
 # Initialize the PrusaSlicer object
-slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe")
+slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe") # slicer_path="prusa-slicer.exe" on Linux
 
 # Retrieve the list of example shapes
 example_shapes = slicer.get_example_shapes()
@@ -95,25 +108,26 @@ if torus_path:
         print(f"Error slicing {torus_path}: {e}")
 else:
     print("torus.stl not found in example shapes.")
-
 ```
+
+**NOTE:**
 
 1. Replace slicer_path with the path to your PrusaSlicer CLI executable, if not in PATH.
 2. Provide the .stl file, desired output path for the .gcode, and any additional parameters as keyword arguments.
 
-### Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
 1. Fork the repository.
 2. Create a feature branch:
 
-```bash
-git checkout -b feature/your-feature-name
-```
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
 
 3. Commit your changes and open a pull request.
 
-### License
+## License
 
 This project is licensed under the [MIT License](./LICENSE).
