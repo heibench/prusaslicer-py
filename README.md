@@ -9,6 +9,8 @@
 - Load and manage shapes from `.stl` files or existing profiles from `.3MF` or `.AMF` files.
 - Support for generating G-code with fine-tuned settings for FFF and SLA printers.
 
+_Note this is currently untested on Linux as I do all my 3D modelling and printing on my windows machine. This in particular is an area where contributors / testers are very welcome._
+
 ---
 
 - [PrusaSlicer-Py](#prusaslicer-py)
@@ -58,7 +60,7 @@
 
    ```bash
    python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   venv\Scripts\activate  # On Linux: source venv/bin/activate
    ```
 
 3. Install dependencies (currently no python dependancies unless you intend to develop):
@@ -77,7 +79,7 @@ from pathlib import Path
 from prusaslicer_py import PrusaSlicer
 
 # Initialize the PrusaSlicer object
-slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe") # slicer_path="prusa-slicer.exe" on Linux
+slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe") # slicer_path="prusa-slicer" on Linux
 
 # Retrieve the list of example shapes
 example_shapes = slicer.get_example_shapes()
