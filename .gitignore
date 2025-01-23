@@ -41,6 +41,37 @@ Thumbs.db
 # Jupyter Notebook
 .ipynb_checkpoints/
 
+# PrusaSlicer Python egg-info
+prusaslicer_py.egg-info/
+
+# Python wheels
+*.whl
+
+# Cython build
+build/
+dist/
+
+# Sphinx documentation
+docs/_build/
+
+# PyInstaller
+*.spec
+
+# JetBrains IDE files
+.idea/
+
+# Sublime Text project files
+*.sublime-project
+*.sublime-workspace
+
+# MacOS Finder files
+._*
+
+# Windows Installer files
+*.cab
+*.msi
+*.msm
+*.msp
 
 # Ignore the output directory
 output/
