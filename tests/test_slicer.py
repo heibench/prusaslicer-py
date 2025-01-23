@@ -1,0 +1,83 @@
+import pytest
+import os
+import subprocess
+from pathlib import Path
+from prusaslicer_py.slicer import PrusaSlicer
+from unittest.mock import patch, MagicMock
+
+
+@pytest.fixture
+def slicer():
+    return PrusaSlicer()
+
+
+def test_find_executable(slicer):
+    # Test if the executable can be found on Windows
+    with patch(
+        "shutil.which",
+        return_value="C:\\Program Files\\PrusaSlicer\\prusa-slicer-console.exe",
+    ):
+        assert (
+            slicer._find_executable()
+            == "C:\\Program Files\\PrusaSlicer\\prusa-slicer-console.exe"
+        )
+
+    # Test if an exception is raised when executable is not found
+    with patch("shutil.which", return_value=None):
+        with pytest.raises(FileNotFoundError):
+            slicer._find_executable()
+
+
+def test_check_version():
+    slicer = PrusaSlicer(slicer_path="path/to/prusa-slicer-console.exe")
+
+    # Mock subprocess to simulate a successful version check
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.stdout = "PrusaSlicer 2.6.1"
+        version = slicer.check_version()
+        assert version == "PrusaSlicer 2.6.1"
+
+    # Simulate failure by raising subprocess.CalledProcessError instead of a generic Exception
+    with patch("subprocess.run") as mock_run:
+        mock_run.side_effect = subprocess.CalledProcessError(
+            1, "command", output="Error getting version"
+        )  # Simulating the subprocess error
+        with pytest.raises(RuntimeError):
+            slicer.check_version()
+
+
+def test_slice_model():
+    slicer = PrusaSlicer(slicer_path="path/to/prusa-slicer-console.exe")
+
+    # Mock the file path to ensure no actual file access is required
+    with patch("pathlib.Path.is_file", return_value=True):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value = None  # Assume slicing is successful
+            slicer.slice_model("model.stl", "output.gcode")
+
+    # Simulate missing STL file
+    with patch("pathlib.Path.is_file", return_value=False):
+        with pytest.raises(FileNotFoundError):
+            slicer.slice_model("model.stl", "output.gcode")
+
+
+def test_generate_help():
+    slicer = PrusaSlicer(slicer_path="path/to/prusa-slicer-console.exe")
+
+    # Mock subprocess to simulate help generation success
+    with patch("subprocess.run") as mock_run:
+        mock_run.return_value.stdout = "Help text for FFF"
+        help_text = slicer.generate_help("fff")
+        assert "Help text for FFF" in help_text
+
+    # Test invalid mode
+    with pytest.raises(ValueError):
+        slicer.generate_help("invalid_mode")
+
+    # Test help generation failure
+    with patch("subprocess.run") as mock_run:
+        mock_run.side_effect = subprocess.CalledProcessError(
+            1, "command", output="Help command failed"
+        )  # Simulating the subprocess error
+        with pytest.raises(RuntimeError):
+            slicer.generate_help("fff")
