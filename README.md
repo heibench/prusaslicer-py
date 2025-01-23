@@ -41,7 +41,7 @@ _Note this is currently untested on Linux as I do all my 3D modelling and printi
    - Python 3.8 or newer is recommended.
    - Install `virtualenv` (optional but recommended):
 
-     ```bash
+     ```sh
      pip install virtualenv
      ```
 
@@ -51,21 +51,21 @@ _Note this is currently untested on Linux as I do all my 3D modelling and printi
 
 1. Clone the repository:
 
-   ```bash
+   ```sh
    git clone https://github.com/CameronBrooks11/prusaslicer-py.git
    cd prusaslicer-py
    ```
 
 2. Create and activate a virtual environment:
 
-   ```bash
+   ```sh
    python -m venv venv
    venv\Scripts\activate  # On Linux: source venv/bin/activate
    ```
 
 3. Install dependencies (currently no python dependancies unless you intend to develop):
 
-   ```bash
+   ```sh
    pip install -r requirements.txt
    ```
 
@@ -124,7 +124,7 @@ Contributions are welcome! Please follow these steps:
 1. Fork the repository.
 2. Create a feature branch:
 
-   ```bash
+   ```sh
    git checkout -b feature/your-feature-name
    ```
 
