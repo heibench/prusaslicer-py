@@ -1,2 +1,0 @@
-prusaslicer_py
-tests
