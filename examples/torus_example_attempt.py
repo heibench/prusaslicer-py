@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from prusaslicer_py import PrusaSlicer
+from prusaslicer_py import PrusaSlicer, SliceOutputError
 
 # Initialize the PrusaSlicer object
 slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe")
@@ -36,9 +36,16 @@ if torus_path:
 
     # Slice the torus.stl into G-code with the specified arguments
     try:
-        slicer.slice_model(torus_path, str(gcode_output), additional_args=additional_args)
-        print(f"Successfully sliced {torus_path} to G-code: {gcode_output}")
-    except Exception as e:
+        result = slicer.slice_model(torus_path, str(gcode_output), additional_args=additional_args)
+    except SliceOutputError as e:
+        # The engine exited 0 without producing the file. Its own diagnostics
+        # are on the exception -- they are usually the only explanation.
+        print(f"PrusaSlicer produced no G-code: {e}")
+        print(e.stderr)
+    except RuntimeError as e:
         print(f"Error slicing {torus_path}: {e}")
+    else:
+        print(f"Sliced {torus_path} -> {result.output_path} ({result.size_bytes} bytes)")
+
 else:
     print("torus.stl not found in example shapes.")

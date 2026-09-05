@@ -85,7 +85,7 @@ Below is an example of running a basic slicing operation with the built-in examp
 ```python
 import os
 from pathlib import Path
-from prusaslicer_py import PrusaSlicer
+from prusaslicer_py import PrusaSlicer, SliceOutputError
 
 # Initialize the PrusaSlicer object
 slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe")  # slicer_path="prusa-slicer" on Linux
@@ -113,10 +113,16 @@ if torus_path:
 
     # Slice the torus.stl into G-code without any extra arguments
     try:
-        slicer.slice_model(torus_path, str(gcode_output))
-        print(f"Successfully sliced {torus_path} to G-code: {gcode_output}")
-    except Exception as e:
+        result = slicer.slice_model(torus_path, str(gcode_output))
+    except SliceOutputError as e:
+        # PrusaSlicer exited 0 without producing the file -- a mistyped
+        # destination, an option that no-ops, an empty plate. Its own
+        # diagnostics are on the exception.
+        print(f"PrusaSlicer produced no G-code: {e}\n{e.stderr}")
+    except RuntimeError as e:
         print(f"Error slicing {torus_path}: {e}")
+    else:
+        print(f"Sliced {torus_path} -> {result.output_path} ({result.size_bytes} bytes)")
 else:
     print("torus.stl not found in example shapes.")
 ```
@@ -125,6 +131,7 @@ else:
 
 1. Replace slicer_path with the path to your PrusaSlicer CLI executable, if not in PATH.
 2. Provide the .stl file, desired output path for the .gcode, and any additional parameters as keyword arguments.
+3. `slice_model` returns a `SliceResult` (`output_path`, `size_bytes`, `returncode`, `stdout`, `stderr`). It returns only once it has confirmed the G-code exists and is non-empty; if PrusaSlicer exits 0 without producing it, you get a `SliceOutputError` carrying the engine's own output. "It did not raise" is a checked guarantee, not an assumption.
 
 ## Contributing
 

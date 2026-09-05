@@ -83,3 +83,50 @@ By the org's default that argues for Apache-2.0. The repository shipped under
 MIT and is left under MIT here, because relicensing is a decision for the
 copyright holder to make deliberately rather than a side effect of a scaffolding
 change. Flagged for the maintainer; supersede this entry either way.
+
+---
+
+## D5 -- `slice_model` verifies the artifact, and says exactly how far that goes
+
+**Decided:** 2026-09-05 (issue #3)
+
+`slice_model` used to return `None` and run `subprocess.run(..., check=True)`.
+The caller's only signal was "it did not raise" -- which the org contract's
+section 5 names directly as not a surface. PrusaSlicer can exit 0 having
+written nothing, and every such case read to the caller exactly like a
+successful slice.
+
+It now returns a `SliceResult` (`output_path`, `size_bytes`, `returncode`,
+`stdout`, `stderr`) and raises `SliceOutputError` when the engine exits 0
+without producing the G-code. Two things about the shape:
+
+- **The return is the guarantee, not a status to inspect.** `slice_model`
+  checks that the file exists and is non-empty *before* returning, so "it did
+  not raise" and "the artifact was produced" become the same fact -- a checked
+  one. A `produced: bool` on the result would have been a field that is always
+  `True`, which is not a state, it is decoration.
+- **`SliceOutputError` subclasses `RuntimeError`**, which the method already
+  raised for a non-zero exit, so existing callers keep catching it.
+
+The engine's `stdout` and `stderr` are now captured and carried on both the
+result and the exception. Previously the one verb that does real work was the
+only one that let them escape to the parent's streams, where the program that
+needed them could not read them.
+
+### What this deliberately does not establish
+
+It does **not** establish that *this run* wrote the file. A stale G-code left
+by an earlier run at the same destination satisfies exists-and-non-empty.
+
+The obvious guard -- compare `st_mtime_ns` before and after -- was implemented,
+and then removed, because it does not work. Measured on this machine, 198 of
+200 back-to-back writes to a file on `tmpfs` produced an **identical**
+`st_mtime_ns`; the check failed in a full test run and passed in isolation,
+which is a flaky test rather than a guarantee. Filesystem timestamps are not
+fine-grained enough to carry this.
+
+Making the stronger claim requires deleting the destination before invoking the
+engine, so that "a file is there afterwards" can only mean this run wrote it.
+That is a deliberate change in behaviour -- it destroys the previous output
+when a slice fails -- and belongs to the maintainer, not to this change.
+Supersede this entry if it is wanted.

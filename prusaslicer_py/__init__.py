@@ -1,3 +1,3 @@
-from .slicer import PrusaSlicer
+from .slicer import PrusaSlicer, SliceOutputError, SliceResult
 
-__all__ = ["PrusaSlicer"]
+__all__ = ["PrusaSlicer", "SliceOutputError", "SliceResult"]
