@@ -2,66 +2,100 @@
     "transform options:": [
         {
             "option": "--align-xy",
-            "description": "X,Y ; Align the model to the given point."
+            "aliases": [],
+            "value": "X,Y",
+            "description": "Align the model to the given point."
         },
         {
             "option": "--center",
-            "description": "X,Y ; Center the print around the given center."
+            "aliases": [],
+            "value": "X,Y",
+            "description": "Center the print around the given center."
         },
         {
             "option": "--cut",
-            "description": "N ; Cut model at the given Z."
+            "aliases": [],
+            "value": "N",
+            "description": "Cut model at the given Z."
         },
         {
             "option": "--delete-after-load",
-            "description": "ABCD Delete files after loading."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Delete files after loading."
         },
         {
             "option": "--dont-arrange",
+            "aliases": [],
+            "value": null,
             "description": "Do not rearrange the given models before merging and keep their original XY coordinates."
         },
         {
             "option": "--duplicate",
-            "description": "N ; Multiply copies by this factor."
+            "aliases": [],
+            "value": "N",
+            "description": "Multiply copies by this factor."
         },
         {
             "option": "--duplicate-grid",
-            "description": "X,Y Multiply copies by creating a grid."
+            "aliases": [],
+            "value": "X,Y",
+            "description": "Multiply copies by creating a grid."
         },
         {
             "option": "--ensure-on-bed",
+            "aliases": [],
+            "value": null,
             "description": "Lift the object above the bed when it is partially below. Enabled by default, use --no-ensure-on-bed to disable."
         },
         {
-            "option": "--merge,",
-            "description": "-m ; Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
+            "option": "--merge",
+            "aliases": [
+                "-m"
+            ],
+            "value": null,
+            "description": "Arrange the supplied models in a plate and merge them in a single model in order to perform actions once."
         },
         {
             "option": "--repair",
+            "aliases": [],
+            "value": null,
             "description": "Try to repair any non-manifold meshes (this option is implicitly added whenever we need to slice the model to perform the requested action)."
         },
         {
             "option": "--rotate",
-            "description": "N ; Rotation angle around the Z axis in degrees."
+            "aliases": [],
+            "value": "N",
+            "description": "Rotation angle around the Z axis in degrees."
         },
         {
             "option": "--rotate-x",
-            "description": "N ; Rotation angle around the X axis in degrees."
+            "aliases": [],
+            "value": "N",
+            "description": "Rotation angle around the X axis in degrees."
         },
         {
             "option": "--rotate-y",
-            "description": "N ; Rotation angle around the Y axis in degrees."
+            "aliases": [],
+            "value": "N",
+            "description": "Rotation angle around the Y axis in degrees."
         },
         {
             "option": "--scale",
-            "description": "N ; Scaling factor or percentage."
+            "aliases": [],
+            "value": "N",
+            "description": "Scaling factor or percentage."
         },
         {
             "option": "--scale-to-fit",
-            "description": "X,Y,Z Scale to fit the given volume."
+            "aliases": [],
+            "value": "X,Y,Z",
+            "description": "Scale to fit the given volume."
         },
         {
             "option": "--split",
+            "aliases": [],
+            "value": null,
             "description": "Detect unconnected parts in the given model(s) and split them into separate objects."
         }
     ]

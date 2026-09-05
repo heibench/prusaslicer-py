@@ -163,3 +163,64 @@ engine, so that "a file is there afterwards" can only mean this run wrote it.
 That is a deliberate change in behaviour -- it destroys the previous output
 when a slice fails -- and belongs to the maintainer, not to this change.
 Supersede this entry if it is wanted.
+
+---
+
+## D6 -- The extracted CLI surface is structured, and it is complete
+
+**Decided:** 2026-09-05 (issue #5)
+
+`scripts/03_restructured_data/*.json` is the machine-readable description of
+PrusaSlicer's CLI. It exists to be read by a program, so it has to survive being
+read by one.
+
+Issue #5 reported 7 of 450 entries where an aliased option had been mis-split --
+`{"option": "--export-gcode,", "description": "--gcode, -g Slice the model..."}`.
+Reproduced: 7 of 450, exactly. Fixing the parser turned up two larger defects
+behind it.
+
+**The extraction was incomplete.** The parser emitted an entry only when it had
+both an option and a description, and it read a description only from the same
+line. PrusaSlicer prints the description on the *next* line whenever the flag
+list is too long for the column -- so those options were dropped entirely, with
+no diagnostic. Measured against the captured help output: **5 of 47 options
+missing from `--help`, 54 of 383 from `--help-fff`, 20 of 183 from
+`--help-sla`** -- 67 distinct options absent from a file whose purpose is to
+enumerate them. A consumer had no way to tell an option PrusaSlicer does not
+have from one this parser could not see.
+
+**The extraction was mojibake on Linux, or on Windows, depending on where it
+ran.** No `open()` in the pipeline named an encoding, so all of them followed
+the locale. The help output is UTF-8 and contains a degree sign and a mu; the
+committed data was generated on Windows under cp1252 and said `Â°C`. Every
+`open()` in `scripts/02_json_cli.py` and `scripts/03_restructure_cli.py` now
+names `utf-8` explicitly, and the JSON is written with `ensure_ascii=False`.
+
+### The schema
+
+Each entry now carries four fields rather than two:
+
+```json
+{
+  "option": "--export-gcode",
+  "aliases": ["--gcode", "-g"],
+  "value": null,
+  "description": "Slice the model and export toolpaths as G-code."
+}
+```
+
+`value` is the placeholder PrusaSlicer prints for options that take one
+(`ABCD`, `N`, `X,Y`), which previously landed at the front of the description
+on 256 entries. `description` may be an empty string: a handful of options are
+printed with no description at all, and dropping them would be the incomplete
+extraction all over again.
+
+This is a breaking change to the shape of the data. It is taken now because the
+repository is not yet public and the file has no consumers; after that it would
+need a deprecation. **After this, treat the schema as stable.**
+
+The count went from 450 entries to 519, and `just extract-cli` now reproduces
+the committed files byte for byte -- pinned by
+`tests/test_cli_extraction.py::test_committed_data_matches_the_committed_parser`,
+so hand-editing the generated data, or changing the generator without
+regenerating, both go red.
