@@ -52,7 +52,7 @@ _Note this is currently untested on Linux as I do all my 3D modelling and printi
 1. Clone the repository:
 
    ```sh
-   git clone https://github.com/CameronBrooks11/prusaslicer-py.git
+   git clone https://github.com/heibench/prusaslicer-py.git
    cd prusaslicer-py
    ```
 
