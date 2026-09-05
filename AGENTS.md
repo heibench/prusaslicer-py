@@ -24,6 +24,9 @@ this repository is for.
   against a committed `uv.lock`.
 - **No runtime dependencies.** The engine boundary is `subprocess`; keep it
   that way. Adding a runtime dependency needs a decision entry.
+- **`prusaslicer_py/slicer.py` is the only module in the package that may
+  import `subprocess` or name an executable.** `scripts/01_store_helps.py` is
+  the one recorded exception; see `docs/DECISIONS.md` D1.
 - **Tooling** -- `ruff` (format + lint), `mypy` (types), `pytest` (tests),
   `just` (task runner), `pre-commit`.
 

@@ -43,6 +43,9 @@ packages = ["prusaslicer_py"]
 # -- pytest -------------------------------------------------------------------
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# -ra: report the reason for every skip. A run that withholds the engine tests
+# has to say so in the log, or the skip is indistinguishable from a pass.
+addopts = ["-ra"]
 
 # -- ruff ---------------------------------------------------------------------
 [tool.ruff]
