@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import re
 from pathlib import Path
 
@@ -23,7 +23,7 @@ def parse_toc_file(toc_file_path, separator=";"):
     current_section = None
     current_options = []
 
-    with open(toc_file_path, "r") as file:
+    with open(toc_file_path) as file:
         lines = file.readlines()
 
     for line in lines:
@@ -85,9 +85,7 @@ def process_all_tocs(input_dir, output_dir, separator=";"):
 # Define directories
 script_dir = Path(__file__).parent
 toc_helps_dir = script_dir / "03_toc_helps"
-structured_data_dir = (
-    script_dir / "04_structured_data"
-)  # Folder to store structured JSON files
+structured_data_dir = script_dir / "04_structured_data"  # Folder to store structured JSON files
 
 # Process all TOC files with the default separator ";"
 process_all_tocs(toc_helps_dir, structured_data_dir, separator=";")

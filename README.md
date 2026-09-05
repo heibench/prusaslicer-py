@@ -9,12 +9,21 @@
 - Load and manage shapes from `.stl` files or existing profiles from `.3MF` or `.AMF` files.
 - Support for generating G-code with fine-tuned settings for FFF and SLA printers.
 
-_Note this is currently untested on Linux as I do all my 3D modelling and printing on my windows machine. This in particular is an area where contributors / testers are very welcome._
+## Status
+
+- **Windows** -- used regularly against a real `prusa-slicer-console.exe`.
+- **Linux** -- the test suite passes, but the driver has not been run against a
+  real PrusaSlicer install on Linux. Contributors and testers very welcome.
+- **macOS** -- untested.
+- **CI** -- runs the gate on Linux and Windows. No runner has PrusaSlicer
+  installed, so the engine-dependent tests skip there; the end-to-end slice path
+  is not covered by CI. See [`docs/DECISIONS.md`](./docs/DECISIONS.md) D3.
 
 ---
 
 - [PrusaSlicer-Py](#prusaslicer-py)
   - [Features](#features)
+  - [Status](#status)
   - [Getting Started](#getting-started)
     - [Prerequisites](#prerequisites)
     - [Installation](#installation)
@@ -38,12 +47,9 @@ _Note this is currently untested on Linux as I do all my 3D modelling and printi
 
 2. **Python Setup**:
 
-   - Python 3.8 or newer is recommended.
-   - Install `virtualenv` (optional but recommended):
-
-     ```sh
-     pip install virtualenv
-     ```
+   - Python 3.11 or newer.
+   - [`uv`](https://docs.astral.sh/uv/) and [`just`](https://just.systems/) for
+     development (not needed to use the package).
 
 ---
 
@@ -56,18 +62,21 @@ _Note this is currently untested on Linux as I do all my 3D modelling and printi
    cd prusaslicer-py
    ```
 
-2. Create and activate a virtual environment:
+2. Install it:
 
    ```sh
-   python -m venv venv
-   venv\Scripts\activate  # On Linux: source venv/bin/activate
+   pip install -e .
    ```
 
-3. Install dependencies (currently no python dependancies unless you intend to develop):
+   Or, for development:
 
    ```sh
-   pip install -r requirements.txt
+   just setup     # uv sync
+   just check     # fmt-check + lint + typecheck
+   just test      # run the suite
    ```
+
+   The package itself has no runtime dependencies.
 
 ### Usage
 
@@ -79,7 +88,7 @@ from pathlib import Path
 from prusaslicer_py import PrusaSlicer
 
 # Initialize the PrusaSlicer object
-slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe") # slicer_path="prusa-slicer" on Linux
+slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe")  # slicer_path="prusa-slicer" on Linux
 
 # Retrieve the list of example shapes
 example_shapes = slicer.get_example_shapes()
@@ -119,6 +128,10 @@ else:
 
 ## Contributing
 
+See [`AGENTS.md`](./AGENTS.md) for repository conventions, and
+[`docs/DECISIONS.md`](./docs/DECISIONS.md) for the reasoning behind the ones
+that were not obvious.
+
 Contributions are welcome! Please follow these steps:
 
 1. Fork the repository.
@@ -128,7 +141,8 @@ Contributions are welcome! Please follow these steps:
    git checkout -b feature/your-feature-name
    ```
 
-3. Commit your changes and open a pull request.
+3. Run `just check && just test`, then commit your changes and open a pull
+   request.
 
 ## License
 

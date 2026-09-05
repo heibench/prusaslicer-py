@@ -75,3 +75,9 @@ docs/_build/
 
 # Ignore the output directory
 output/
+# uv / virtualenv
+.venv/
+
+# Tool caches
+.ruff_cache/
+.pytest_cache/

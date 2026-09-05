@@ -1,5 +1,4 @@
 import subprocess
-import os
 from pathlib import Path
 
 # Define the commands to run
@@ -11,9 +10,7 @@ commands = [
 
 # Define the output directory
 script_dir = Path(__file__).parent  # Get the directory of the current script
-output_dir = (
-    script_dir / "01_helps"
-)  # Folder inside 'scripts' to store the output files
+output_dir = script_dir / "01_helps"  # Folder inside 'scripts' to store the output files
 
 # Create the output directory if it doesn't exist
 output_dir.mkdir(parents=True, exist_ok=True)

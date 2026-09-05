@@ -5,7 +5,6 @@ import pytest
 
 from prusaslicer_py.slicer import PrusaSlicer
 
-
 #: A path that is never resolved -- these tests mock out the engine entirely,
 #: so the constructor must not be allowed to go looking for a real one.
 FAKE_SLICER_PATH = "path/to/prusa-slicer-console.exe"
@@ -26,14 +25,12 @@ def test_find_executable(slicer):
         return_value="C:\\Program Files\\PrusaSlicer\\prusa-slicer-console.exe",
     ):
         assert (
-            slicer._find_executable()
-            == "C:\\Program Files\\PrusaSlicer\\prusa-slicer-console.exe"
+            slicer._find_executable() == "C:\\Program Files\\PrusaSlicer\\prusa-slicer-console.exe"
         )
 
     # Test if an exception is raised when executable is not found
-    with patch("shutil.which", return_value=None):
-        with pytest.raises(FileNotFoundError):
-            slicer._find_executable()
+    with patch("shutil.which", return_value=None), pytest.raises(FileNotFoundError):
+        slicer._find_executable()
 
 
 def test_check_version():
@@ -58,15 +55,13 @@ def test_slice_model():
     slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
 
     # Mock the file path to ensure no actual file access is required
-    with patch("pathlib.Path.is_file", return_value=True):
-        with patch("subprocess.run") as mock_run:
-            mock_run.return_value = None  # Assume slicing is successful
-            slicer.slice_model("model.stl", "output.gcode")
+    with patch("pathlib.Path.is_file", return_value=True), patch("subprocess.run") as mock_run:
+        mock_run.return_value = None  # Assume slicing is successful
+        slicer.slice_model("model.stl", "output.gcode")
 
     # Simulate missing STL file
-    with patch("pathlib.Path.is_file", return_value=False):
-        with pytest.raises(FileNotFoundError):
-            slicer.slice_model("model.stl", "output.gcode")
+    with patch("pathlib.Path.is_file", return_value=False), pytest.raises(FileNotFoundError):
+        slicer.slice_model("model.stl", "output.gcode")
 
 
 def test_generate_help():
