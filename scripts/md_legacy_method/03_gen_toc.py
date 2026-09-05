@@ -31,7 +31,7 @@ for parsed_file in os.listdir(parsed_helps_dir):
         parsed_file_path = parsed_helps_dir / parsed_file
 
         # Read the parsed markdown file
-        with open(parsed_file_path, "r") as file:
+        with open(parsed_file_path) as file:
             parsed_content = file.read()
 
         # Parse the file into sections (header + content)

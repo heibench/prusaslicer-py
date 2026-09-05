@@ -1,5 +1,5 @@
-import os
 import json
+import os
 import re
 from pathlib import Path
 
@@ -19,21 +19,19 @@ def parse_cli_output_with_sections(file_path, separator=";"):
     Each section will contain a list of options with their descriptions.
     """
     structured_data = {}
-    current_section = ""
     current_option = ""
     current_description = ""
 
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         content = file.read()
 
-    # Split the content into sections based on section headers (e.g., "Actions:", "Transform options:", etc.)
+    # Split the content into sections based on section headers
+    # (e.g., "Actions:", "Transform options:", etc.)
     sections = re.split(r"\n([A-Za-z\s]+:)\n", content)
 
     # Process each section separately
     for i in range(1, len(sections), 2):
-        section_name = (
-            sections[i].strip().lower()
-        )  # Normalize section names to lowercase
+        section_name = sections[i].strip().lower()  # Normalize section names to lowercase
         section_content = sections[i + 1].strip()
 
         # Initialize the section if it doesn't exist in the structured data
@@ -49,9 +47,7 @@ def parse_cli_output_with_sections(file_path, separator=";"):
             if line.startswith("--"):
                 # If there's an existing option, store it before processing the next one
                 if current_option and current_description:
-                    current_description = replace_large_gaps(
-                        current_description, separator
-                    )
+                    current_description = replace_large_gaps(current_description, separator)
                     option_data = {
                         "option": current_option.strip(),
                         "description": current_description,
@@ -85,9 +81,7 @@ def parse_cli_output_with_sections(file_path, separator=";"):
         current_description = ""
 
     # Remove empty sections
-    structured_data = {
-        section: options for section, options in structured_data.items() if options
-    }
+    structured_data = {section: options for section, options in structured_data.items() if options}
 
     return structured_data
 
@@ -121,9 +115,7 @@ def process_cli_files(input_dir, output_dir, separator=";"):
 # Define directories
 script_dir = Path(__file__).parent
 cli_dir = script_dir / "01_helps"  # Folder containing the .txt CLI output files
-structured_data_dir = (
-    script_dir / "02_structured_data"
-)  # Folder to store structured JSON files
+structured_data_dir = script_dir / "02_structured_data"  # Folder to store structured JSON files
 
 # Process all CLI output files in the input directory
 process_cli_files(cli_dir, structured_data_dir, separator=";")
