@@ -112,9 +112,10 @@ finished.
   `scripts/03_restructured_data/`. They are generated; fix the generator and run
   `just extract-cli`. A test regenerates them and fails if the committed files
   have drifted from the committed parser.
-- Always pass `encoding="utf-8"` when reading or writing the help output and
-  the JSON. The help contains non-ASCII characters, and a locale-dependent
-  `open()` is how the data came to say `Â°C`.
+- Always name an encoding when reading or writing the help output and the JSON
+  -- in every stage, `01_store_helps.py` included. The help contains non-ASCII
+  characters, and a locale-dependent `open()` is how the data came to say
+  `Â°C`. Decode the engine itself with `errors="replace"`.
 - Do not reimplement PrusaSlicer's arithmetic. The premise is that the engine
   knows what the slice is and we do not.
 - Do not add AI attribution to commits or PR descriptions -- no co-author

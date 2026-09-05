@@ -183,11 +183,12 @@ behind it.
 both an option and a description, and it read a description only from the same
 line. PrusaSlicer prints the description on the *next* line whenever the flag
 list is too long for the column -- so those options were dropped entirely, with
-no diagnostic. Measured against the captured help output: **5 of 47 options
-missing from `--help`, 54 of 383 from `--help-fff`, 20 of 183 from
-`--help-sla`** -- 67 distinct options absent from a file whose purpose is to
-enumerate them. A consumer had no way to tell an option PrusaSlicer does not
-have from one this parser could not see.
+no diagnostic. Measured against the captured help output, counting an option as
+present if it appeared anywhere in the old data including inside a description:
+**5 of 47 options missing from `--help`, 54 of 383 from `--help-fff`, 20 of 183
+from `--help-sla`** -- **68 distinct options** absent from a file whose purpose
+is to enumerate them. A consumer had no way to tell an option PrusaSlicer does
+not have from one this parser could not see.
 
 **The extraction was mojibake on Linux, or on Windows, depending on where it
 ran.** No `open()` in the pipeline named an encoding, so all of them followed
@@ -210,14 +211,25 @@ Each entry now carries four fields rather than two:
 ```
 
 `value` is the placeholder PrusaSlicer prints for options that take one
-(`ABCD`, `N`, `X,Y`), which previously landed at the front of the description
-on 256 entries. `description` may be an empty string: a handful of options are
+(`ABCD`, `N`, `X,Y`), which previously landed at the front of the description on
+**377 of the 450 entries** in `scripts/03_restructured_data` (419 in
+`scripts/02_structured_data`, which is the same data before the three help files
+are deduplicated). `description` may be an empty string: a handful of options are
 printed with no description at all, and dropping them would be the incomplete
 extraction all over again.
 
 This is a breaking change to the shape of the data. It is taken now because the
 repository is not yet public and the file has no consumers; after that it would
 need a deprecation. **After this, treat the schema as stable.**
+
+Both figures above were wrong in the first draft of this entry -- 67 and 256 --
+and are corrected here rather than quietly edited. 67 was measured against an
+intermediate state of the parser, before it stopped dropping options that have
+no description, and never re-measured after that change. 256 was not a count of
+this defect at all; it was the number of option *lines* carrying a placeholder
+in one of the three help files. Section 7 says never state a number you did not
+produce; the failure mode it does not name is producing a number honestly and
+then changing the code underneath it.
 
 The count went from 450 entries to 519, and `just extract-cli` now reproduces
 the committed files byte for byte -- pinned by
