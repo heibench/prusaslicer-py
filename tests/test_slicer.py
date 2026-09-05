@@ -1,14 +1,22 @@
-import pytest
-import os
 import subprocess
-from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+
 from prusaslicer_py.slicer import PrusaSlicer
-from unittest.mock import patch, MagicMock
+
+
+#: A path that is never resolved -- these tests mock out the engine entirely,
+#: so the constructor must not be allowed to go looking for a real one.
+FAKE_SLICER_PATH = "path/to/prusa-slicer-console.exe"
 
 
 @pytest.fixture
 def slicer():
-    return PrusaSlicer()
+    # Explicit path: constructing bare PrusaSlicer() here would call
+    # _find_executable() and error out on any machine without the engine
+    # installed, turning an environment fault into a red test.
+    return PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
 
 
 def test_find_executable(slicer):
@@ -29,7 +37,7 @@ def test_find_executable(slicer):
 
 
 def test_check_version():
-    slicer = PrusaSlicer(slicer_path="path/to/prusa-slicer-console.exe")
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
 
     # Mock subprocess to simulate a successful version check
     with patch("subprocess.run") as mock_run:
@@ -47,7 +55,7 @@ def test_check_version():
 
 
 def test_slice_model():
-    slicer = PrusaSlicer(slicer_path="path/to/prusa-slicer-console.exe")
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
 
     # Mock the file path to ensure no actual file access is required
     with patch("pathlib.Path.is_file", return_value=True):
@@ -62,7 +70,7 @@ def test_slice_model():
 
 
 def test_generate_help():
-    slicer = PrusaSlicer(slicer_path="path/to/prusa-slicer-console.exe")
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
 
     # Mock subprocess to simulate help generation success
     with patch("subprocess.run") as mock_run:
