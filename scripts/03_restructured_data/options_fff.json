@@ -2,1174 +2,2050 @@
     "misc options:": [
         {
             "option": "--arc-fitting",
+            "aliases": [],
+            "value": null,
             "description": "Enable to get a G-code file which has G2 and G3 moves. G-code resolution will be used as the fitting tolerance. (disabled, emit_center; default: disabled)"
         },
         {
+            "option": "--autoemit-temperature-commands",
+            "aliases": [],
+            "value": null,
+            "description": "When enabled, PrusaSlicer will check whether your custom Start G-Code contains G-codes to set extruder, bed or chamber temperature (M104, M109, M140, M190, M141 and M191). If so, the temperatures will not be emitted automatically so you're free to customize the order of heating commands and other custom actions. Note that you can use placeholder variables for all PrusaSlicer settings, so you can put a \"M109 S[first_layer_temperature]\" command wherever you want. If your custom Start G-Code does NOT contain these G-codes, PrusaSlicer will execute the Start G-Code after heated chamber was set to its temperature, bed reached its target temperature and extruder just started heating. When disabled, PrusaSlicer will NOT emit commands to heat up extruder, bed or chamber, leaving all to Custom Start G-Code."
+        },
+        {
+            "option": "--avoid-crossing-curled-overhangs",
+            "aliases": [],
+            "value": null,
+            "description": "Plan travel moves such that the extruder avoids areas where the filament may be curled up. This is mostly happening on steeper rounded overhangs and may cause a crash with the nozzle. This feature slows down both the print and the G-code generation."
+        },
+        {
+            "option": "--avoid-crossing-perimeters",
+            "aliases": [],
+            "value": null,
+            "description": "Optimize travel moves in order to minimize the crossing of perimeters. This is mostly useful with Bowden extruders which suffer from oozing. This feature slows down both the print and the G-code generation."
+        },
+        {
             "option": "--bed-custom-model",
-            "description": "ABCD"
+            "aliases": [],
+            "value": "ABCD",
+            "description": ""
         },
         {
             "option": "--bed-custom-texture",
-            "description": "ABCD"
+            "aliases": [],
+            "value": "ABCD",
+            "description": ""
         },
         {
             "option": "--bed-shape",
+            "aliases": [],
+            "value": null,
             "description": "(default: 0x0,200x0,200x200,0x200)"
         },
         {
             "option": "--bed-temperature",
-            "description": "N Bed temperature for layers after the first one. Set this to zero to disable bed temperature control commands in the output. (\u00c2\u00b0C, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Bed temperature for layers after the first one. Set this to zero to disable bed temperature control commands in the output. (°C, default: 0)"
         },
         {
             "option": "--before-layer-gcode",
-            "description": "ABCD This custom code is inserted at every layer change, right before the Z move. Note that you can use placeholder variables for all Slic3r settings as well as [layer_num] and [layer_z]."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This custom code is inserted at every layer change, right before the Z move. Note that you can use placeholder variables for all Slic3r settings as well as [layer_num] and [layer_z]."
         },
         {
             "option": "--between-objects-gcode",
-            "description": "ABCD This code is inserted between objects when using sequential printing. By default extruder and bed temperature are reset using non-wait command; however if M104, M109, M140 or M190 are detected in this custom code, Slic3r will not add temperature commands. Note that you can use placeholder variables for all Slic3r settings, so you can put a \"M109 S[first_layer_temperature]\" command wherever you want."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This code is inserted between objects when using sequential printing. By default extruder and bed temperature are reset using non-wait command; however if M104, M109, M140 or M190 are detected in this custom code, Slic3r will not add temperature commands. Note that you can use placeholder variables for all Slic3r settings, so you can put a \"M109 S[first_layer_temperature]\" command wherever you want."
         },
         {
             "option": "--binary-gcode",
+            "aliases": [],
+            "value": null,
             "description": "Enable, if the firmware supports binary G-code format (bgcode). To generate .bgcode files, make sure you have binary G-code enabled in Configuration->Preferences->Other."
         },
         {
             "option": "--bridge-acceleration",
-            "description": "N This is the acceleration your printer will use for bridges. Set zero to disable acceleration control for bridges. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for bridges. Set zero to disable acceleration control for bridges. (mm/s², default: 0)"
         },
         {
             "option": "--bridge-fan-speed",
-            "description": "N This fan speed is enforced during all bridges and overhangs. (%, default: 100)"
+            "aliases": [],
+            "value": "N",
+            "description": "This fan speed is enforced during all bridges and overhangs. (%, default: 100)"
         },
         {
             "option": "--chamber-minimal-temperature",
-            "description": "N Minimal chamber temperature that the printer waits for before the print starts. This allows to start the print before the nominal chamber temperature is reached. When set to zero, the minimal chamber temperature is not set in the G-code. (\u00c2\u00b0C, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimal chamber temperature that the printer waits for before the print starts. This allows to start the print before the nominal chamber temperature is reached. When set to zero, the minimal chamber temperature is not set in the G-code. (°C, default: 0)"
         },
         {
             "option": "--chamber-temperature",
-            "description": "N Required chamber temperature for the print. When set to zero, the nominal chamber temperature is not set in the G-code. (\u00c2\u00b0C, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Required chamber temperature for the print. When set to zero, the nominal chamber temperature is not set in the G-code. (°C, default: 0)"
         },
         {
             "option": "--color-change-gcode",
-            "description": "ABCD This G-code will be used as a code for the color change (default: M600)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This G-code will be used as a code for the color change (default: M600)"
         },
         {
             "option": "--colorprint-heights",
-            "description": "N Heights at which a filament change is to occur. (default: )"
+            "aliases": [],
+            "value": "N",
+            "description": "Heights at which a filament change is to occur. (default: )"
         },
         {
             "option": "--complete-objects",
+            "aliases": [],
+            "value": null,
             "description": "When printing multiple objects or copies, this feature will complete each object before moving onto next one (and starting it from its bottom layer). This feature is useful to avoid the risk of ruined prints. Slic3r should warn and prevent you from extruder collisions, but beware."
         },
         {
             "option": "--cooling",
+            "aliases": [],
+            "value": null,
             "description": "This flag enables the automatic cooling logic that adjusts print speed and fan speed according to layer printing time. (default: 1)"
         },
         {
             "option": "--cooling-tube-length",
-            "description": "N Length of the cooling tube to limit space for cooling moves inside it. (mm, default: 5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Length of the cooling tube to limit space for cooling moves inside it. (mm, default: 5)"
         },
         {
             "option": "--cooling-tube-retraction",
-            "description": "N Distance of the center-point of the cooling tube from the extruder tip. (mm, default: 91.5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Distance of the center-point of the cooling tube from the extruder tip. (mm, default: 91.5)"
         },
         {
             "option": "--default-acceleration",
-            "description": "N This is the acceleration your printer will be reset to after the role-specific acceleration values are used (perimeter/infill). Set zero to prevent resetting acceleration at all. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will be reset to after the role-specific acceleration values are used (perimeter/infill). Set zero to prevent resetting acceleration at all. (mm/s², default: 0)"
         },
         {
             "option": "--deretract-speed",
-            "description": "N The speed for loading of a filament into extruder after retraction (it only applies to the extruder motor). If left to zero, the retraction speed is used. (mm/s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The speed for loading of a filament into extruder after retraction (it only applies to the extruder motor). If left to zero, the retraction speed is used. (mm/s, default: 0)"
         },
         {
             "option": "--disable-fan-first-layers",
-            "description": "N You can set this to a positive value to disable fan at all during the first layers, so that it does not make adhesion worse. (layers, default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "You can set this to a positive value to disable fan at all during the first layers, so that it does not make adhesion worse. (layers, default: 3)"
         },
         {
             "option": "--draft-shield",
+            "aliases": [],
+            "value": null,
             "description": "With draft shield active, the skirt will be printed skirt_distance from the object, possibly intersecting brim. Enabled = skirt is as tall as the highest printed object. Limited = skirt is as tall as specified by skirt_height. This is useful to protect an ABS or ASA print from warping and detaching from print bed due to wind draft. (disabled, limited, enabled; default: disabled)"
         },
         {
             "option": "--duplicate-distance",
-            "description": "N Distance used for the auto-arrange feature of the plater. (mm, default: 6)"
+            "aliases": [],
+            "value": "N",
+            "description": "Distance used for the auto-arrange feature of the plater. (mm, default: 6)"
+        },
+        {
+            "option": "--enable-dynamic-fan-speeds",
+            "aliases": [],
+            "value": null,
+            "description": "This setting enables dynamic fan speed control on overhangs. (default: 0)"
         },
         {
             "option": "--end-filament-gcode",
-            "description": "ABCD This end procedure is inserted at the end of the output file, before the printer end gcode (and before any toolchange from this filament in case of multimaterial printers). Note that you can use placeholder variables for all PrusaSlicer settings. If you have multiple extruders, the gcode is processed in extruder order. (default: \"; Filament-specific end gcode \\n;END gcode for filament\\n\")"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This end procedure is inserted at the end of the output file, before the printer end gcode (and before any toolchange from this filament in case of multimaterial printers). Note that you can use placeholder variables for all PrusaSlicer settings. If you have multiple extruders, the gcode is processed in extruder order. (default: \"; Filament-specific end gcode \\n;END gcode for filament\\n\")"
         },
         {
             "option": "--end-gcode",
-            "description": "ABCD ; This end procedure is inserted at the end of the output file. Note that you can use placeholder variables for all PrusaSlicer settings. (default: M104 S0 ; turn off temperature\\nG28 X0 ; home X axis\\nM84 ; disable motors\\n)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This end procedure is inserted at the end of the output file. Note that you can use placeholder variables for all PrusaSlicer settings. (default: M104 S0 ; turn off temperature\\nG28 X0 ; home X axis\\nM84 ; disable motors\\n)"
         },
         {
             "option": "--external-perimeter-acceleration",
-            "description": "N This is the acceleration your printer will use for external perimeters. Set zero to use the value for perimeters. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for external perimeters. Set zero to use the value for perimeters. (mm/s², default: 0)"
         },
         {
             "option": "--extra-loading-move",
-            "description": "N When set to zero, the distance the filament is moved from parking position during load is exactly the same as it was moved back during unload. When positive, it is loaded further, if negative, the loading move is shorter than unloading. (mm, default: -2)"
+            "aliases": [],
+            "value": "N",
+            "description": "When set to zero, the distance the filament is moved from parking position during load is exactly the same as it was moved back during unload. When positive, it is loaded further, if negative, the loading move is shorter than unloading. (mm, default: -2)"
         },
         {
             "option": "--extruder-clearance-height",
-            "description": "N Set this to the vertical distance between your nozzle tip and (usually) the X carriage rods. In other words, this is the height of the clearance cylinder around your extruder, and it represents the maximum depth the extruder can peek before colliding with other printed objects. (mm, default: 20)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to the vertical distance between your nozzle tip and (usually) the X carriage rods. In other words, this is the height of the clearance cylinder around your extruder, and it represents the maximum depth the extruder can peek before colliding with other printed objects. (mm, default: 20)"
         },
         {
             "option": "--extruder-clearance-radius",
-            "description": "N Set this to the clearance radius around your extruder. If the extruder is not centered, choose the largest value for safety. This setting is used to check for collisions and to display the graphical preview in the plater. (mm, default: 20)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to the clearance radius around your extruder. If the extruder is not centered, choose the largest value for safety. This setting is used to check for collisions and to display the graphical preview in the plater. (mm, default: 20)"
         },
         {
             "option": "--extruder-colour",
-            "description": "ABCD This is only used in the Slic3r interface as a visual help. (default: \"\")"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This is only used in the Slic3r interface as a visual help. (default: \"\")"
         },
         {
             "option": "--extruder-offset",
+            "aliases": [],
+            "value": null,
             "description": "If your firmware doesn't handle the extruder displacement you need the G-code to take it into account. This option lets you specify the displacement of each extruder with respect to the first one. It expects positive coordinates (they will be subtracted from the XY coordinate). (mm, default: 0x0)"
         },
         {
             "option": "--extrusion-axis",
-            "description": "ABCD Use this option to set the axis letter associated to your printer's extruder (usually E but some printers use A). (default: E)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Use this option to set the axis letter associated to your printer's extruder (usually E but some printers use A). (default: E)"
         },
         {
             "option": "--extrusion-multiplier",
-            "description": "N This factor changes the amount of flow proportionally. You may need to tweak this setting to get nice surface finish and correct single wall widths. Usual values are between 0.9 and 1.1. If you think you need to change this more, check filament diameter and your firmware E steps. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "This factor changes the amount of flow proportionally. You may need to tweak this setting to get nice surface finish and correct single wall widths. Usual values are between 0.9 and 1.1. If you think you need to change this more, check filament diameter and your firmware E steps. (default: 1)"
         },
         {
             "option": "--fan-always-on",
+            "aliases": [],
+            "value": null,
             "description": "If this is enabled, fan will never be disabled and will be kept running at least at its minimum speed. Useful for PLA, harmful for ABS. (default: 0)"
         },
         {
             "option": "--fan-below-layer-time",
-            "description": "N If layer print time is estimated below this number of seconds, fan will be enabled and its speed will be calculated by interpolating the minimum and maximum speeds. (approximate seconds, default: 60)"
+            "aliases": [],
+            "value": "N",
+            "description": "If layer print time is estimated below this number of seconds, fan will be enabled and its speed will be calculated by interpolating the minimum and maximum speeds. (approximate seconds, default: 60)"
         },
         {
             "option": "--filament-colour",
-            "description": "ABCD This is only used in the Slic3r interface as a visual help. (default: #29B2B2)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This is only used in the Slic3r interface as a visual help. (default: #29B2B2)"
         },
         {
             "option": "--filament-cooling-final-speed",
-            "description": "N Cooling moves are gradually accelerating towards this speed. (mm/s, default: 3.4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Cooling moves are gradually accelerating towards this speed. (mm/s, default: 3.4)"
         },
         {
             "option": "--filament-cooling-initial-speed",
-            "description": "N Cooling moves are gradually accelerating beginning at this speed. (mm/s, default: 2.2)"
+            "aliases": [],
+            "value": "N",
+            "description": "Cooling moves are gradually accelerating beginning at this speed. (mm/s, default: 2.2)"
         },
         {
             "option": "--filament-cooling-moves",
-            "description": "N Filament is cooled by being moved back and forth in the cooling tubes. Specify desired number of these moves. (default: 4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Filament is cooled by being moved back and forth in the cooling tubes. Specify desired number of these moves. (default: 4)"
         },
         {
             "option": "--filament-cost",
-            "description": "N ; Enter your filament cost per kg here. This is only for statistical information. (money/kg, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Enter your filament cost per kg here. This is only for statistical information. (money/kg, default: 0)"
         },
         {
             "option": "--filament-density",
-            "description": "N Enter your filament density here. This is only for statistical information. A decent way is to weigh a known length of filament and compute the ratio of the length to volume. Better is to calculate the volume directly through displacement. (g/cm\u00c2\u00b3, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Enter your filament density here. This is only for statistical information. A decent way is to weigh a known length of filament and compute the ratio of the length to volume. Better is to calculate the volume directly through displacement. (g/cm³, default: 0)"
         },
         {
             "option": "--filament-deretract-speed",
-            "description": "N The speed for loading of a filament into extruder after retraction (it only applies to the extruder motor). If left to zero, the retraction speed is used. (mm/s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The speed for loading of a filament into extruder after retraction (it only applies to the extruder motor). If left to zero, the retraction speed is used. (mm/s, default: 0)"
         },
         {
             "option": "--filament-diameter",
-            "description": "N Enter your filament diameter here. Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average. (mm, default: 1.75)"
+            "aliases": [],
+            "value": "N",
+            "description": "Enter your filament diameter here. Good precision is required, so use a caliper and do multiple measurements along the filament, then compute the average. (mm, default: 1.75)"
         },
         {
             "option": "--filament-infill-max-crossing-speed",
-            "description": "N Maximum speed allowed for this filament while printing infill with self intersections in a single layer. Set to zero for no limit. (mm/s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum speed allowed for this filament while printing infill with self intersections in a single layer. Set to zero for no limit. (mm/s, default: 0)"
         },
         {
             "option": "--filament-infill-max-speed",
-            "description": "N Maximum speed allowed for this filament while printing infill without any self intersections in a single layer. Set to zero for no limit. (mm/s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum speed allowed for this filament while printing infill without any self intersections in a single layer. Set to zero for no limit. (mm/s, default: 0)"
         },
         {
             "option": "--filament-load-time",
-            "description": "N Time for the printer firmware (or the Multi Material Unit 2.0) to load a new filament during a tool change (when executing the T code). This time is added to the total print time by the G-code time estimator. (s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Time for the printer firmware (or the Multi Material Unit 2.0) to load a new filament during a tool change (when executing the T code). This time is added to the total print time by the G-code time estimator. (s, default: 0)"
         },
         {
             "option": "--filament-loading-speed",
-            "description": "N Speed used for loading the filament on the wipe tower. (mm/s, default: 28)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed used for loading the filament on the wipe tower. (mm/s, default: 28)"
         },
         {
             "option": "--filament-loading-speed-start",
-            "description": "N Speed used at the very beginning of loading phase. (mm/s, default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed used at the very beginning of loading phase. (mm/s, default: 3)"
         },
         {
             "option": "--filament-max-volumetric-speed",
-            "description": "N Maximum volumetric speed allowed for this filament. Limits the maximum volumetric speed of a print to the minimum of print and filament volumetric speed. Set to zero for no limit. (mm\u00c2\u00b3/s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum volumetric speed allowed for this filament. Limits the maximum volumetric speed of a print to the minimum of print and filament volumetric speed. Set to zero for no limit. (mm³/s, default: 0)"
         },
         {
             "option": "--filament-minimal-purge-on-wipe-tower",
-            "description": "N After a tool change, the exact position of the newly loaded filament inside the nozzle may not be known, and the filament pressure is likely not yet stable. Before purging the print head into an infill or a sacrificial object, Slic3r will always prime this amount of material into the wipe tower to produce successive infill or sacrificial object extrusions reliably. (mm\u00c2\u00b3, default: 15)"
+            "aliases": [],
+            "value": "N",
+            "description": "After a tool change, the exact position of the newly loaded filament inside the nozzle may not be known, and the filament pressure is likely not yet stable. Before purging the print head into an infill or a sacrificial object, Slic3r will always prime this amount of material into the wipe tower to produce successive infill or sacrificial object extrusions reliably. (mm³, default: 15)"
+        },
+        {
+            "option": "--filament-multitool-ramming",
+            "aliases": [],
+            "value": null,
+            "description": "Perform ramming when using multitool printer (i.e. when the 'Single Extruder Multimaterial' in Printer Settings is unchecked). When checked, a small amount of filament is rapidly extruded on the wipe tower just before the toolchange. This option is only used when the wipe tower is enabled. (default: 0)"
         },
         {
             "option": "--filament-multitool-ramming-flow",
-            "description": "N Flow used for ramming the filament before the toolchange. (mm\u00c2\u00b3/s, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Flow used for ramming the filament before the toolchange. (mm³/s, default: 10)"
         },
         {
             "option": "--filament-multitool-ramming-volume",
-            "description": "N The volume to be rammed before the toolchange. (mm\u00c2\u00b3, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "The volume to be rammed before the toolchange. (mm³, default: 10)"
         },
         {
             "option": "--filament-notes",
-            "description": "ABCD You can put your notes regarding the filament here. (default: \"\")"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "You can put your notes regarding the filament here. (default: \"\")"
+        },
+        {
+            "option": "--filament-purge-multiplier",
+            "aliases": [],
+            "value": null,
+            "description": "Purging volume on the wipe tower is determined by 'multimaterial_purging' in Printer Settings. This option allows to modify the volume on filament level. Note that the project can override this by setting project-specific values. (%, default: 100%)"
         },
         {
             "option": "--filament-ramming-parameters",
-            "description": "ABCD This string is edited by RammingDialog and contains ramming specific parameters. (default: \"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6\")"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This string is edited by RammingDialog and contains ramming specific parameters. (default: \"120 100 6.6 6.8 7.2 7.6 7.9 8.2 8.7 9.4 9.9 10.0| 0.05 6.6 0.45 6.8 0.95 7.8 1.45 8.3 1.95 9.7 2.45 10 2.95 7.6 3.45 7.6 3.95 7.6 4.45 7.6 4.95 7.6\")"
         },
         {
             "option": "--filament-retract-before-travel",
-            "description": "N Retraction is not triggered when travel moves are shorter than this length. (mm, default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "Retraction is not triggered when travel moves are shorter than this length. (mm, default: 2)"
+        },
+        {
+            "option": "--filament-retract-before-wipe",
+            "aliases": [],
+            "value": null,
+            "description": "With bowden extruders, it may be wise to do some amount of quick retract before doing the wipe movement. (%, default: 0%)"
+        },
+        {
+            "option": "--filament-retract-layer-change",
+            "aliases": [],
+            "value": null,
+            "description": "This flag enforces a retraction whenever a Z move is done. (default: 0)"
         },
         {
             "option": "--filament-retract-length",
-            "description": "N When retraction is triggered, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder). (mm (zero to disable), default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "When retraction is triggered, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder). (mm (zero to disable), default: 2)"
         },
         {
             "option": "--filament-retract-length-toolchange",
-            "description": "N When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder). (mm (zero to disable), default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder). (mm (zero to disable), default: 10)"
         },
         {
             "option": "--filament-retract-lift",
-            "description": "N Lift height applied before travel. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Lift height applied before travel. (mm, default: 0)"
         },
         {
             "option": "--filament-retract-lift-above",
-            "description": "N If you set this to a positive value, Z lift will only take place above the specified absolute Z. You can tune this setting for skipping lift on the first layers. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "If you set this to a positive value, Z lift will only take place above the specified absolute Z. You can tune this setting for skipping lift on the first layers. (mm, default: 0)"
         },
         {
             "option": "--filament-retract-lift-below",
-            "description": "N If you set this to a positive value, Z lift will only take place below the specified absolute Z. You can tune this setting for limiting lift to the first layers. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "If you set this to a positive value, Z lift will only take place below the specified absolute Z. You can tune this setting for limiting lift to the first layers. (mm, default: 0)"
         },
         {
             "option": "--filament-retract-restart-extra",
-            "description": "N When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed. (mm, default: 0)"
         },
         {
             "option": "--filament-retract-restart-extra-toolchange",
-            "description": "N When the retraction is compensated after changing tool, the extruder will push this additional amount of filament. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament. (mm, default: 0)"
         },
         {
             "option": "--filament-retract-speed",
-            "description": "N The speed for retractions (it only applies to the extruder motor). (mm/s, default: 40)"
+            "aliases": [],
+            "value": "N",
+            "description": "The speed for retractions (it only applies to the extruder motor). (mm/s, default: 40)"
+        },
+        {
+            "option": "--filament-shrinkage-compensation-xy",
+            "aliases": [],
+            "value": null,
+            "description": "Enter your filament shrinkage percentages for the X and Y axes here to apply scaling of the object to compensate for shrinkage in the X and Y axes. For example, if you measured 99mm instead of 100mm, enter 1%. (%, default: 0%)"
+        },
+        {
+            "option": "--filament-shrinkage-compensation-z",
+            "aliases": [],
+            "value": null,
+            "description": "Enter your filament shrinkage percentages for the Z axis here to apply scaling of the object to compensate for shrinkage in the Z axis. For example, if you measured 99mm instead of 100mm, enter 1%. (%, default: 0%)"
         },
         {
             "option": "--filament-soluble",
+            "aliases": [],
+            "value": null,
             "description": "Soluble material is most likely used for a soluble support. (default: 0)"
         },
         {
             "option": "--filament-spool-weight",
-            "description": "N Enter weight of the empty filament spool. One may weigh a partially consumed filament spool before printing and one may compare the measured weight with the calculated weight of the filament with the spool to find out whether the amount of filament on the spool is sufficient to finish the print. (g, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Enter weight of the empty filament spool. One may weigh a partially consumed filament spool before printing and one may compare the measured weight with the calculated weight of the filament with the spool to find out whether the amount of filament on the spool is sufficient to finish the print. (g, default: 0)"
         },
         {
             "option": "--filament-stamping-distance",
-            "description": "N If set to nonzero value, filament is moved toward the nozzle between the individual cooling moves (\"stamping\"). This option configures how long this movement should be before the filament is retracted again. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "If set to nonzero value, filament is moved toward the nozzle between the individual cooling moves (\"stamping\"). This option configures how long this movement should be before the filament is retracted again. (mm, default: 0)"
         },
         {
             "option": "--filament-stamping-loading-speed",
-            "description": "N Speed used for stamping. (mm/s, default: 20)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed used for stamping. (mm/s, default: 20)"
         },
         {
             "option": "--filament-toolchange-delay",
-            "description": "N Time to wait after the filament is unloaded. May help to get reliable toolchanges with flexible materials that may need more time to shrink to original dimensions. (s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Time to wait after the filament is unloaded. May help to get reliable toolchanges with flexible materials that may need more time to shrink to original dimensions. (s, default: 0)"
+        },
+        {
+            "option": "--filament-travel-lift-before-obstacle",
+            "aliases": [],
+            "value": null,
+            "description": "If enabled, PrusaSlicer detects obstacles along the travel path and makes the slope steeper in case an obstacle might be hit during the initial phase of the travel. (default: 0)"
         },
         {
             "option": "--filament-travel-max-lift",
-            "description": "N Maximum lift height of the ramping lift. It may not be reached if the next position is close to the old one. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum lift height of the ramping lift. It may not be reached if the next position is close to the old one. (mm, default: 0)"
+        },
+        {
+            "option": "--filament-travel-ramping-lift",
+            "aliases": [],
+            "value": null,
+            "description": "Generates a ramping lift instead of lifting the extruder directly upwards. The travel is split into two phases: the ramp and the standard horizontal travel. This option helps reduce stringing. (default: 0)"
         },
         {
             "option": "--filament-travel-slope",
-            "description": "N Slope of the ramp in the initial phase of the travel. (\u00c2\u00b0, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Slope of the ramp in the initial phase of the travel. (°, default: 0)"
         },
         {
             "option": "--filament-type",
-            "description": "ABCD The filament material type for use in custom G-codes. (PLA, PET, ABS, ASA, FLEX, HIPS, EDGE, NGEN, PA, NYLON, PVA, PC, PP, PEI, PEEK, PEKK, POM, PSU, PVDF, SCAFF; default: PLA)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "The filament material type for use in custom G-codes. (PLA, PET, ABS, ASA, FLEX, HIPS, EDGE, NGEN, PA, NYLON, PVA, PC, PP, PEI, PEEK, PEKK, POM, PSU, PVDF, SCAFF; default: PLA)"
         },
         {
             "option": "--filament-unload-time",
-            "description": "N Time for the printer firmware (or the Multi Material Unit 2.0) to unload a filament during a tool change (when executing the T code). This time is added to the total print time by the G-code time estimator. (s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Time for the printer firmware (or the Multi Material Unit 2.0) to unload a filament during a tool change (when executing the T code). This time is added to the total print time by the G-code time estimator. (s, default: 0)"
         },
         {
             "option": "--filament-unloading-speed",
-            "description": "N Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming). (mm/s, default: 90)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed used for unloading the filament on the wipe tower (does not affect initial part of unloading just after ramming). (mm/s, default: 90)"
         },
         {
             "option": "--filament-unloading-speed-start",
-            "description": "N Speed used for unloading the tip of the filament immediately after ramming. (mm/s, default: 100)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed used for unloading the tip of the filament immediately after ramming. (mm/s, default: 100)"
         },
         {
             "option": "--filament-wipe",
+            "aliases": [],
+            "value": null,
             "description": "This flag will move the nozzle while retracting to minimize the possible blob on leaky extruders. (default: 0)"
         },
         {
             "option": "--first-layer-acceleration",
-            "description": "N This is the acceleration your printer will use for first layer. Set zero to disable acceleration control for first layer. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for first layer. Set zero to disable acceleration control for first layer. (mm/s², default: 0)"
         },
         {
             "option": "--first-layer-acceleration-over-raft",
-            "description": "N This is the acceleration your printer will use for first layer of object above raft interface. Set zero to disable acceleration control for first layer of object above raft interface. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for first layer of object above raft interface. Set zero to disable acceleration control for first layer of object above raft interface. (mm/s², default: 0)"
         },
         {
             "option": "--first-layer-bed-temperature",
-            "description": "N Heated build plate temperature for the first layer. Set this to zero to disable bed temperature control commands in the output. (\u00c2\u00b0C, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Heated build plate temperature for the first layer. Set this to zero to disable bed temperature control commands in the output. (°C, default: 0)"
         },
         {
             "option": "--first-layer-speed",
-            "description": "N If expressed as absolute value in mm/s, this speed will be applied to all the print moves of the first layer, regardless of their type. If expressed as a percentage (for example: 40%) it will scale the default speeds. (mm/s or %, default: 30)"
+            "aliases": [],
+            "value": "N",
+            "description": "If expressed as absolute value in mm/s, this speed will be applied to all the print moves of the first layer, regardless of their type. If expressed as a percentage (for example: 40%) it will scale the default speeds. (mm/s or %, default: 30)"
         },
         {
             "option": "--first-layer-speed-over-raft",
-            "description": "N If expressed as absolute value in mm/s, this speed will be applied to all the print moves of the first object layer above raft interface, regardless of their type. If expressed as a percentage (for example: 40%) it will scale the default speeds. (mm/s or %, default: 30)"
+            "aliases": [],
+            "value": "N",
+            "description": "If expressed as absolute value in mm/s, this speed will be applied to all the print moves of the first object layer above raft interface, regardless of their type. If expressed as a percentage (for example: 40%) it will scale the default speeds. (mm/s or %, default: 30)"
         },
         {
             "option": "--first-layer-temperature",
-            "description": "N Nozzle temperature for the first layer. If you want to control temperature manually during print, set this to zero to disable temperature control commands in the output G-code. (\u00c2\u00b0C, default: 200)"
+            "aliases": [],
+            "value": "N",
+            "description": "Nozzle temperature for the first layer. If you want to control temperature manually during print, set this to zero to disable temperature control commands in the output G-code. (°C, default: 200)"
         },
         {
             "option": "--full-fan-speed-layer",
-            "description": "N Fan speed will be ramped up linearly from zero at layer \"disable_fan_first_layers\" to maximum at layer \"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower than \"disable_fan_first_layers\", in which case the fan will be running at maximum allowed speed at layer \"disable_fan_first_layers\" + 1. (default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Fan speed will be ramped up linearly from zero at layer \"disable_fan_first_layers\" to maximum at layer \"full_fan_speed_layer\". \"full_fan_speed_layer\" will be ignored if lower than \"disable_fan_first_layers\", in which case the fan will be running at maximum allowed speed at layer \"disable_fan_first_layers\" + 1. (default: 0)"
         },
         {
             "option": "--gcode-comments",
+            "aliases": [],
+            "value": null,
             "description": "Enable this to get a commented G-code file, with each line explained by a descriptive text. If you print from SD card, the additional weight of the file could make your firmware slow down."
         },
         {
             "option": "--gcode-flavor",
+            "aliases": [],
+            "value": null,
             "description": "Some G/M-code commands, including temperature control and others, are not universal. Set this option to your printer's firmware to get a compatible output. The \"No extrusion\" flavor prevents PrusaSlicer from exporting any extrusion value at all. (reprap, reprapfirmware, repetier, teacup, makerware, marlin, marlin2, klipper, sailfish, mach3, machinekit, smoothie, no-extrusion; default: reprap)"
         },
         {
+            "option": "--gcode-label-objects",
+            "aliases": [],
+            "value": null,
+            "description": "Selects whether labels should be exported at object boundaries and in what format. OctoPrint = comments to be consumed by OctoPrint CancelObject plugin. Firmware = firmware specific G-code (it will be chosen based on firmware flavor and it can end up to be empty). This settings is NOT compatible with Single Extruder Multi Material setup and Wipe into Object / Wipe into Infill. (disabled, octoprint, firmware; default: disabled)"
+        },
+        {
             "option": "--gcode-resolution",
-            "description": "N Maximum deviation of exported G-code paths from their full resolution counterparts. Very high resolution G-code requires huge amount of RAM to slice and preview, also a 3D printer may stutter not being able to process a high resolution G-code in a timely manner. On the other hand, a low resolution G-code will produce a low poly effect and because the G-code reduction is performed at each layer independently, visible artifacts may be produced. (mm, default: 0.0125)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum deviation of exported G-code paths from their full resolution counterparts. Very high resolution G-code requires huge amount of RAM to slice and preview, also a 3D printer may stutter not being able to process a high resolution G-code in a timely manner. On the other hand, a low resolution G-code will produce a low poly effect and because the G-code reduction is performed at each layer independently, visible artifacts may be produced. (mm, default: 0.0125)"
         },
         {
             "option": "--gcode-substitutions",
-            "description": "ABCD Find / replace patterns in G-code lines and substitute them. (default: )"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Find / replace patterns in G-code lines and substitute them. (default: )"
+        },
+        {
+            "option": "--high-current-on-filament-swap",
+            "aliases": [],
+            "value": null,
+            "description": "It may be beneficial to increase the extruder motor current during the filament exchange sequence to allow for rapid ramming feed rates and to overcome resistance when loading a filament with an ugly shaped tip."
         },
         {
             "option": "--infill-acceleration",
-            "description": "N This is the acceleration your printer will use for infill. Set zero to disable acceleration control for infill. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for infill. Set zero to disable acceleration control for infill. (mm/s², default: 0)"
         },
         {
             "option": "--infill-first",
+            "aliases": [],
+            "value": null,
             "description": "This option will switch the print order of perimeters and infill, making the latter first."
         },
         {
             "option": "--after-layer-gcode",
-            "description": "ABCD, --layer-gcode ABCD This custom code is inserted at every layer change, right after the Z move and before the extruder moves to the first layer point. Note that you can use placeholder variables for all Slic3r settings as well as [layer_num] and [layer_z]."
+            "aliases": [
+                "--layer-gcode"
+            ],
+            "value": "ABCD",
+            "description": "This custom code is inserted at every layer change, right after the Z move and before the extruder moves to the first layer point. Note that you can use placeholder variables for all Slic3r settings as well as [layer_num] and [layer_z]."
         },
         {
             "option": "--max-fan-speed",
-            "description": "N ; This setting represents the maximum speed of your fan. (%, default: 100)"
+            "aliases": [],
+            "value": "N",
+            "description": "This setting represents the maximum speed of your fan. (%, default: 100)"
         },
         {
             "option": "--max-layer-height",
-            "description": "N This is the highest printable layer height for this extruder, used to cap the variable layer height and support layer height. Maximum recommended layer height is 75% of the extrusion width to achieve reasonable inter-layer adhesion. If set to 0, layer height is limited to 75% of the nozzle diameter. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the highest printable layer height for this extruder, used to cap the variable layer height and support layer height. Maximum recommended layer height is 75% of the extrusion width to achieve reasonable inter-layer adhesion. If set to 0, layer height is limited to 75% of the nozzle diameter. (mm, default: 0)"
         },
         {
             "option": "--max-print-height",
-            "description": "N Set this to the maximum height that can be reached by your extruder while printing. (mm, default: 200)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to the maximum height that can be reached by your extruder while printing. (mm, default: 200)"
         },
         {
             "option": "--max-print-speed",
-            "description": "N When setting other speed settings to 0 Slic3r will autocalculate the optimal speed in order to keep constant extruder pressure. This experimental setting is used to set the highest print speed you want to allow. (mm/s, default: 80)"
+            "aliases": [],
+            "value": "N",
+            "description": "When setting other speed settings to 0 Slic3r will autocalculate the optimal speed in order to keep constant extruder pressure. This experimental setting is used to set the highest print speed you want to allow. (mm/s, default: 80)"
         },
         {
             "option": "--max-volumetric-extrusion-rate-slope-negative",
-            "description": "N This experimental setting is used to limit the speed of change in extrusion rate for a transition from higher speed to lower speed. A value of 1.8 mm\u00c2\u00b3/s\u00c2\u00b2 ensures, that a change from the extrusion rate of 5.4 mm\u00c2\u00b3/s (0.45 mm extrusion width, 0.2 mm extrusion height, feedrate 60 mm/s) to 1.8 mm\u00c2\u00b3/s (feedrate 20 mm/s) will take at least 2 seconds. (mm\u00c2\u00b3/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This experimental setting is used to limit the speed of change in extrusion rate for a transition from higher speed to lower speed. A value of 1.8 mm³/s² ensures, that a change from the extrusion rate of 5.4 mm³/s (0.45 mm extrusion width, 0.2 mm extrusion height, feedrate 60 mm/s) to 1.8 mm³/s (feedrate 20 mm/s) will take at least 2 seconds. (mm³/s², default: 0)"
         },
         {
             "option": "--max-volumetric-extrusion-rate-slope-positive",
-            "description": "N This experimental setting is used to limit the speed of change in extrusion rate for a transition from lower speed to higher speed. A value of 1.8 mm\u00c2\u00b3/s\u00c2\u00b2 ensures, that a change from the extrusion rate of 1.8 mm\u00c2\u00b3/s (0.45 mm extrusion width, 0.2 mm extrusion height, feedrate 20 mm/s) to 5.4 mm\u00c2\u00b3/s (feedrate 60 mm/s) will take at least 2 seconds. (mm\u00c2\u00b3/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This experimental setting is used to limit the speed of change in extrusion rate for a transition from lower speed to higher speed. A value of 1.8 mm³/s² ensures, that a change from the extrusion rate of 1.8 mm³/s (0.45 mm extrusion width, 0.2 mm extrusion height, feedrate 20 mm/s) to 5.4 mm³/s (feedrate 60 mm/s) will take at least 2 seconds. (mm³/s², default: 0)"
         },
         {
             "option": "--max-volumetric-speed",
-            "description": "N This experimental setting is used to set the maximum volumetric speed your extruder supports. (mm\u00c2\u00b3/s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This experimental setting is used to set the maximum volumetric speed your extruder supports. (mm³/s, default: 0)"
         },
         {
             "option": "--min-fan-speed",
-            "description": "N ; This setting represents the minimum PWM your fan needs to work. (%, default: 35)"
+            "aliases": [],
+            "value": "N",
+            "description": "This setting represents the minimum PWM your fan needs to work. (%, default: 35)"
         },
         {
             "option": "--min-layer-height",
-            "description": "N This is the lowest printable layer height for this extruder and limits the resolution for variable layer height. Typical values are between 0.05 mm and 0.1 mm. (mm, default: 0.07)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the lowest printable layer height for this extruder and limits the resolution for variable layer height. Typical values are between 0.05 mm and 0.1 mm. (mm, default: 0.07)"
         },
         {
             "option": "--min-print-speed",
-            "description": "N Slic3r will not scale speed down below this speed. (mm/s, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Slic3r will not scale speed down below this speed. (mm/s, default: 10)"
         },
         {
             "option": "--min-skirt-length",
-            "description": "N Generate no less than the number of skirt loops required to consume the specified amount of filament on the bottom layer. For multi-extruder machines, this minimum applies to each extruder. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Generate no less than the number of skirt loops required to consume the specified amount of filament on the bottom layer. For multi-extruder machines, this minimum applies to each extruder. (mm, default: 0)"
         },
         {
             "option": "--multimaterial-purging",
-            "description": "N Determines purging volume on the wipe tower. This can be modified in Filament Settings ('filament_purge_multiplier') or overridden using project-specific settings. (mm\u00c2\u00b3, default: 140)"
+            "aliases": [],
+            "value": "N",
+            "description": "Determines purging volume on the wipe tower. This can be modified in Filament Settings ('filament_purge_multiplier') or overridden using project-specific settings. (mm³, default: 140)"
         },
         {
             "option": "--notes",
-            "description": "ABCD ; You can put here your personal notes. This text will be added to the G-code header comments."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "You can put here your personal notes. This text will be added to the G-code header comments."
         },
         {
             "option": "--nozzle-diameter",
-            "description": "N This is the diameter of your extruder nozzle (for example: 0.5, 0.35 etc.) (mm, default: 0.4)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the diameter of your extruder nozzle (for example: 0.5, 0.35 etc.) (mm, default: 0.4)"
+        },
+        {
+            "option": "--only-retract-when-crossing-perimeters",
+            "aliases": [],
+            "value": null,
+            "description": "Disables retraction when the travel path does not exceed the upper layer's perimeters (and thus any ooze will be probably invisible)."
         },
         {
             "option": "--ooze-prevention",
+            "aliases": [],
+            "value": null,
             "description": "This option will drop the temperature of the inactive extruders to prevent oozing."
         },
         {
             "option": "--output-filename-format",
-            "description": "ABCD You can use all configuration options as variables inside this template. For example: [layer_height], [fill_density] etc. You can also use [timestamp], [year], [month], [day], [hour], [minute], [second], [version], [input_filename_base], [default_output_extension]. (default: [input_filename_base].gcode)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "You can use all configuration options as variables inside this template. For example: [layer_height], [fill_density] etc. You can also use [timestamp], [year], [month], [day], [hour], [minute], [second], [version], [input_filename_base], [default_output_extension]. (default: [input_filename_base].gcode)"
         },
         {
             "option": "--overhang-fan-speed-0",
-            "description": "N Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Fan speeds for overhang sizes in between are calculated via linear interpolation. (%, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Fan speeds for overhang sizes in between are calculated via linear interpolation. (%, default: 0)"
         },
         {
             "option": "--overhang-fan-speed-1",
-            "description": "N Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Fan speeds for overhang sizes in between are calculated via linear interpolation. (%, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Fan speeds for overhang sizes in between are calculated via linear interpolation. (%, default: 0)"
         },
         {
             "option": "--overhang-fan-speed-2",
-            "description": "N Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Fan speeds for overhang sizes in between are calculated via linear interpolation. (%, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Fan speeds for overhang sizes in between are calculated via linear interpolation. (%, default: 0)"
         },
         {
             "option": "--overhang-fan-speed-3",
-            "description": "N Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Fan speeds for overhang sizes in between are calculated via linear interpolation. (%, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Fan speeds for overhang sizes in between are calculated via linear interpolation. (%, default: 0)"
         },
         {
             "option": "--parking-pos-retraction",
-            "description": "N Distance of the extruder tip from the position where the filament is parked when unloaded. This should match the value in printer firmware. (mm, default: 92)"
+            "aliases": [],
+            "value": "N",
+            "description": "Distance of the extruder tip from the position where the filament is parked when unloaded. This should match the value in printer firmware. (mm, default: 92)"
         },
         {
             "option": "--pause-print-gcode",
-            "description": "ABCD This G-code will be used as a code for the pause print (default: M601)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This G-code will be used as a code for the pause print (default: M601)"
         },
         {
             "option": "--perimeter-acceleration",
-            "description": "N This is the acceleration your printer will use for perimeters. Set zero to disable acceleration control for perimeters. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for perimeters. Set zero to disable acceleration control for perimeters. (mm/s², default: 0)"
         },
         {
             "option": "--post-process",
-            "description": "ABCD If you want to process the output G-code through custom scripts, just list their absolute paths here. Separate multiple scripts with a semicolon. Scripts will be passed the absolute path to the G-code file as the first argument, and they can access the Slic3r config settings by reading environment variables. (default: )"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "If you want to process the output G-code through custom scripts, just list their absolute paths here. Separate multiple scripts with a semicolon. Scripts will be passed the absolute path to the G-code file as the first argument, and they can access the Slic3r config settings by reading environment variables. (default: )"
+        },
+        {
+            "option": "--prefer-clockwise-movements",
+            "aliases": [],
+            "value": null,
+            "description": "This setting makes the printer print loops clockwise instead of counterclockwise."
         },
         {
             "option": "--preset-name",
-            "description": "ABCD"
+            "aliases": [],
+            "value": "ABCD",
+            "description": ""
         },
         {
             "option": "--preset-names",
-            "description": "ABCD Names of presets related to the physical printer (default: )"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Names of presets related to the physical printer (default: )"
         },
         {
             "option": "--printer-model",
-            "description": "ABCD Type of the printer."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Type of the printer."
         },
         {
             "option": "--printer-notes",
-            "description": "ABCD You can put your notes regarding the printer here."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "You can put your notes regarding the printer here."
+        },
+        {
+            "option": "--printer-technology",
+            "aliases": [],
+            "value": null,
+            "description": "Printer technology (FFF, SLA; default: FFF)"
         },
         {
             "option": "--printer-variant",
-            "description": "ABCD Name of the printer variant. For example, the printer variants may be differentiated by a nozzle diameter."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Name of the printer variant. For example, the printer variants may be differentiated by a nozzle diameter."
         },
         {
             "option": "--remaining-times",
+            "aliases": [],
+            "value": null,
             "description": "Emit M73 P[percent printed] R[remaining time in minutes] at 1 minute intervals into the G-code to let the firmware show accurate remaining time. As of now only the Prusa i3 MK3 firmware recognizes M73. Also the i3 MK3 firmware supports M73 Qxx Sxx for the silent mode."
         },
         {
             "option": "--resolution",
-            "description": "N ; Minimum detail resolution, used to simplify the input file for speeding up the slicing job and reducing memory usage. High-resolution models often carry more detail than printers can render. Set to zero to disable any simplification and use full resolution from input. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum detail resolution, used to simplify the input file for speeding up the slicing job and reducing memory usage. High-resolution models often carry more detail than printers can render. Set to zero to disable any simplification and use full resolution from input. (mm, default: 0)"
         },
         {
             "option": "--retract-before-travel",
-            "description": "N Retraction is not triggered when travel moves are shorter than this length. (mm, default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "Retraction is not triggered when travel moves are shorter than this length. (mm, default: 2)"
+        },
+        {
+            "option": "--retract-before-wipe",
+            "aliases": [],
+            "value": null,
+            "description": "With bowden extruders, it may be wise to do some amount of quick retract before doing the wipe movement. (%, default: 0%)"
+        },
+        {
+            "option": "--retract-layer-change",
+            "aliases": [],
+            "value": null,
+            "description": "This flag enforces a retraction whenever a Z move is done. (default: 0)"
         },
         {
             "option": "--retract-length",
-            "description": "N ; When retraction is triggered, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder). (mm (zero to disable), default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "When retraction is triggered, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder). (mm (zero to disable), default: 2)"
         },
         {
             "option": "--retract-length-toolchange",
-            "description": "N When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder). (mm (zero to disable), default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "When retraction is triggered before changing tool, filament is pulled back by the specified amount (the length is measured on raw filament, before it enters the extruder). (mm (zero to disable), default: 10)"
         },
         {
             "option": "--retract-lift",
-            "description": "N ; Lift height applied before travel. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Lift height applied before travel. (mm, default: 0)"
         },
         {
             "option": "--retract-lift-above",
-            "description": "N If you set this to a positive value, Z lift will only take place above the specified absolute Z. You can tune this setting for skipping lift on the first layers. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "If you set this to a positive value, Z lift will only take place above the specified absolute Z. You can tune this setting for skipping lift on the first layers. (mm, default: 0)"
         },
         {
             "option": "--retract-lift-below",
-            "description": "N If you set this to a positive value, Z lift will only take place below the specified absolute Z. You can tune this setting for limiting lift to the first layers. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "If you set this to a positive value, Z lift will only take place below the specified absolute Z. You can tune this setting for limiting lift to the first layers. (mm, default: 0)"
         },
         {
             "option": "--retract-restart-extra",
-            "description": "N When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "When the retraction is compensated after the travel move, the extruder will push this additional amount of filament. This setting is rarely needed. (mm, default: 0)"
         },
         {
             "option": "--retract-restart-extra-toolchange",
-            "description": "N When the retraction is compensated after changing tool, the extruder will push this additional amount of filament. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "When the retraction is compensated after changing tool, the extruder will push this additional amount of filament. (mm, default: 0)"
         },
         {
             "option": "--retract-speed",
-            "description": "N ; The speed for retractions (it only applies to the extruder motor). (mm/s, default: 40)"
+            "aliases": [],
+            "value": "N",
+            "description": "The speed for retractions (it only applies to the extruder motor). (mm/s, default: 40)"
         },
         {
             "option": "--silent-mode",
+            "aliases": [],
+            "value": null,
             "description": "The firmware supports stealth mode"
         },
         {
+            "option": "--single-extruder-multi-material",
+            "aliases": [],
+            "value": null,
+            "description": "The printer multiplexes filaments into a single hot end."
+        },
+        {
+            "option": "--single-extruder-multi-material-priming",
+            "aliases": [],
+            "value": null,
+            "description": "If enabled, all printing extruders will be primed at the front edge of the print bed at the start of the print."
+        },
+        {
             "option": "--skirt-distance",
-            "description": "N ; Distance between skirt and brim (when draft shield is not used) or objects. (mm, default: 6)"
+            "aliases": [],
+            "value": "N",
+            "description": "Distance between skirt and brim (when draft shield is not used) or objects. (mm, default: 6)"
         },
         {
             "option": "--skirt-height",
-            "description": "N ; Height of skirt expressed in layers. (layers, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Height of skirt expressed in layers. (layers, default: 1)"
         },
         {
             "option": "--skirts",
-            "description": "N ; Number of loops for the skirt. If the Minimum Extrusion Length option is set, the number of loops might be greater than the one configured here. Set this to zero to disable skirt completely. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of loops for the skirt. If the Minimum Extrusion Length option is set, the number of loops might be greater than the one configured here. Set this to zero to disable skirt completely. (default: 1)"
         },
         {
             "option": "--slowdown-below-layer-time",
-            "description": "N If layer print time is estimated below this number of seconds, print moves speed will be scaled down to extend duration to this value. (approximate seconds, default: 5)"
+            "aliases": [],
+            "value": "N",
+            "description": "If layer print time is estimated below this number of seconds, print moves speed will be scaled down to extend duration to this value. (approximate seconds, default: 5)"
         },
         {
             "option": "--solid-infill-acceleration",
-            "description": "N This is the acceleration your printer will use for solid infill. Set zero to use the value for infill. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for solid infill. Set zero to use the value for infill. (mm/s², default: 0)"
         },
         {
             "option": "--solid-layers",
-            "description": "N ; Number of solid layers to generate on top and bottom surfaces."
+            "aliases": [],
+            "value": "N",
+            "description": "Number of solid layers to generate on top and bottom surfaces."
         },
         {
             "option": "--solid-min-thickness",
-            "description": "N Minimum thickness of a top / bottom shell"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum thickness of a top / bottom shell"
         },
         {
             "option": "--spiral-vase",
+            "aliases": [],
+            "value": null,
             "description": "This feature will raise Z gradually while printing a single-walled object in order to remove any visible seam. This option requires a single perimeter, no infill, no top solid layers and no support material. You can still set any number of bottom solid layers as well as skirt/brim loops. It won't work when printing more than one single object."
         },
         {
+            "option": "--staggered-inner-seams",
+            "aliases": [],
+            "value": null,
+            "description": "This option causes the inner seams to be shifted backwards based on their depth, forming a zigzag pattern."
+        },
+        {
             "option": "--standby-temperature-delta",
-            "description": "N Temperature difference to be applied when an extruder is not active. The value is not used when 'idle_temperature' in filament settings is defined. (\u00e2\u02c6\u2020\u00c2\u00b0C, default: -5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Temperature difference to be applied when an extruder is not active. The value is not used when 'idle_temperature' in filament settings is defined. (∆°C, default: -5)"
         },
         {
             "option": "--start-filament-gcode",
-            "description": "ABCD This start procedure is inserted at the beginning, after any printer start gcode (and after any toolchange to this filament in case of multi-material printers). This is used to override settings for a specific filament. If PrusaSlicer detects M104, M109, M140 or M190 in your custom codes, such commands will not be prepended automatically so you're free to customize the order of heating commands and other custom actions. Note that you can use placeholder variables for all PrusaSlicer settings, so you can put a \"M109 S[first_layer_temperature]\" command wherever you want. If you have multiple extruders, the gcode is processed in extruder order. (default: \"; Filament gcode\\n\")"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This start procedure is inserted at the beginning, after any printer start gcode (and after any toolchange to this filament in case of multi-material printers). This is used to override settings for a specific filament. If PrusaSlicer detects M104, M109, M140 or M190 in your custom codes, such commands will not be prepended automatically so you're free to customize the order of heating commands and other custom actions. Note that you can use placeholder variables for all PrusaSlicer settings, so you can put a \"M109 S[first_layer_temperature]\" command wherever you want. If you have multiple extruders, the gcode is processed in extruder order. (default: \"; Filament gcode\\n\")"
         },
         {
             "option": "--start-gcode",
-            "description": "ABCD ; This start procedure is inserted at the beginning, possibly prepended by temperature-changing commands. See 'autoemit_temperature_commands'. (default: G28 ; home all axes\\nG1 Z5 F5000 ; lift nozzle\\n)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This start procedure is inserted at the beginning, possibly prepended by temperature-changing commands. See 'autoemit_temperature_commands'. (default: G28 ; home all axes\\nG1 Z5 F5000 ; lift nozzle\\n)"
         },
         {
             "option": "--temperature",
-            "description": "N ; Nozzle temperature for layers after the first one. Set this to zero to disable temperature control commands in the output G-code. (\u00c2\u00b0C, default: 200)"
+            "aliases": [],
+            "value": "N",
+            "description": "Nozzle temperature for layers after the first one. Set this to zero to disable temperature control commands in the output G-code. (°C, default: 200)"
         },
         {
             "option": "--template-custom-gcode",
-            "description": "ABCD This G-code will be used as a custom code"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This G-code will be used as a custom code"
         },
         {
             "option": "--thumbnails",
-            "description": "ABCD ; Picture sizes to be stored into a .gcode / .bgcode and .sl1 / .sl1s files, in the following format: \"XxY/EXT, XxY/EXT, ...\" Currently supported extensions are PNG, QOI and JPG."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Picture sizes to be stored into a .gcode / .bgcode and .sl1 / .sl1s files, in the following format: \"XxY/EXT, XxY/EXT, ...\" Currently supported extensions are PNG, QOI and JPG."
         },
         {
             "option": "--thumbnails-format",
+            "aliases": [],
+            "value": null,
             "description": "Format of G-code thumbnails: PNG for best quality, JPG for smallest size, QOI for low memory firmware (PNG, JPG, QOI; default: PNG)"
         },
         {
             "option": "--toolchange-gcode",
-            "description": "ABCD This custom code is inserted before every toolchange. Placeholder variables for all PrusaSlicer settings as well as {toolchange_z}, {previous_extruder} and {next_extruder} can be used. When a tool-changing command which changes to the correct extruder is included (such as T{next_extruder}), PrusaSlicer will emit no other such command. It is therefore possible to script custom behaviour both before and after the toolchange."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This custom code is inserted before every toolchange. Placeholder variables for all PrusaSlicer settings as well as {toolchange_z}, {previous_extruder} and {next_extruder} can be used. When a tool-changing command which changes to the correct extruder is included (such as T{next_extruder}), PrusaSlicer will emit no other such command. It is therefore possible to script custom behaviour both before and after the toolchange."
         },
         {
             "option": "--top-solid-infill-acceleration",
-            "description": "N This is the acceleration your printer will use for top solid infill. Set zero to use the value for solid infill. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for top solid infill. Set zero to use the value for solid infill. (mm/s², default: 0)"
         },
         {
             "option": "--travel-acceleration",
-            "description": "N This is the acceleration your printer will use for travel moves. Set zero to disable acceleration control for travel. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for travel moves. Set zero to disable acceleration control for travel. (mm/s², default: 0)"
+        },
+        {
+            "option": "--travel-lift-before-obstacle",
+            "aliases": [],
+            "value": null,
+            "description": "If enabled, PrusaSlicer detects obstacles along the travel path and makes the slope steeper in case an obstacle might be hit during the initial phase of the travel. (default: 0)"
         },
         {
             "option": "--travel-max-lift",
-            "description": "N Maximum lift height of the ramping lift. It may not be reached if the next position is close to the old one. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum lift height of the ramping lift. It may not be reached if the next position is close to the old one. (mm, default: 0)"
+        },
+        {
+            "option": "--travel-ramping-lift",
+            "aliases": [],
+            "value": null,
+            "description": "Generates a ramping lift instead of lifting the extruder directly upwards. The travel is split into two phases: the ramp and the standard horizontal travel. This option helps reduce stringing. (default: 0)"
         },
         {
             "option": "--travel-slope",
-            "description": "N ; Slope of the ramp in the initial phase of the travel. (\u00c2\u00b0, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Slope of the ramp in the initial phase of the travel. (°, default: 0)"
         },
         {
             "option": "--travel-speed",
-            "description": "N ; Speed for travel moves (jumps between distant extrusion points). (mm/s, default: 130)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for travel moves (jumps between distant extrusion points). (mm/s, default: 130)"
         },
         {
             "option": "--travel-speed-z",
-            "description": "N ; Speed for movements along the Z axis. When set to zero, the value is ignored and regular travel speed is used instead. (mm/s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for movements along the Z axis. When set to zero, the value is ignored and regular travel speed is used instead. (mm/s, default: 0)"
+        },
+        {
+            "option": "--use-firmware-retraction",
+            "aliases": [],
+            "value": null,
+            "description": "This setting uses G10 and G11 commands to have the firmware handle the retraction. Note that this has to be supported by firmware."
+        },
+        {
+            "option": "--use-relative-e-distances",
+            "aliases": [],
+            "value": null,
+            "description": "If your firmware requires relative E values, check this, otherwise leave it unchecked. Most firmwares use absolute values."
         },
         {
             "option": "--use-volumetric-e",
+            "aliases": [],
+            "value": null,
             "description": "This experimental setting uses outputs the E values in cubic millimeters instead of linear millimeters. If your firmware doesn't already know filament diameter(s), you can put commands like 'M200 D[filament_diameter_0] T0' in your start G-code in order to turn volumetric mode on and use the filament diameter associated to the filament selected in Slic3r. This is only supported in recent Marlin."
         },
         {
+            "option": "--variable-layer-height",
+            "aliases": [],
+            "value": null,
+            "description": "Some printers or printer setups may have difficulties printing with a variable layer height. Enabled by default."
+        },
+        {
             "option": "--wipe",
+            "aliases": [],
+            "value": null,
             "description": "This flag will move the nozzle while retracting to minimize the possible blob on leaky extruders. (default: 0)"
         },
         {
             "option": "--wipe-tower",
+            "aliases": [],
+            "value": null,
             "description": "Multi material printers may need to prime or purge extruders on tool changes. Extrude the excess material into the wipe tower."
         },
         {
             "option": "--wipe-tower-acceleration",
-            "description": "N This is the acceleration your printer will use for wipe tower. Set zero to disable acceleration control for the wipe tower. (mm/s\u00c2\u00b2, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is the acceleration your printer will use for wipe tower. Set zero to disable acceleration control for the wipe tower. (mm/s², default: 0)"
         },
         {
             "option": "--wipe-tower-bridging",
-            "description": "N Maximal distance between supports on sparse infill sections. (mm, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximal distance between supports on sparse infill sections. (mm, default: 10)"
         },
         {
             "option": "--wipe-tower-brim-width",
-            "description": "N Wipe tower brim width (mm, default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "Wipe tower brim width (mm, default: 2)"
         },
         {
             "option": "--wipe-tower-cone-angle",
-            "description": "N Angle at the apex of the cone that is used to stabilize the wipe tower. Larger angle means wider base. (\u00c2\u00b0, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Angle at the apex of the cone that is used to stabilize the wipe tower. Larger angle means wider base. (°, default: 0)"
+        },
+        {
+            "option": "--wipe-tower-extra-flow",
+            "aliases": [],
+            "value": null,
+            "description": "Extra flow used for the purging lines on the wipe tower. This makes the purging lines thicker or narrower than they normally would be. The spacing is adjusted automatically. (%, default: 100%)"
+        },
+        {
+            "option": "--wipe-tower-extra-spacing",
+            "aliases": [],
+            "value": null,
+            "description": "Spacing of purge lines on the wipe tower. (%, default: 100%)"
+        },
+        {
+            "option": "--wipe-tower-no-sparse-layers",
+            "aliases": [],
+            "value": null,
+            "description": "If enabled, the wipe tower will not be printed on layers with no toolchanges. On layers with a toolchange, extruder will travel downward to print the wipe tower. User is responsible for ensuring there is no collision with the print."
         },
         {
             "option": "--wipe-tower-rotation-angle",
-            "description": "N Wipe tower rotation angle with respect to x-axis. (\u00c2\u00b0, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Wipe tower rotation angle with respect to x-axis. (°, default: 0)"
         },
         {
             "option": "--wipe-tower-width",
-            "description": "N Width of a wipe tower (mm, default: 60)"
+            "aliases": [],
+            "value": "N",
+            "description": "Width of a wipe tower (mm, default: 60)"
         },
         {
             "option": "--wipe-tower-x",
-            "description": "N ; X coordinate of the left front corner of a wipe tower (mm, default: 180)"
+            "aliases": [],
+            "value": "N",
+            "description": "X coordinate of the left front corner of a wipe tower (mm, default: 180)"
         },
         {
             "option": "--wipe-tower-y",
-            "description": "N ; Y coordinate of the left front corner of a wipe tower (mm, default: 140)"
+            "aliases": [],
+            "value": "N",
+            "description": "Y coordinate of the left front corner of a wipe tower (mm, default: 140)"
         },
         {
             "option": "--wiping-volumes-matrix",
-            "description": "N This matrix describes volumes (in cubic milimetres) required to purge the new filament on the wipe tower for any given pair of tools. (default: 0,140,140,140,140,140,0,140,140,140,140,140,0,140,140,140,140,140,0,140,140,140,140,140,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This matrix describes volumes (in cubic milimetres) required to purge the new filament on the wipe tower for any given pair of tools. (default: 0,140,140,140,140,140,0,140,140,140,140,140,0,140,140,140,140,140,0,140,140,140,140,140,0)"
+        },
+        {
+            "option": "--wiping-volumes-use-custom-matrix",
+            "aliases": [],
+            "value": null,
+            "description": ""
         },
         {
             "option": "--z-offset",
-            "description": "N ; This value will be added (or subtracted) from all the Z coordinates in the output G-code. It is used to compensate for bad Z endstop position: for example, if your endstop zero actually leaves the nozzle 0.3mm far from the print bed, set this to -0.3 (or fix your endstop). (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This value will be added (or subtracted) from all the Z coordinates in the output G-code. It is used to compensate for bad Z endstop position: for example, if your endstop zero actually leaves the nozzle 0.3mm far from the print bed, set this to -0.3 (or fix your endstop). (mm, default: 0)"
         }
     ],
     "advanced:": [
         {
             "option": "--bridge-flow-ratio",
-            "description": "N This factor affects the amount of plastic for bridging. You can decrease it slightly to pull the extrudates and prevent sagging, although default settings are usually good and you should experiment with cooling (use a fan) before tweaking this. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "This factor affects the amount of plastic for bridging. You can decrease it slightly to pull the extrudates and prevent sagging, although default settings are usually good and you should experiment with cooling (use a fan) before tweaking this. (default: 1)"
         },
         {
             "option": "--elefant-foot-compensation",
-            "description": "N The first layer will be shrunk in the XY plane by the configured value to compensate for the 1st layer squish aka an Elephant Foot effect. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The first layer will be shrunk in the XY plane by the configured value to compensate for the 1st layer squish aka an Elephant Foot effect. (mm, default: 0)"
         },
         {
             "option": "--infill-anchor",
-            "description": "N ; Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. PrusaSlicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max. Set this parameter to zero to disable anchoring perimeters connected to a single infill line. (mm or %, default: 600%)"
+            "aliases": [],
+            "value": "N",
+            "description": "Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. PrusaSlicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than infill_anchor_max is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to this parameter, but no longer than anchor_length_max. Set this parameter to zero to disable anchoring perimeters connected to a single infill line. (mm or %, default: 600%)"
         },
         {
             "option": "--infill-anchor-max",
-            "description": "N Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. PrusaSlicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter. Set this parameter to zero to disable anchoring. (mm or %, default: 50)"
+            "aliases": [],
+            "value": "N",
+            "description": "Connect an infill line to an internal perimeter with a short segment of an additional perimeter. If expressed as percentage (example: 15%) it is calculated over infill extrusion width. PrusaSlicer tries to connect two close infill lines to a short perimeter segment. If no such perimeter segment shorter than this parameter is found, the infill line is connected to a perimeter segment at just one side and the length of the perimeter segment taken is limited to infill_anchor, but no longer than this parameter. Set this parameter to zero to disable anchoring. (mm or %, default: 50)"
         },
         {
             "option": "--infill-overlap",
-            "description": "N ; This setting applies an additional overlap between infill and perimeters for better bonding. Theoretically this shouldn't be needed, but backlash might cause gaps. If expressed as percentage (example: 15%) it is calculated over perimeter extrusion width. (mm or %, default: 25%)"
+            "aliases": [],
+            "value": "N",
+            "description": "This setting applies an additional overlap between infill and perimeters for better bonding. Theoretically this shouldn't be needed, but backlash might cause gaps. If expressed as percentage (example: 15%) it is calculated over perimeter extrusion width. (mm or %, default: 25%)"
         },
         {
             "option": "--min-bead-width",
-            "description": "N ; Width of the perimeter that will replace thin features (according to the Minimum feature size) of the model. If the Minimum perimeter width is thinner than the thickness of the feature, the perimeter will become as thick as the feature itself. If expressed as a percentage (for example 85%), it will be computed based on the nozzle diameter. (mm or %, default: 85%)"
+            "aliases": [],
+            "value": "N",
+            "description": "Width of the perimeter that will replace thin features (according to the Minimum feature size) of the model. If the Minimum perimeter width is thinner than the thickness of the feature, the perimeter will become as thick as the feature itself. If expressed as a percentage (for example 85%), it will be computed based on the nozzle diameter. (mm or %, default: 85%)"
         },
         {
             "option": "--min-feature-size",
-            "description": "N Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than the Minimum feature size will be widened to the Minimum perimeter width. If expressed as a percentage (for example 25%), it will be computed based on the nozzle diameter. (mm or %, default: 25%)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum thickness of thin features. Model features that are thinner than this value will not be printed, while features thicker than the Minimum feature size will be widened to the Minimum perimeter width. If expressed as a percentage (for example 25%), it will be computed based on the nozzle diameter. (mm or %, default: 25%)"
         },
         {
             "option": "--mmu-segmented-region-interlocking-depth",
-            "description": "N Interlocking depth of a segmented region. It will be ignored if \"mmu_segmented_region_max_width\" is zero or if \"mmu_segmented_region_interlocking_depth\"is bigger then \"mmu_segmented_region_max_width\". Zero disables this feature. (mm (zero to disable), default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Interlocking depth of a segmented region. It will be ignored if \"mmu_segmented_region_max_width\" is zero or if \"mmu_segmented_region_interlocking_depth\"is bigger then \"mmu_segmented_region_max_width\". Zero disables this feature. (mm (zero to disable), default: 0)"
         },
         {
             "option": "--mmu-segmented-region-max-width",
-            "description": "N Maximum width of a segmented region. Zero disables this feature. (mm (zero to disable), default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum width of a segmented region. Zero disables this feature. (mm (zero to disable), default: 0)"
         },
         {
             "option": "--slice-closing-radius",
-            "description": "N Cracks smaller than 2x gap closing radius are being filled during the triangle mesh slicing. The gap closing operation may reduce the final print resolution, therefore it is advisable to keep the value reasonably low. (mm, default: 0.049)"
+            "aliases": [],
+            "value": "N",
+            "description": "Cracks smaller than 2x gap closing radius are being filled during the triangle mesh slicing. The gap closing operation may reduce the final print resolution, therefore it is advisable to keep the value reasonably low. (mm, default: 0.049)"
         },
         {
             "option": "--slicing-mode",
+            "aliases": [],
+            "value": null,
             "description": "Use \"Even-odd\" for 3DLabPrint airplane models. Use \"Close holes\" to close all holes in the model. (regular, even_odd, close_holes; default: regular)"
         },
         {
             "option": "--wall-distribution-count",
-            "description": "N The number of perimeters, counted from the center, over which the variation needs to be spread. Lower values mean that the outer perimeters don't change in width. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The number of perimeters, counted from the center, over which the variation needs to be spread. Lower values mean that the outer perimeters don't change in width. (default: 1)"
         },
         {
             "option": "--wall-transition-angle",
-            "description": "N When to create transitions between even and odd numbers of perimeters. A wedge shape with an angle greater than this setting will not have transitions and no perimeters will be printed in the center to fill the remaining space. Reducing this setting reduces the number and length of these center perimeters, but may leave gaps or overextrude. (\u00c2\u00b0, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "When to create transitions between even and odd numbers of perimeters. A wedge shape with an angle greater than this setting will not have transitions and no perimeters will be printed in the center to fill the remaining space. Reducing this setting reduces the number and length of these center perimeters, but may leave gaps or overextrude. (°, default: 10)"
         },
         {
             "option": "--wall-transition-filter-deviation",
-            "description": "N Prevent transitioning back and forth between one extra perimeter and one less. This margin extends the range of extrusion widths which follow to [Minimum perimeter width - margin, 2 * Minimum perimeter width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. If expressed as a percentage (for example 25%), it will be computed based on the nozzle diameter. (mm or %, default: 25%)"
+            "aliases": [],
+            "value": "N",
+            "description": "Prevent transitioning back and forth between one extra perimeter and one less. This margin extends the range of extrusion widths which follow to [Minimum perimeter width - margin, 2 * Minimum perimeter width + margin]. Increasing this margin reduces the number of transitions, which reduces the number of extrusion starts/stops and travel time. However, large extrusion width variation can lead to under- or overextrusion problems. If expressed as a percentage (for example 25%), it will be computed based on the nozzle diameter. (mm or %, default: 25%)"
         },
         {
             "option": "--wall-transition-length",
-            "description": "N When transitioning between different numbers of perimeters as the part becomes thinner, a certain amount of space is allotted to split or join the perimeter segments. If expressed as a percentage (for example 100%), it will be computed based on the nozzle diameter. (mm or %, default: 100%)"
+            "aliases": [],
+            "value": "N",
+            "description": "When transitioning between different numbers of perimeters as the part becomes thinner, a certain amount of space is allotted to split or join the perimeter segments. If expressed as a percentage (for example 100%), it will be computed based on the nozzle diameter. (mm or %, default: 100%)"
         },
         {
             "option": "--xy-size-compensation",
-            "description": "N The object will be grown/shrunk in the XY plane by the configured value (negative = inwards, positive = outwards). This might be useful for fine-tuning hole sizes. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The object will be grown/shrunk in the XY plane by the configured value (negative = inwards, positive = outwards). This might be useful for fine-tuning hole sizes. (mm, default: 0)"
         }
     ],
     "extruders:": [
         {
             "option": "--extruder",
-            "description": "N ; The extruder to use (unless more specific extruder settings are specified). This value overrides perimeter and infill extruders, but not the support extruders."
+            "aliases": [],
+            "value": "N",
+            "description": "The extruder to use (unless more specific extruder settings are specified). This value overrides perimeter and infill extruders, but not the support extruders."
         },
         {
             "option": "--infill-extruder",
-            "description": "N The extruder to use when printing infill. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The extruder to use when printing infill. (default: 1)"
         },
         {
             "option": "--perimeter-extruder",
-            "description": "N The extruder to use when printing perimeters and brim. First extruder is 1. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The extruder to use when printing perimeters and brim. First extruder is 1. (default: 1)"
         },
         {
             "option": "--solid-infill-extruder",
-            "description": "N The extruder to use when printing solid infill. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The extruder to use when printing solid infill. (default: 1)"
         },
         {
             "option": "--support-material-extruder",
-            "description": "N The extruder to use when printing support material, raft and skirt (1+, 0 to use the current extruder to minimize tool changes). (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The extruder to use when printing support material, raft and skirt (1+, 0 to use the current extruder to minimize tool changes). (default: 1)"
         },
         {
             "option": "--support-material-interface-extruder",
-            "description": "N The extruder to use when printing support material interface (1+, 0 to use the current extruder to minimize tool changes). This affects raft too. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The extruder to use when printing support material interface (1+, 0 to use the current extruder to minimize tool changes). This affects raft too. (default: 1)"
         },
         {
             "option": "--wipe-tower-extruder",
-            "description": "N The extruder to use when printing perimeter of the wipe tower. Set to 0 to use the one that is available (non-soluble would be preferred). (default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The extruder to use when printing perimeter of the wipe tower. Set to 0 to use the one that is available (non-soluble would be preferred). (default: 0)"
         }
     ],
     "extrusion width:": [
         {
             "option": "--external-perimeter-extrusion-width",
-            "description": "N Set this to a non-zero value to set a manual extrusion width for external perimeters. If left zero, default extrusion width will be used if set, otherwise 1.125 x nozzle diameter will be used. If expressed as percentage (for example 200%), it will be computed over layer height. (mm or %, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to a non-zero value to set a manual extrusion width for external perimeters. If left zero, default extrusion width will be used if set, otherwise 1.125 x nozzle diameter will be used. If expressed as percentage (for example 200%), it will be computed over layer height. (mm or %, default: 0)"
         },
         {
             "option": "--extrusion-width",
-            "description": "N Set this to a non-zero value to allow a manual extrusion width. If left to zero, Slic3r derives extrusion widths from the nozzle diameter (see the tooltips for perimeter extrusion width, infill extrusion width etc). If expressed as percentage (for example: 230%), it will be computed over layer height. (mm or %, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to a non-zero value to allow a manual extrusion width. If left to zero, Slic3r derives extrusion widths from the nozzle diameter (see the tooltips for perimeter extrusion width, infill extrusion width etc). If expressed as percentage (for example: 230%), it will be computed over layer height. (mm or %, default: 0)"
         },
         {
             "option": "--first-layer-extrusion-width",
-            "description": "N Set this to a non-zero value to set a manual extrusion width for first layer. You can use this to force fatter extrudates for better adhesion. If expressed as percentage (for example 120%) it will be computed over first layer height. If set to zero, it will use the default extrusion width. (mm or %, default: 200%)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to a non-zero value to set a manual extrusion width for first layer. You can use this to force fatter extrudates for better adhesion. If expressed as percentage (for example 120%) it will be computed over first layer height. If set to zero, it will use the default extrusion width. (mm or %, default: 200%)"
         },
         {
             "option": "--infill-extrusion-width",
-            "description": "N Set this to a non-zero value to set a manual extrusion width for infill. If left zero, default extrusion width will be used if set, otherwise 1.125 x nozzle diameter will be used. You may want to use fatter extrudates to speed up the infill and make your parts stronger. If expressed as percentage (for example 90%) it will be computed over layer height. (mm or %, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to a non-zero value to set a manual extrusion width for infill. If left zero, default extrusion width will be used if set, otherwise 1.125 x nozzle diameter will be used. You may want to use fatter extrudates to speed up the infill and make your parts stronger. If expressed as percentage (for example 90%) it will be computed over layer height. (mm or %, default: 0)"
         },
         {
             "option": "--perimeter-extrusion-width",
-            "description": "N Set this to a non-zero value to set a manual extrusion width for perimeters. You may want to use thinner extrudates to get more accurate surfaces. If left zero, default extrusion width will be used if set, otherwise 1.125 x nozzle diameter will be used. If expressed as percentage (for example 200%) it will be computed over layer height. (mm or %, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to a non-zero value to set a manual extrusion width for perimeters. You may want to use thinner extrudates to get more accurate surfaces. If left zero, default extrusion width will be used if set, otherwise 1.125 x nozzle diameter will be used. If expressed as percentage (for example 200%) it will be computed over layer height. (mm or %, default: 0)"
         },
         {
             "option": "--solid-infill-extrusion-width",
-            "description": "N Set this to a non-zero value to set a manual extrusion width for infill for solid surfaces. If left zero, default extrusion width will be used if set, otherwise 1.125 x nozzle diameter will be used. If expressed as percentage (for example 90%) it will be computed over layer height. (mm or %, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to a non-zero value to set a manual extrusion width for infill for solid surfaces. If left zero, default extrusion width will be used if set, otherwise 1.125 x nozzle diameter will be used. If expressed as percentage (for example 90%) it will be computed over layer height. (mm or %, default: 0)"
         },
         {
             "option": "--support-material-extrusion-width",
-            "description": "N Set this to a non-zero value to set a manual extrusion width for support material. If left zero, default extrusion width will be used if set, otherwise nozzle diameter will be used. If expressed as percentage (for example 90%) it will be computed over layer height. (mm or %, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to a non-zero value to set a manual extrusion width for support material. If left zero, default extrusion width will be used if set, otherwise nozzle diameter will be used. If expressed as percentage (for example 90%) it will be computed over layer height. (mm or %, default: 0)"
         },
         {
             "option": "--top-infill-extrusion-width",
-            "description": "N Set this to a non-zero value to set a manual extrusion width for infill for top surfaces. You may want to use thinner extrudates to fill all narrow regions and get a smoother finish. If left zero, default extrusion width will be used if set, otherwise nozzle diameter will be used. If expressed as percentage (for example 90%) it will be computed over layer height. (mm or %, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to a non-zero value to set a manual extrusion width for infill for top surfaces. You may want to use thinner extrudates to fill all narrow regions and get a smoother finish. If left zero, default extrusion width will be used if set, otherwise nozzle diameter will be used. If expressed as percentage (for example 90%) it will be computed over layer height. (mm or %, default: 0)"
         }
     ],
     "fuzzy skin:": [
         {
             "option": "--fuzzy-skin",
+            "aliases": [],
+            "value": null,
             "description": "Fuzzy skin type. (none, external, all; default: none)"
         },
         {
             "option": "--fuzzy-skin-point-dist",
-            "description": "N Perimeters will be split into multiple segments by inserting Fuzzy skin points. Lowering the Fuzzy skin point distance will increase the number of randomly offset points on the perimeter wall. (mm, default: 0.8)"
+            "aliases": [],
+            "value": "N",
+            "description": "Perimeters will be split into multiple segments by inserting Fuzzy skin points. Lowering the Fuzzy skin point distance will increase the number of randomly offset points on the perimeter wall. (mm, default: 0.8)"
         },
         {
             "option": "--fuzzy-skin-thickness",
-            "description": "N The maximum distance that each skin point can be offset (both ways), measured perpendicular to the perimeter wall. (mm, default: 0.3)"
+            "aliases": [],
+            "value": "N",
+            "description": "The maximum distance that each skin point can be offset (both ways), measured perpendicular to the perimeter wall. (mm, default: 0.3)"
         }
     ],
     "infill:": [
         {
-            "option": "--bottom-fill-pattern,",
-            "description": "--external-fill-pattern, --solid-fill-pattern Fill pattern for bottom infill. This only affects the bottom external visible layer, and not its adjacent solid shells. (rectilinear, monotonic, monotoniclines, alignedrectilinear, concentric, hilbertcurve, archimedeanchords, octagramspiral; default: monotonic)"
+            "option": "--bottom-fill-pattern",
+            "aliases": [
+                "--external-fill-pattern",
+                "--solid-fill-pattern"
+            ],
+            "value": null,
+            "description": "Fill pattern for bottom infill. This only affects the bottom external visible layer, and not its adjacent solid shells. (rectilinear, monotonic, monotoniclines, alignedrectilinear, concentric, hilbertcurve, archimedeanchords, octagramspiral; default: monotonic)"
         },
         {
             "option": "--bridge-angle",
-            "description": "N ; Bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for all bridges. Use 180\u00c2\u00b0 for zero angle. (\u00c2\u00b0, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Bridging angle override. If left to zero, the bridging angle will be calculated automatically. Otherwise the provided angle will be used for all bridges. Use 180° for zero angle. (°, default: 0)"
         },
         {
             "option": "--fill-angle",
-            "description": "N ; Default base angle for infill orientation. Cross-hatching will be applied to this. Bridges will be infilled using the best direction Slic3r can detect, so this setting does not affect them. (\u00c2\u00b0, default: 45)"
+            "aliases": [],
+            "value": "N",
+            "description": "Default base angle for infill orientation. Cross-hatching will be applied to this. Bridges will be infilled using the best direction Slic3r can detect, so this setting does not affect them. (°, default: 45)"
         },
         {
             "option": "--fill-density",
+            "aliases": [],
+            "value": null,
             "description": "Density of internal infill, expressed in the range 0% - 100%. (%, default: 20%)"
         },
         {
             "option": "--fill-pattern",
+            "aliases": [],
+            "value": null,
             "description": "Fill pattern for general low-density infill. (rectilinear, alignedrectilinear, grid, triangles, stars, cubic, line, concentric, honeycomb, 3dhoneycomb, gyroid, hilbertcurve, archimedeanchords, octagramspiral, adaptivecubic, supportcubic, lightning; default: stars)"
         },
         {
             "option": "--infill-every-layers",
-            "description": "N This feature allows to combine infill and speed up your print by extruding thicker infill layers while preserving thin perimeters, thus accuracy. (layers, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "This feature allows to combine infill and speed up your print by extruding thicker infill layers while preserving thin perimeters, thus accuracy. (layers, default: 1)"
         },
         {
             "option": "--solid-infill-below-area",
-            "description": "N Force solid infill for regions having a smaller area than the specified threshold. (mm\u00c2\u00b2, default: 70)"
+            "aliases": [],
+            "value": "N",
+            "description": "Force solid infill for regions having a smaller area than the specified threshold. (mm², default: 70)"
         },
         {
             "option": "--solid-infill-every-layers",
-            "description": "N This feature allows to force a solid layer every given number of layers. Zero to disable. You can set this to any value (for example 9999); Slic3r will automatically choose the maximum possible number of layers to combine according to nozzle diameter and layer height. (layers, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "This feature allows to force a solid layer every given number of layers. Zero to disable. You can set this to any value (for example 9999); Slic3r will automatically choose the maximum possible number of layers to combine according to nozzle diameter and layer height. (layers, default: 0)"
         },
         {
-            "option": "--top-fill-pattern,",
-            "description": "--external-fill-pattern, --solid-fill-pattern Fill pattern for top infill. This only affects the top visible layer, and not its adjacent solid shells. (rectilinear, monotonic, monotoniclines, alignedrectilinear, concentric, hilbertcurve, archimedeanchords, octagramspiral; default: monotonic)"
+            "option": "--top-fill-pattern",
+            "aliases": [
+                "--external-fill-pattern",
+                "--solid-fill-pattern"
+            ],
+            "value": null,
+            "description": "Fill pattern for top infill. This only affects the top visible layer, and not its adjacent solid shells. (rectilinear, monotonic, monotoniclines, alignedrectilinear, concentric, hilbertcurve, archimedeanchords, octagramspiral; default: monotonic)"
         }
     ],
     "ironing:": [
         {
             "option": "--ironing",
+            "aliases": [],
+            "value": null,
             "description": "Enable ironing of the top layers with the hot print head for smooth surface"
         },
         {
             "option": "--ironing-flowrate",
+            "aliases": [],
+            "value": null,
             "description": "Percent of a flow rate relative to object's normal layer height. (%, default: 15%)"
         },
         {
             "option": "--ironing-spacing",
-            "description": "N Distance between ironing lines (mm, default: 0.1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Distance between ironing lines (mm, default: 0.1)"
         },
         {
             "option": "--ironing-type",
+            "aliases": [],
+            "value": null,
             "description": "Ironing Type (top, topmost, solid; default: top)"
         }
     ],
     "layers and perimeters:": [
         {
             "option": "--avoid-crossing-perimeters-max-detour",
-            "description": "N The maximum detour length for avoid crossing perimeters. If the detour is longer than this value, avoid crossing perimeters is not applied for this travel path. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. (mm or % (zero to disable), default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The maximum detour length for avoid crossing perimeters. If the detour is longer than this value, avoid crossing perimeters is not applied for this travel path. Detour length could be specified either as an absolute value or as percentage (for example 50%) of a direct travel path. (mm or % (zero to disable), default: 0)"
         },
         {
             "option": "--bottom-solid-layers",
-            "description": "N Number of solid layers to generate on bottom surfaces. (default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of solid layers to generate on bottom surfaces. (default: 3)"
         },
         {
             "option": "--bottom-solid-min-thickness",
-            "description": "N The number of bottom solid layers is increased above bottom_solid_layers if necessary to satisfy minimum thickness of bottom shell. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The number of bottom solid layers is increased above bottom_solid_layers if necessary to satisfy minimum thickness of bottom shell. (mm, default: 0)"
+        },
+        {
+            "option": "--external-perimeters-first",
+            "aliases": [],
+            "value": null,
+            "description": "Print contour perimeters from the outermost one to the innermost one instead of the default inverse order."
         },
         {
             "option": "--extra-perimeters",
+            "aliases": [],
+            "value": null,
             "description": "Add more perimeters when needed for avoiding gaps in sloping walls. Slic3r keeps adding perimeters, until more than 70% of the loop immediately above is supported."
         },
         {
+            "option": "--extra-perimeters-on-overhangs",
+            "aliases": [],
+            "value": null,
+            "description": "Detect overhang areas where bridges cannot be anchored, and fill them with extra perimeter paths. These paths are anchored to the nearby non-overhang area when possible."
+        },
+        {
             "option": "--first-layer-height",
-            "description": "N When printing with very low layer heights, you might still want to print a thicker bottom layer to improve adhesion and tolerance for non perfect build plates. (mm, default: 0.35)"
+            "aliases": [],
+            "value": "N",
+            "description": "When printing with very low layer heights, you might still want to print a thicker bottom layer to improve adhesion and tolerance for non perfect build plates. (mm, default: 0.35)"
         },
         {
             "option": "--gap-fill-enabled",
+            "aliases": [],
+            "value": null,
             "description": "Enables filling of gaps between perimeters and between the inner most perimeters and infill."
         },
         {
             "option": "--interface-shells",
+            "aliases": [],
+            "value": null,
             "description": "Force the generation of solid shells between adjacent materials/volumes. Useful for multi-extruder prints with translucent materials or manual soluble support material."
         },
         {
             "option": "--layer-height",
-            "description": "N ; This setting controls the height (and thus the total number) of the slices/layers. Thinner layers give better accuracy but take more time to print. (mm, default: 0.3)"
+            "aliases": [],
+            "value": "N",
+            "description": "This setting controls the height (and thus the total number) of the slices/layers. Thinner layers give better accuracy but take more time to print. (mm, default: 0.3)"
+        },
+        {
+            "option": "--only-one-perimeter-first-layer",
+            "aliases": [],
+            "value": null,
+            "description": "Use only one perimeter on the first layer."
         },
         {
             "option": "--overhangs",
+            "aliases": [],
+            "value": null,
             "description": "Experimental option to adjust flow for overhangs (bridge flow will be used), to apply bridge speed to them and enable fan."
         },
         {
+            "option": "--perimeter-generator",
+            "aliases": [],
+            "value": null,
+            "description": "Classic perimeter generator produces perimeters with constant extrusion width and for very thin areas is used gap-fill. Arachne engine produces perimeters with variable extrusion width. This setting also affects the Concentric infill. (classic, arachne; default: arachne)"
+        },
+        {
             "option": "--perimeters",
-            "description": "N ; This option sets the number of perimeters to generate for each layer. Note that Slic3r may increase this number automatically when it detects sloping surfaces which benefit from a higher number of perimeters if the Extra Perimeters option is enabled. ((minimum), default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "This option sets the number of perimeters to generate for each layer. Note that Slic3r may increase this number automatically when it detects sloping surfaces which benefit from a higher number of perimeters if the Extra Perimeters option is enabled. ((minimum), default: 3)"
         },
         {
             "option": "--seam-position",
+            "aliases": [],
+            "value": null,
             "description": "Position of perimeters starting points. (random, nearest, aligned, rear; default: aligned)"
         },
         {
             "option": "--thick-bridges",
+            "aliases": [],
+            "value": null,
             "description": "If enabled, bridges are more reliable, can bridge longer distances, but may look worse. If disabled, bridges look better but are reliable just for shorter bridged distances."
         },
         {
             "option": "--thin-walls",
+            "aliases": [],
+            "value": null,
             "description": "Detect single-width walls (parts where two extrusions don't fit and we need to collapse them into a single trace)."
         },
         {
+            "option": "--top-one-perimeter-type",
+            "aliases": [],
+            "value": null,
+            "description": "Use only one perimeter on flat top surface, to give more space to the top infill pattern. Could be applied on topmost surface or all top surfaces. (none, top, topmost; default: none)"
+        },
+        {
             "option": "--top-solid-layers",
-            "description": "N Number of solid layers to generate on top surfaces. (default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of solid layers to generate on top surfaces. (default: 3)"
         },
         {
             "option": "--top-solid-min-thickness",
-            "description": "N The number of top solid layers is increased above top_solid_layers if necessary to satisfy minimum thickness of top shell. This is useful to prevent pillowing effect when printing with variable layer height. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The number of top solid layers is increased above top_solid_layers if necessary to satisfy minimum thickness of top shell. This is useful to prevent pillowing effect when printing with variable layer height. (mm, default: 0)"
         }
     ],
     "machine limits:": [
         {
+            "option": "--machine-limits-usage",
+            "aliases": [],
+            "value": null,
+            "description": "How to apply the Machine Limits (emit_to_gcode, time_estimate_only, ignore; default: time_estimate_only)"
+        },
+        {
             "option": "--machine-max-acceleration-e",
-            "description": "N Maximum acceleration of the E axis (mm/s\u00c2\u00b2, default: 10000,5000)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum acceleration of the E axis (mm/s², default: 10000,5000)"
         },
         {
             "option": "--machine-max-acceleration-extruding",
-            "description": "N Maximum acceleration when extruding (mm/s\u00c2\u00b2, default: 1500,1250)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum acceleration when extruding (mm/s², default: 1500,1250)"
         },
         {
             "option": "--machine-max-acceleration-retracting",
-            "description": "N Maximum acceleration when retracting. Not used for RepRapFirmware, which does not support it. (mm/s\u00c2\u00b2, default: 1500,1250)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum acceleration when retracting. Not used for RepRapFirmware, which does not support it. (mm/s², default: 1500,1250)"
         },
         {
             "option": "--machine-max-acceleration-travel",
-            "description": "N Maximum acceleration for travel moves. (mm/s\u00c2\u00b2, default: 1500,1250)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum acceleration for travel moves. (mm/s², default: 1500,1250)"
         },
         {
             "option": "--machine-max-acceleration-x",
-            "description": "N Maximum acceleration of the X axis (mm/s\u00c2\u00b2, default: 9000,1000)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum acceleration of the X axis (mm/s², default: 9000,1000)"
         },
         {
             "option": "--machine-max-acceleration-y",
-            "description": "N Maximum acceleration of the Y axis (mm/s\u00c2\u00b2, default: 9000,1000)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum acceleration of the Y axis (mm/s², default: 9000,1000)"
         },
         {
             "option": "--machine-max-acceleration-z",
-            "description": "N Maximum acceleration of the Z axis (mm/s\u00c2\u00b2, default: 500,200)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum acceleration of the Z axis (mm/s², default: 500,200)"
         },
         {
             "option": "--machine-max-feedrate-e",
-            "description": "N Maximum feedrate of the E axis (mm/s, default: 120,120)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum feedrate of the E axis (mm/s, default: 120,120)"
         },
         {
             "option": "--machine-max-feedrate-x",
-            "description": "N Maximum feedrate of the X axis (mm/s, default: 500,200)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum feedrate of the X axis (mm/s, default: 500,200)"
         },
         {
             "option": "--machine-max-feedrate-y",
-            "description": "N Maximum feedrate of the Y axis (mm/s, default: 500,200)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum feedrate of the Y axis (mm/s, default: 500,200)"
         },
         {
             "option": "--machine-max-feedrate-z",
-            "description": "N Maximum feedrate of the Z axis (mm/s, default: 12,12)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum feedrate of the Z axis (mm/s, default: 12,12)"
         },
         {
             "option": "--machine-max-jerk-e",
-            "description": "N Maximum jerk of the E axis (mm/s, default: 2.5,2.5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum jerk of the E axis (mm/s, default: 2.5,2.5)"
         },
         {
             "option": "--machine-max-jerk-x",
-            "description": "N Maximum jerk of the X axis (mm/s, default: 10,10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum jerk of the X axis (mm/s, default: 10,10)"
         },
         {
             "option": "--machine-max-jerk-y",
-            "description": "N Maximum jerk of the Y axis (mm/s, default: 10,10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum jerk of the Y axis (mm/s, default: 10,10)"
         },
         {
             "option": "--machine-max-jerk-z",
-            "description": "N Maximum jerk of the Z axis (mm/s, default: 0.2,0.4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum jerk of the Z axis (mm/s, default: 0.2,0.4)"
         },
         {
             "option": "--machine-min-extruding-rate",
-            "description": "N Minimum feedrate when extruding (M205 S) (mm/s, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum feedrate when extruding (M205 S) (mm/s, default: 0,0)"
         },
         {
             "option": "--machine-min-travel-rate",
-            "description": "N Minimum travel feedrate (M205 T) (mm/s, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum travel feedrate (M205 T) (mm/s, default: 0,0)"
         }
     ],
     "skirt and brim:": [
         {
             "option": "--brim-separation",
-            "description": "N Offset of brim from the printed object. The offset is applied after the elephant foot compensation. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Offset of brim from the printed object. The offset is applied after the elephant foot compensation. (mm, default: 0)"
         },
         {
             "option": "--brim-type",
+            "aliases": [],
+            "value": null,
             "description": "The places where the brim will be printed around each object on the first layer. (no_brim, outer_only, inner_only, outer_and_inner; default: outer_only)"
         },
         {
             "option": "--brim-width",
-            "description": "N ; The horizontal width of the brim that will be printed around each object on the first layer. When raft is used, no brim is generated (use raft_first_layer_expansion). (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The horizontal width of the brim that will be printed around each object on the first layer. When raft is used, no brim is generated (use raft_first_layer_expansion). (mm, default: 0)"
         }
     ],
     "speed:": [
         {
             "option": "--bridge-speed",
-            "description": "N ; Speed for printing bridges. (mm/s, default: 60)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for printing bridges. (mm/s, default: 60)"
+        },
+        {
+            "option": "--enable-dynamic-overhang-speeds",
+            "aliases": [],
+            "value": null,
+            "description": "This setting enables dynamic speed control on overhangs."
         },
         {
             "option": "--external-perimeter-speed",
-            "description": "N This separate setting will affect the speed of external perimeters (the visible ones). If expressed as percentage (for example: 80%) it will be calculated on the perimeters speed setting above. Set to zero for auto. (mm/s or %, default: 50%)"
+            "aliases": [],
+            "value": "N",
+            "description": "This separate setting will affect the speed of external perimeters (the visible ones). If expressed as percentage (for example: 80%) it will be calculated on the perimeters speed setting above. Set to zero for auto. (mm/s or %, default: 50%)"
         },
         {
             "option": "--gap-fill-speed",
-            "description": "N ; Speed for filling small gaps using short zigzag moves. Keep this reasonably low to avoid too much shaking and resonance issues. Set zero to disable gaps filling. (mm/s, default: 20)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for filling small gaps using short zigzag moves. Keep this reasonably low to avoid too much shaking and resonance issues. Set zero to disable gaps filling. (mm/s, default: 20)"
         },
         {
             "option": "--infill-speed",
-            "description": "N ; Speed for printing the internal fill. Set to zero for auto. (mm/s, default: 80)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for printing the internal fill. Set to zero for auto. (mm/s, default: 80)"
         },
         {
             "option": "--ironing-speed",
-            "description": "N ; Ironing (mm/s, default: 15)"
+            "aliases": [],
+            "value": "N",
+            "description": "Ironing (mm/s, default: 15)"
         },
         {
             "option": "--overhang-speed-0",
-            "description": "N Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Speeds for overhang sizes in between are calculated via linear interpolation. If set as percentage, the speed is calculated over the external perimeter speed. Note that the speeds generated to gcode will never exceed the max volumetric speed value. (mm/s or %, default: 15)"
+            "aliases": [],
+            "value": "N",
+            "description": "Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Speeds for overhang sizes in between are calculated via linear interpolation. If set as percentage, the speed is calculated over the external perimeter speed. Note that the speeds generated to gcode will never exceed the max volumetric speed value. (mm/s or %, default: 15)"
         },
         {
             "option": "--overhang-speed-1",
-            "description": "N Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Speeds for overhang sizes in between are calculated via linear interpolation. If set as percentage, the speed is calculated over the external perimeter speed. Note that the speeds generated to gcode will never exceed the max volumetric speed value. (mm/s or %, default: 15)"
+            "aliases": [],
+            "value": "N",
+            "description": "Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Speeds for overhang sizes in between are calculated via linear interpolation. If set as percentage, the speed is calculated over the external perimeter speed. Note that the speeds generated to gcode will never exceed the max volumetric speed value. (mm/s or %, default: 15)"
         },
         {
             "option": "--overhang-speed-2",
-            "description": "N Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Speeds for overhang sizes in between are calculated via linear interpolation. If set as percentage, the speed is calculated over the external perimeter speed. Note that the speeds generated to gcode will never exceed the max volumetric speed value. (mm/s or %, default: 20)"
+            "aliases": [],
+            "value": "N",
+            "description": "Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Speeds for overhang sizes in between are calculated via linear interpolation. If set as percentage, the speed is calculated over the external perimeter speed. Note that the speeds generated to gcode will never exceed the max volumetric speed value. (mm/s or %, default: 20)"
         },
         {
             "option": "--overhang-speed-3",
-            "description": "N Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Speeds for overhang sizes in between are calculated via linear interpolation. If set as percentage, the speed is calculated over the external perimeter speed. Note that the speeds generated to gcode will never exceed the max volumetric speed value. (mm/s or %, default: 25)"
+            "aliases": [],
+            "value": "N",
+            "description": "Overhang size is expressed as a percentage of overlap of the extrusion with the previous layer: 100% would be full overlap (no overhang), while 0% represents full overhang (floating extrusion, bridge). Speeds for overhang sizes in between are calculated via linear interpolation. If set as percentage, the speed is calculated over the external perimeter speed. Note that the speeds generated to gcode will never exceed the max volumetric speed value. (mm/s or %, default: 25)"
         },
         {
             "option": "--perimeter-speed",
-            "description": "N Speed for perimeters (contours, aka vertical shells). Set to zero for auto. (mm/s, default: 60)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for perimeters (contours, aka vertical shells). Set to zero for auto. (mm/s, default: 60)"
         },
         {
             "option": "--small-perimeter-speed",
-            "description": "N This separate setting will affect the speed of perimeters having radius <= 6.5mm (usually holes). If expressed as percentage (for example: 80%) it will be calculated on the perimeters speed setting above. Set to zero for auto. (mm/s or %, default: 15)"
+            "aliases": [],
+            "value": "N",
+            "description": "This separate setting will affect the speed of perimeters having radius <= 6.5mm (usually holes). If expressed as percentage (for example: 80%) it will be calculated on the perimeters speed setting above. Set to zero for auto. (mm/s or %, default: 15)"
         },
         {
             "option": "--solid-infill-speed",
-            "description": "N Speed for printing solid regions (top/bottom/internal horizontal shells). This can be expressed as a percentage (for example: 80%) over the default infill speed above. Set to zero for auto. (mm/s or %, default: 20)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for printing solid regions (top/bottom/internal horizontal shells). This can be expressed as a percentage (for example: 80%) over the default infill speed above. Set to zero for auto. (mm/s or %, default: 20)"
         },
         {
             "option": "--top-solid-infill-speed",
-            "description": "N Speed for printing top solid layers (it only applies to the uppermost external layers and not to their internal solid layers). You may want to slow down this to get a nicer surface finish. This can be expressed as a percentage (for example: 80%) over the solid infill speed above. Set to zero for auto. (mm/s or %, default: 15)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for printing top solid layers (it only applies to the uppermost external layers and not to their internal solid layers). You may want to slow down this to get a nicer surface finish. This can be expressed as a percentage (for example: 80%) over the solid infill speed above. Set to zero for auto. (mm/s or %, default: 15)"
         }
     ],
     "support material:": [
         {
+            "option": "--dont-support-bridges",
+            "aliases": [],
+            "value": null,
+            "description": "Experimental option for preventing support material from being generated under bridged areas."
+        },
+        {
             "option": "--raft-contact-distance",
-            "description": "N The vertical distance between object and raft. Ignored for soluble interface. (mm, default: 0.1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The vertical distance between object and raft. Ignored for soluble interface. (mm, default: 0.1)"
         },
         {
             "option": "--raft-expansion",
-            "description": "N ; Expansion of the raft in XY plane for better stability. (mm, default: 1.5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Expansion of the raft in XY plane for better stability. (mm, default: 1.5)"
+        },
+        {
+            "option": "--raft-first-layer-density",
+            "aliases": [],
+            "value": null,
+            "description": "Density of the first raft or support layer. (%, default: 90%)"
         },
         {
             "option": "--raft-first-layer-expansion",
-            "description": "N Expansion of the first raft or support layer to improve adhesion to print bed. (mm, default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Expansion of the first raft or support layer to improve adhesion to print bed. (mm, default: 3)"
         },
         {
             "option": "--raft-layers",
-            "description": "N ; The object will be raised by this number of layers, and support material will be generated under it. (layers, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The object will be raised by this number of layers, and support material will be generated under it. (layers, default: 0)"
         },
         {
             "option": "--support-material",
+            "aliases": [],
+            "value": null,
             "description": "Enable support material generation."
         },
         {
             "option": "--support-material-angle",
-            "description": "N Use this setting to rotate the support material pattern on the horizontal plane. (\u00c2\u00b0, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Use this setting to rotate the support material pattern on the horizontal plane. (°, default: 0)"
+        },
+        {
+            "option": "--support-material-auto",
+            "aliases": [],
+            "value": null,
+            "description": "If checked, supports will be generated automatically based on the overhang threshold value. If unchecked, supports will be generated inside the \"Support Enforcer\" volumes only."
         },
         {
             "option": "--support-material-bottom-contact-distance",
-            "description": "N The vertical distance between the object top surface and the support material interface. If set to zero, support_material_contact_distance will be used for both top and bottom contact Z distances. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The vertical distance between the object top surface and the support material interface. If set to zero, support_material_contact_distance will be used for both top and bottom contact Z distances. (mm, default: 0)"
         },
         {
             "option": "--support-material-bottom-interface-layers",
-            "description": "N Number of interface layers to insert between the object(s) and support material. Set to -1 to use support_material_interface_layers (layers, default: -1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of interface layers to insert between the object(s) and support material. Set to -1 to use support_material_interface_layers (layers, default: -1)"
+        },
+        {
+            "option": "--support-material-buildplate-only",
+            "aliases": [],
+            "value": null,
+            "description": "Only create support if it lies on a build plate. Don't create support on a print."
         },
         {
             "option": "--support-material-closing-radius",
-            "description": "N For snug supports, the support regions will be merged using morphological closing operation. Gaps smaller than the closing radius will be filled in. (mm, default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "For snug supports, the support regions will be merged using morphological closing operation. Gaps smaller than the closing radius will be filled in. (mm, default: 2)"
         },
         {
             "option": "--support-material-contact-distance",
-            "description": "N The vertical distance between object and support material interface. Setting this to 0 will also prevent Slic3r from using bridge flow and speed for the first object layer. (mm, default: 0.2)"
+            "aliases": [],
+            "value": "N",
+            "description": "The vertical distance between object and support material interface. Setting this to 0 will also prevent Slic3r from using bridge flow and speed for the first object layer. (mm, default: 0.2)"
         },
         {
             "option": "--support-material-enforce-layers",
-            "description": "N Generate support material for the specified number of layers counting from bottom, regardless of whether normal support material is enabled or not and regardless of any angle threshold. This is useful for getting more adhesion of objects having a very thin or poor footprint on the build plate. (layers, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Generate support material for the specified number of layers counting from bottom, regardless of whether normal support material is enabled or not and regardless of any angle threshold. This is useful for getting more adhesion of objects having a very thin or poor footprint on the build plate. (layers, default: 0)"
+        },
+        {
+            "option": "--support-material-interface-contact-loops",
+            "aliases": [],
+            "value": null,
+            "description": "Cover the top contact layer of the supports with loops. Disabled by default."
         },
         {
             "option": "--support-material-interface-layers",
-            "description": "N Number of interface layers to insert between the object(s) and support material. (layers, default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of interface layers to insert between the object(s) and support material. (layers, default: 3)"
+        },
+        {
+            "option": "--support-material-interface-pattern",
+            "aliases": [],
+            "value": null,
+            "description": "Pattern used to generate support material interface. Default pattern for non-soluble support interface is Rectilinear, while default pattern for soluble support interface is Concentric. (auto, rectilinear, concentric; default: rectilinear)"
         },
         {
             "option": "--support-material-interface-spacing",
-            "description": "N Spacing between interface lines. Set zero to get a solid interface. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Spacing between interface lines. Set zero to get a solid interface. (mm, default: 0)"
         },
         {
             "option": "--support-material-interface-speed",
-            "description": "N Speed for printing support material interface layers. If expressed as percentage (for example 50%) it will be calculated over support material speed. (mm/s or %, default: 100%)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for printing support material interface layers. If expressed as percentage (for example 50%) it will be calculated over support material speed. (mm/s or %, default: 100%)"
+        },
+        {
+            "option": "--support-material-pattern",
+            "aliases": [],
+            "value": null,
+            "description": "Pattern used to generate support material. (rectilinear, rectilinear-grid, honeycomb; default: rectilinear)"
         },
         {
             "option": "--support-material-spacing",
-            "description": "N Spacing between support material lines. (mm, default: 2.5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Spacing between support material lines. (mm, default: 2.5)"
         },
         {
             "option": "--support-material-speed",
-            "description": "N Speed for printing support material. (mm/s, default: 60)"
+            "aliases": [],
+            "value": "N",
+            "description": "Speed for printing support material. (mm/s, default: 60)"
+        },
+        {
+            "option": "--support-material-style",
+            "aliases": [],
+            "value": null,
+            "description": "Style and shape of the support towers. Projecting the supports into a regular grid will create more stable supports, while snug support towers will save material and reduce object scarring. (grid, snug, organic; default: grid)"
+        },
+        {
+            "option": "--support-material-synchronize-layers",
+            "aliases": [],
+            "value": null,
+            "description": "Synchronize support layers with the object print layers. This is useful with multi-material printers, where the extruder switch is expensive. This option is only available when top contact Z distance is set to zero."
         },
         {
             "option": "--support-material-threshold",
-            "description": "N Support material will not be generated for overhangs whose slope angle (90\u00c2\u00b0 = vertical) is above the given threshold. In other words, this value represent the most horizontal slope (measured from the horizontal plane) that you can print without support material. Set to zero for automatic detection (recommended). (\u00c2\u00b0, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Support material will not be generated for overhangs whose slope angle (90° = vertical) is above the given threshold. In other words, this value represent the most horizontal slope (measured from the horizontal plane) that you can print without support material. Set to zero for automatic detection (recommended). (°, default: 0)"
+        },
+        {
+            "option": "--support-material-with-sheath",
+            "aliases": [],
+            "value": null,
+            "description": "Add a sheath (a single perimeter line) around the base support. This makes the support more reliable, but also more difficult to remove."
         },
         {
             "option": "--support-material-xy-spacing",
-            "description": "N XY separation between an object and its support. If expressed as percentage (for example 50%), it will be calculated over external perimeter width. (mm or %, default: 50%)"
+            "aliases": [],
+            "value": "N",
+            "description": "XY separation between an object and its support. If expressed as percentage (for example 50%), it will be calculated over external perimeter width. (mm or %, default: 50%)"
         },
         {
             "option": "--support-tree-angle",
-            "description": "N The maximum angle of the branches, when the branches have to avoid the model. Use a lower angle to make them more vertical and more stable. Use a higher angle to be able to have more reach. (\u00c2\u00b0, default: 40)"
+            "aliases": [],
+            "value": "N",
+            "description": "The maximum angle of the branches, when the branches have to avoid the model. Use a lower angle to make them more vertical and more stable. Use a higher angle to be able to have more reach. (°, default: 40)"
         },
         {
             "option": "--support-tree-angle-slow",
-            "description": "N The preferred angle of the branches, when they do not have to avoid the model. Use a lower angle to make them more vertical and more stable. Use a higher angle for branches to merge faster. (\u00c2\u00b0, default: 25)"
+            "aliases": [],
+            "value": "N",
+            "description": "The preferred angle of the branches, when they do not have to avoid the model. Use a lower angle to make them more vertical and more stable. Use a higher angle for branches to merge faster. (°, default: 25)"
         },
         {
             "option": "--support-tree-branch-diameter",
-            "description": "N The diameter of the thinnest branches of organic support. Thicker branches are more sturdy. Branches towards the base will be thicker than this. (mm, default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "The diameter of the thinnest branches of organic support. Thicker branches are more sturdy. Branches towards the base will be thicker than this. (mm, default: 2)"
         },
         {
             "option": "--support-tree-branch-diameter-angle",
-            "description": "N The angle of the branches' diameter as they gradually become thicker towards the bottom. An angle of 0 will cause the branches to have uniform thickness over their length. A bit of an angle can increase stability of the organic support. (\u00c2\u00b0, default: 5)"
+            "aliases": [],
+            "value": "N",
+            "description": "The angle of the branches' diameter as they gradually become thicker towards the bottom. An angle of 0 will cause the branches to have uniform thickness over their length. A bit of an angle can increase stability of the organic support. (°, default: 5)"
         },
         {
             "option": "--support-tree-branch-diameter-double-wall",
-            "description": "N Branches with area larger than the area of a circle of this diameter will be printed with double walls for stability. Set this value to zero for no double walls. (mm, default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Branches with area larger than the area of a circle of this diameter will be printed with double walls for stability. Set this value to zero for no double walls. (mm, default: 3)"
         },
         {
             "option": "--support-tree-branch-distance",
-            "description": "N How far apart the branches need to be when they touch the model. Making this distance small will cause the tree support to touch the model at more points, causing better overhang but making support harder to remove. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "How far apart the branches need to be when they touch the model. Making this distance small will cause the tree support to touch the model at more points, causing better overhang but making support harder to remove. (default: 1)"
         },
         {
             "option": "--support-tree-tip-diameter",
-            "description": "N Branch tip diameter for organic supports. (mm, default: 0.8)"
+            "aliases": [],
+            "value": "N",
+            "description": "Branch tip diameter for organic supports. (mm, default: 0.8)"
+        },
+        {
+            "option": "--support-tree-top-rate",
+            "aliases": [],
+            "value": null,
+            "description": "Adjusts the density of the support structure used to generate the tips of the branches. A higher value results in better overhangs but the supports are harder to remove, thus it is recommended to enable top support interfaces instead of a high branch density value if dense interfaces are needed. (%, default: 15%)"
         }
     ],
     "wipe options:": [
         {
             "option": "--wipe-into-infill",
+            "aliases": [],
+            "value": null,
             "description": "Purging after toolchange will be done inside this object's infills. This lowers the amount of waste but may result in longer print time due to additional travel moves."
         },
         {
             "option": "--wipe-into-objects",
+            "aliases": [],
+            "value": null,
             "description": "Object will be used to purge the nozzle after a toolchange to save material that would otherwise end up in the wipe tower and decrease print time. Colours of the objects will be mixed as a result."
         }
     ]

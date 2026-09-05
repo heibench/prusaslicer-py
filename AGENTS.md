@@ -16,7 +16,9 @@ adjudicate a design, and it does not post-process G-code.
 `scripts/` holds a small extraction pipeline that turns PrusaSlicer's own
 `--help` output into a machine-readable description of its CLI surface
 (`scripts/03_restructured_data/*.json`). That artifact is a large part of what
-this repository is for.
+this repository is for. Each entry is
+`{option, aliases, value, description}`; see `docs/DECISIONS.md` D6, and treat
+the schema as stable.
 
 ## Stack
 
@@ -108,7 +110,12 @@ finished.
 
 - Do not hand-edit `scripts/02_structured_data/` or
   `scripts/03_restructured_data/`. They are generated; fix the generator and run
-  `just extract-cli`.
+  `just extract-cli`. A test regenerates them and fails if the committed files
+  have drifted from the committed parser.
+- Always name an encoding when reading or writing the help output and the JSON
+  -- in every stage, `01_store_helps.py` included. The help contains non-ASCII
+  characters, and a locale-dependent `open()` is how the data came to say
+  `Â°C`. Decode the engine itself with `errors="replace"`.
 - Do not reimplement PrusaSlicer's arithmetic. The premise is that the engine
   knows what the slice is and we do not.
 - Do not add AI attribution to commits or PR descriptions -- no co-author

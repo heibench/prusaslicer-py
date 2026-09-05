@@ -4,14 +4,14 @@ from pathlib import Path
 
 def load_json(file_path):
     """Load JSON data from a file."""
-    with open(file_path) as file:
+    with open(file_path, encoding="utf-8") as file:
         return json.load(file)
 
 
 def save_json(data, file_path):
     """Save data to a JSON file."""
-    with open(file_path, "w") as file:
-        json.dump(data, file, indent=4)
+    with open(file_path, "w", encoding="utf-8") as file:
+        json.dump(data, file, indent=4, ensure_ascii=False)
 
 
 def find_common_sections(data1, data2, data3):
