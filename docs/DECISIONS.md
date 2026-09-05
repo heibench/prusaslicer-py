@@ -113,6 +113,39 @@ result and the exception. Previously the one verb that does real work was the
 only one that let them escape to the parent's streams, where the program that
 needed them could not read them.
 
+### Failure carries the same fields as success
+
+`SliceEngineError` (the engine exited non-zero) and `SliceOutputError` (it
+exited 0 and produced nothing) are both `SliceError`, which is a
+`RuntimeError`, and both carry `output_path`, `returncode`, `stdout` and
+`stderr`. The first draft interpolated stderr into the message on the non-zero
+path and dropped returncode and stdout entirely, which left a caller parsing
+prose for facts the success path hands over as fields -- the thing section 2.2
+says not to do, reintroduced on the path most likely to be hit.
+
+### The engine's output is decoded with `errors="replace"`
+
+Capturing the output introduced a way to fail a slice that had succeeded.
+`capture_output=True, text=True` decodes strictly under the locale codec, and
+that decode happens *inside* `subprocess.run` -- before any verification. An
+engine that wrote perfect G-code, exited 0 and printed one byte the codec could
+not read raised `UnicodeDecodeError`:
+
+```
+RAISED: UnicodeDecodeError 'utf-8' codec can't decode byte 0xb0 in position 15
+but the gcode WAS written: True 'G1 X0 Y0'
+```
+
+This was not hypothetical. D6 establishes that PrusaSlicer's own help output
+contains a degree sign and a mu, and that its encoding follows whatever machine
+it ran on. On `main` the risk did not exist because nothing was captured, so
+capturing is what created it.
+
+All three `subprocess.run` calls now pass `errors="replace"`. The *codec* is
+left as Python's locale default: there is no single right answer across
+platforms, and forcing UTF-8 would be wrong more often on Windows. What matters
+is that a byte we cannot decode never becomes a verdict.
+
 ### What this deliberately does not establish
 
 It does **not** establish that *this run* wrote the file. A stale G-code left

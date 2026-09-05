@@ -4,6 +4,14 @@ import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 
+# Every subprocess.run below passes `errors="replace"`. That is not tidiness.
+# The engine's output encoding is not ours to choose -- PrusaSlicer's own
+# --help demonstrably contains a degree sign and a mu -- and a strict decode
+# raises UnicodeDecodeError *before* the result can be verified, reporting
+# failure for a slice that succeeded. The codec itself is left as Python's
+# locale default, because no single choice is right on every platform; what
+# matters is that a byte we cannot decode never becomes a verdict.
+
 
 @dataclass(frozen=True)
 class SliceResult:
@@ -29,15 +37,16 @@ class SliceResult:
     stderr: str
 
 
-class SliceOutputError(RuntimeError):
-    """The engine reported success but did not produce the G-code.
+class SliceError(RuntimeError):
+    """A slice that did not produce usable G-code.
 
-    PrusaSlicer can exit 0 and write nothing: a destination it cannot write to,
-    an option that silently no-ops, an empty plate. Without this, every one of
-    those reads to the caller exactly like a successful slice.
+    Carries the same four facts the success path returns on a
+    :class:`SliceResult`, so a caller reads a failed slice the same way it
+    reads a successful one instead of parsing prose out of a message. The
+    engine's own output is usually the only explanation available.
 
-    Carries the engine's own output, which is usually the only explanation
-    available for why nothing was produced.
+    Subclasses ``RuntimeError``, which ``slice_model`` raised before this
+    existed, so callers that already catch ``RuntimeError`` keep working.
     """
 
     def __init__(
@@ -54,6 +63,19 @@ class SliceOutputError(RuntimeError):
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
+
+
+class SliceEngineError(SliceError):
+    """The engine exited non-zero. It said the slice failed, and why."""
+
+
+class SliceOutputError(SliceError):
+    """The engine reported success but did not produce the G-code.
+
+    PrusaSlicer can exit 0 and write nothing: a destination it cannot write to,
+    an option that silently no-ops, an empty plate. Without this, every one of
+    those reads to the caller exactly like a successful slice.
+    """
 
 
 class PrusaSlicer:
@@ -95,6 +117,7 @@ class PrusaSlicer:
                 check=True,
                 stdout=subprocess.PIPE,
                 text=True,
+                errors="replace",
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
@@ -126,11 +149,13 @@ class PrusaSlicer:
         :return: A :class:`SliceResult` describing the file that was produced
                  and carrying the engine's stdout and stderr.
         :raises FileNotFoundError: If the input STL does not exist.
-        :raises RuntimeError: If the engine exits non-zero.
+        :raises SliceEngineError: If the engine exits non-zero.
         :raises SliceOutputError: If the engine exits zero without producing
-                                  the G-code. This is a subclass of
-                                  RuntimeError, so callers that already treat
-                                  a failed slice as RuntimeError keep working.
+                                  the G-code.
+
+        Both failures are :class:`SliceError`, which is a ``RuntimeError``, and
+        both carry ``output_path``, ``returncode``, ``stdout`` and ``stderr``
+        as attributes -- the same four facts the success path returns.
         """
         if not Path(stl_path).is_file():
             raise FileNotFoundError(f"STL file not found: {stl_path}")
@@ -153,9 +178,16 @@ class PrusaSlicer:
                 check=True,
                 capture_output=True,
                 text=True,
+                errors="replace",
             )
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Slicing failed: {e}\n{e.stderr or ''}".rstrip()) from e
+            raise SliceEngineError(
+                f"PrusaSlicer exited {e.returncode} slicing {stl_path}",
+                output_path=output,
+                returncode=e.returncode,
+                stdout=e.stdout or "",
+                stderr=e.stderr or "",
+            ) from e
 
         stdout = completed.stdout or ""
         stderr = completed.stderr or ""
@@ -199,6 +231,7 @@ class PrusaSlicer:
                 check=True,
                 stdout=subprocess.PIPE,
                 text=True,
+                errors="replace",
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:

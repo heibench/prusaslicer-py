@@ -11,9 +11,14 @@
 
 ## Status
 
-- **Windows** -- used regularly against a real `prusa-slicer-console.exe`.
-- **Linux** -- the test suite passes, but the driver has not been run against a
-  real PrusaSlicer install on Linux. Contributors and testers very welcome.
+- **Windows** -- `get_example_shapes`, `check_version` and `generate_help` are
+  used regularly against a real `prusa-slicer-console.exe`.
+- **`slice_model` has not been run against a real PrusaSlicer on any platform**
+  since it was rewritten to verify its output. It is covered by tests against
+  stub engines; the real engine is the gap. Reports especially welcome.
+- **Linux** -- the test suite passes, but no part of the driver has been run
+  against a real PrusaSlicer install on Linux. Contributors and testers very
+  welcome.
 - **macOS** -- untested.
 - **CI** -- runs the gate on Linux and Windows. No runner has PrusaSlicer
   installed, so the engine-dependent tests skip there; the end-to-end slice path
@@ -85,7 +90,7 @@ Below is an example of running a basic slicing operation with the built-in examp
 ```python
 import os
 from pathlib import Path
-from prusaslicer_py import PrusaSlicer, SliceOutputError
+from prusaslicer_py import PrusaSlicer, SliceError
 
 # Initialize the PrusaSlicer object
 slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe")  # slicer_path="prusa-slicer" on Linux
@@ -114,13 +119,11 @@ if torus_path:
     # Slice the torus.stl into G-code without any extra arguments
     try:
         result = slicer.slice_model(torus_path, str(gcode_output))
-    except SliceOutputError as e:
-        # PrusaSlicer exited 0 without producing the file -- a mistyped
-        # destination, an option that no-ops, an empty plate. Its own
-        # diagnostics are on the exception.
-        print(f"PrusaSlicer produced no G-code: {e}\n{e.stderr}")
-    except RuntimeError as e:
-        print(f"Error slicing {torus_path}: {e}")
+    except SliceError as e:
+        # Either the engine failed, or it exited 0 without producing the file
+        # -- a mistyped destination, an option that no-ops, an empty plate.
+        # Both carry returncode, stdout and stderr as attributes.
+        print(f"No G-code produced: {e}\n{e.stderr}")
     else:
         print(f"Sliced {torus_path} -> {result.output_path} ({result.size_bytes} bytes)")
 else:
@@ -131,7 +134,8 @@ else:
 
 1. Replace slicer_path with the path to your PrusaSlicer CLI executable, if not in PATH.
 2. Provide the .stl file, desired output path for the .gcode, and any additional parameters as keyword arguments.
-3. `slice_model` returns a `SliceResult` (`output_path`, `size_bytes`, `returncode`, `stdout`, `stderr`). It returns only once it has confirmed the G-code exists and is non-empty; if PrusaSlicer exits 0 without producing it, you get a `SliceOutputError` carrying the engine's own output. "It did not raise" is a checked guarantee, not an assumption.
+3. `slice_model` returns a `SliceResult` (`output_path`, `size_bytes`, `returncode`, `stdout`, `stderr`). It returns only once it has confirmed the G-code exists and is non-empty. "It did not raise" is a checked guarantee, not an assumption.
+4. Both failures raise a `SliceError` (a `RuntimeError`) carrying those same fields: `SliceEngineError` when PrusaSlicer exits non-zero, `SliceOutputError` when it exits 0 without producing the file.
 
 ## Contributing
 

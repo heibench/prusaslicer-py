@@ -5,17 +5,25 @@ stand in a fake engine -- one that controls exactly what lands on disk -- and
 assert that each way of producing nothing is distinguishable from a real slice.
 
 The engine is faked rather than run, because what is under test is the
-driver's verification of the result, not subprocess itself. The end-to-end path
+driver's verification of the result -- with one exception at the bottom, where
+the defect is in the decode subprocess itself performs. The end-to-end path
 against a real PrusaSlicer lives in test_engine.py.
 """
 
 import subprocess
+import sys
 from pathlib import Path
 from unittest.mock import patch
 
 import pytest
 
-from prusaslicer_py.slicer import PrusaSlicer, SliceOutputError, SliceResult
+from prusaslicer_py.slicer import (
+    PrusaSlicer,
+    SliceEngineError,
+    SliceError,
+    SliceOutputError,
+    SliceResult,
+)
 
 FAKE_SLICER_PATH = "path/to/prusa-slicer-console.exe"
 
@@ -103,16 +111,35 @@ def test_overwriting_a_previous_output_is_a_success(model, tmp_path):
     assert result.size_bytes == len(b"G1 X1 Y1 ; fresh\n")
 
 
-def test_non_zero_exit_still_raises_with_the_engine_stderr(model, tmp_path):
+def test_non_zero_exit_carries_the_same_fields_as_a_success(model, tmp_path):
+    """The failure path is read the same way as the success path.
+
+    Interpolating stderr into the message and dropping returncode and stdout
+    would leave the caller parsing prose for facts the success path hands over
+    as fields.
+    """
     out = tmp_path / "out.gcode"
     slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
 
-    error = subprocess.CalledProcessError(1, "prusa-slicer", stderr="invalid option")
+    error = subprocess.CalledProcessError(
+        2, "prusa-slicer", output="engine stdout", stderr="invalid option"
+    )
     with (
         patch("subprocess.run", side_effect=error),
-        pytest.raises(RuntimeError, match="invalid option"),
+        pytest.raises(SliceEngineError) as excinfo,
     ):
         slicer.slice_model(str(model), str(out))
+
+    assert excinfo.value.returncode == 2
+    assert excinfo.value.stdout == "engine stdout"
+    assert excinfo.value.stderr == "invalid option"
+    assert excinfo.value.output_path == out
+
+
+@pytest.mark.parametrize("failure", [SliceEngineError, SliceOutputError])
+def test_both_failures_are_slice_errors_and_runtime_errors(failure):
+    assert issubclass(failure, SliceError)
+    assert issubclass(failure, RuntimeError)
 
 
 def test_slice_output_error_is_a_runtime_error(model, tmp_path):
@@ -120,3 +147,36 @@ def test_slice_output_error_is_a_runtime_error(model, tmp_path):
     slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
     with patch("subprocess.run", side_effect=fake_engine(None)), pytest.raises(RuntimeError):
         slicer.slice_model(str(model), str(tmp_path / "out.gcode"))
+
+
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="the stub engine is a shell script; the decode path itself is not OS-specific",
+)
+def test_undecodable_engine_output_does_not_fail_a_good_slice(model, tmp_path):
+    """A byte the locale codec cannot decode must never become a verdict.
+
+    Regression: capturing the engine's output with a strict decode raised
+    UnicodeDecodeError *before* verification ran, so a slice that wrote perfect
+    G-code and exited 0 was reported as a failure. Uses a real subprocess,
+    because the defect is in the decode subprocess performs.
+    """
+    stub = tmp_path / "engine.sh"
+    stub.write_bytes(
+        b"#!/bin/sh\n"
+        b'out=""; prev=""\n'
+        b'for a in "$@"; do [ "$prev" = "-o" ] && out="$a"; prev="$a"; done\n'
+        b'[ -n "$out" ] && printf \'G1 X0 Y0\\n\' > "$out"\n'
+        # 0xb0 is a degree sign in latin-1 and an invalid start byte in UTF-8.
+        b"printf 'nozzle 210\\260C\\n' >&2\n"
+        b"exit 0\n"
+    )
+    stub.chmod(0o755)
+
+    out = tmp_path / "out.gcode"
+    result = PrusaSlicer(slicer_path=str(stub)).slice_model(str(model), str(out))
+
+    assert result.size_bytes > 0
+    assert out.read_text() == "G1 X0 Y0\n"
+    # The undecodable byte survives as a replacement character, not an exception.
+    assert "nozzle 210" in result.stderr
