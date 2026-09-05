@@ -51,15 +51,14 @@ def test_check_version():
             slicer.check_version()
 
 
-def test_slice_model():
+def test_slice_model_rejects_a_missing_stl():
+    """The engine is never invoked for an input that is not there.
+
+    The rest of slice_model's contract -- that it establishes the G-code was
+    actually produced -- is covered in test_slice_output.py.
+    """
     slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
 
-    # Mock the file path to ensure no actual file access is required
-    with patch("pathlib.Path.is_file", return_value=True), patch("subprocess.run") as mock_run:
-        mock_run.return_value = None  # Assume slicing is successful
-        slicer.slice_model("model.stl", "output.gcode")
-
-    # Simulate missing STL file
     with patch("pathlib.Path.is_file", return_value=False), pytest.raises(FileNotFoundError):
         slicer.slice_model("model.stl", "output.gcode")
 
