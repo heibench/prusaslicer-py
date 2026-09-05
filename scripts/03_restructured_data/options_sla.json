@@ -2,496 +2,828 @@
     "misc options:": [
         {
             "option": "--absolute-correction",
-            "description": "N Will inflate or deflate the sliced 2D polygons according to the sign of the correction. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Will inflate or deflate the sliced 2D polygons according to the sign of the correction. (mm, default: 0)"
         },
         {
             "option": "--area-fill",
-            "description": "N ; The value is expressed as a percentage of the bed area. If the area of a particular layer is smaller than 'area_fill', then 'Below area fill threshold' parameters are used to determine the layer separation (tearing) procedure. Otherwise 'Above area fill threshold' parameters are used. (%, default: 35)"
+            "aliases": [],
+            "value": "N",
+            "description": "The value is expressed as a percentage of the bed area. If the area of a particular layer is smaller than 'area_fill', then 'Below area fill threshold' parameters are used to determine the layer separation (tearing) procedure. Otherwise 'Above area fill threshold' parameters are used. (%, default: 35)"
         },
         {
             "option": "--bed-custom-model",
-            "description": "ABCD"
+            "aliases": [],
+            "value": "ABCD",
+            "description": ""
         },
         {
             "option": "--bed-custom-texture",
-            "description": "ABCD"
+            "aliases": [],
+            "value": "ABCD",
+            "description": ""
         },
         {
             "option": "--bed-shape",
+            "aliases": [],
+            "value": null,
             "description": "(default: 0x0,200x0,200x200,0x200)"
         },
         {
             "option": "--bottle-cost",
-            "description": "N ; Cost (money/bottle, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Cost (money/bottle, default: 0)"
         },
         {
             "option": "--bottle-volume",
-            "description": "N ; Bottle volume (ml, default: 1000)"
+            "aliases": [],
+            "value": "N",
+            "description": "Bottle volume (ml, default: 1000)"
         },
         {
             "option": "--bottle-weight",
-            "description": "N ; Bottle weight (kg, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Bottle weight (kg, default: 1)"
         },
         {
             "option": "--branchingsupport-max-bridges-on-pillar",
-            "description": "N Maximum number of bridges that can be placed on a pillar. Bridges hold support point pinheads and connect to pillars as small branches. (default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum number of bridges that can be placed on a pillar. Bridges hold support point pinheads and connect to pillars as small branches. (default: 2)"
+        },
+        {
+            "option": "--branchingsupport-pillar-connection-mode",
+            "aliases": [],
+            "value": null,
+            "description": "Controls the bridge type between two neighboring pillars. Can be zig-zag, cross (double zig-zag) or dynamic which will automatically switch between the first two depending on the distance of the two pillars. (zigzag, cross, dynamic; default: dynamic)"
         },
         {
             "option": "--delay-after-exposure",
-            "description": "N Delay after exposure before layer separation. (s, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Delay after exposure before layer separation. (s, default: 0,0)"
         },
         {
             "option": "--delay-before-exposure",
-            "description": "N Delay before exposure after previous layer separation. (s, default: 3,3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Delay before exposure after previous layer separation. (s, default: 3,3)"
         },
         {
             "option": "--display-height",
-            "description": "N ; Height of the display (default: 68)"
+            "aliases": [],
+            "value": "N",
+            "description": "Height of the display (default: 68)"
         },
         {
             "option": "--display-mirror-x",
+            "aliases": [],
+            "value": null,
             "description": "Enable horizontal mirroring of output images"
         },
         {
             "option": "--display-mirror-y",
+            "aliases": [],
+            "value": null,
             "description": "Enable vertical mirroring of output images"
         },
         {
+            "option": "--display-orientation",
+            "aliases": [],
+            "value": null,
+            "description": "Set the actual LCD display orientation inside the SLA printer. Portrait mode will flip the meaning of display width and height parameters and the output images will be rotated by 90 degrees. (landscape, portrait; default: portrait)"
+        },
+        {
             "option": "--display-pixels-x",
-            "description": "N Number of pixels in X (default: 2560)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of pixels in X (default: 2560)"
         },
         {
             "option": "--display-pixels-y",
-            "description": "N Number of pixels in Y (default: 1440)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of pixels in Y (default: 1440)"
         },
         {
             "option": "--display-width",
-            "description": "N ; Width of the display (default: 120)"
+            "aliases": [],
+            "value": "N",
+            "description": "Width of the display (default: 120)"
         },
         {
             "option": "--exposure-time",
-            "description": "N ; Exposure time (s, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Exposure time (s, default: 10)"
         },
         {
             "option": "--faded-layers",
-            "description": "N ; Number of the layers needed for the exposure time fade from initial exposure time to the exposure time (default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of the layers needed for the exposure time fade from initial exposure time to the exposure time (default: 10)"
         },
         {
             "option": "--fast-tilt-time",
-            "description": "N ; Time of the fast tilt (s, default: 5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Time of the fast tilt (s, default: 5)"
         },
         {
             "option": "--gamma-correction",
-            "description": "N This will apply a gamma correction to the rasterized 2D polygons. A gamma value of zero means thresholding with the threshold in the middle. This behaviour eliminates antialiasing without losing holes in polygons. (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "This will apply a gamma correction to the rasterized 2D polygons. A gamma value of zero means thresholding with the threshold in the middle. This behaviour eliminates antialiasing without losing holes in polygons. (default: 1)"
         },
         {
             "option": "--high-viscosity-tilt-time",
-            "description": "N Time of the super slow tilt (s, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Time of the super slow tilt (s, default: 10)"
         },
         {
             "option": "--idle-temperature",
-            "description": "N Nozzle temperature when the tool is currently not used in multi-tool setups.This is only used when 'Ooze prevention' is active in Print Settings. (\u00c2\u00b0C, default: nil)"
+            "aliases": [],
+            "value": "N",
+            "description": "Nozzle temperature when the tool is currently not used in multi-tool setups.This is only used when 'Ooze prevention' is active in Print Settings. (°C, default: nil)"
         },
         {
             "option": "--initial-exposure-time",
-            "description": "N Initial exposure time (s, default: 15)"
+            "aliases": [],
+            "value": "N",
+            "description": "Initial exposure time (s, default: 15)"
         },
         {
             "option": "--initial-layer-height",
-            "description": "N Initial layer height (mm, default: 0.3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Initial layer height (mm, default: 0.3)"
         },
         {
             "option": "--material-colour",
-            "description": "ABCD This is only used in the Slic3r interface as a visual help. (default: #29B2B2)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "This is only used in the Slic3r interface as a visual help. (default: #29B2B2)"
         },
         {
             "option": "--material-correction",
-            "description": "N Correction for expansion (default: 1,1,1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Correction for expansion (default: 1,1,1)"
         },
         {
             "option": "--material-correction-x",
-            "description": "N Correction for expansion in X axis (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Correction for expansion in X axis (default: 1)"
         },
         {
             "option": "--material-correction-y",
-            "description": "N Correction for expansion in Y axis (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Correction for expansion in Y axis (default: 1)"
         },
         {
             "option": "--material-correction-z",
-            "description": "N Correction for expansion in Z axis (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Correction for expansion in Z axis (default: 1)"
         },
         {
             "option": "--material-density",
-            "description": "N Density (g/ml, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Density (g/ml, default: 1)"
         },
         {
             "option": "--material-notes",
-            "description": "ABCD You can put your notes regarding the SLA print material here."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "You can put your notes regarding the SLA print material here."
         },
         {
             "option": "--material-ow-absolute-correction",
-            "description": "N Will inflate or deflate the sliced 2D polygons according to the sign of the correction. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Will inflate or deflate the sliced 2D polygons according to the sign of the correction. (mm, default: 0)"
         },
         {
             "option": "--material-ow-branchingsupport-head-front-diameter",
-            "description": "N Diameter of the pointing side of the head (mm, default: 0.4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter of the pointing side of the head (mm, default: 0.4)"
         },
         {
             "option": "--material-ow-branchingsupport-head-penetration",
-            "description": "N How much the pinhead has to penetrate the model surface (mm, default: 0.2)"
+            "aliases": [],
+            "value": "N",
+            "description": "How much the pinhead has to penetrate the model surface (mm, default: 0.2)"
         },
         {
             "option": "--material-ow-branchingsupport-head-width",
-            "description": "N Width from the back sphere center to the front sphere center (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Width from the back sphere center to the front sphere center (mm, default: 1)"
         },
         {
             "option": "--material-ow-branchingsupport-pillar-diameter",
-            "description": "N Diameter in mm of the support pillars (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter in mm of the support pillars (mm, default: 1)"
         },
         {
             "option": "--material-ow-elefant-foot-compensation",
-            "description": "N The first layer will be shrunk in the XY plane by the configured value to compensate for the 1st layer squish aka an Elephant Foot effect. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The first layer will be shrunk in the XY plane by the configured value to compensate for the 1st layer squish aka an Elephant Foot effect. (mm, default: 0)"
         },
         {
             "option": "--material-ow-support-head-front-diameter",
-            "description": "N Diameter of the pointing side of the head (mm, default: 0.4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter of the pointing side of the head (mm, default: 0.4)"
         },
         {
             "option": "--material-ow-support-head-penetration",
-            "description": "N How much the pinhead has to penetrate the model surface (mm, default: 0.2)"
+            "aliases": [],
+            "value": "N",
+            "description": "How much the pinhead has to penetrate the model surface (mm, default: 0.2)"
         },
         {
             "option": "--material-ow-support-head-width",
-            "description": "N Width from the back sphere center to the front sphere center (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Width from the back sphere center to the front sphere center (mm, default: 1)"
         },
         {
             "option": "--material-ow-support-pillar-diameter",
-            "description": "N Diameter in mm of the support pillars (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter in mm of the support pillars (mm, default: 1)"
         },
         {
             "option": "--material-ow-support-points-density-relative",
-            "description": "N This is a relative measure of support points density. (%, default: 100)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is a relative measure of support points density. (%, default: 100)"
+        },
+        {
+            "option": "--material-print-speed",
+            "aliases": [],
+            "value": null,
+            "description": "A slower printing profile might be necessary when using materials with higher viscosity or with some hollowed parts. It slows down the tilt movement and adds a delay before exposure. (slow, fast, high_viscosity; default: fast)"
         },
         {
             "option": "--material-type",
-            "description": "ABCD SLA material type (Tough, Flexible, Casting, Dental, Heat-resistant; default: Tough)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "SLA material type (Tough, Flexible, Casting, Dental, Heat-resistant; default: Tough)"
         },
         {
             "option": "--max-exposure-time",
-            "description": "N Maximum exposure time (s, default: 100)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum exposure time (s, default: 100)"
         },
         {
             "option": "--max-initial-exposure-time",
-            "description": "N Maximum initial exposure time (s, default: 150)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum initial exposure time (s, default: 150)"
         },
         {
             "option": "--max-print-height",
-            "description": "N Set this to the maximum height that can be reached by your extruder while printing. (mm, default: 200)"
+            "aliases": [],
+            "value": "N",
+            "description": "Set this to the maximum height that can be reached by your extruder while printing. (mm, default: 200)"
         },
         {
             "option": "--min-exposure-time",
-            "description": "N Minimum exposure time (s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum exposure time (s, default: 0)"
         },
         {
             "option": "--min-initial-exposure-time",
-            "description": "N Minimum initial exposure time (s, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum initial exposure time (s, default: 0)"
         },
         {
             "option": "--preset-name",
-            "description": "ABCD"
+            "aliases": [],
+            "value": "ABCD",
+            "description": ""
         },
         {
             "option": "--preset-names",
-            "description": "ABCD Names of presets related to the physical printer (default: )"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Names of presets related to the physical printer (default: )"
+        },
+        {
+            "option": "--printer-technology",
+            "aliases": [],
+            "value": null,
+            "description": "Printer technology (FFF, SLA; default: FFF)"
         },
         {
             "option": "--relative-correction",
-            "description": "N Printer scaling correction (default: 1,1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Printer scaling correction (default: 1,1)"
         },
         {
             "option": "--relative-correction-x",
-            "description": "N Printer scaling correction in X axis (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Printer scaling correction in X axis (default: 1)"
         },
         {
             "option": "--relative-correction-y",
-            "description": "N Printer scaling correction in Y axis (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Printer scaling correction in Y axis (default: 1)"
         },
         {
             "option": "--relative-correction-z",
-            "description": "N Printer scaling correction in Z axis (default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Printer scaling correction in Z axis (default: 1)"
         },
         {
             "option": "--sla-archive-format",
-            "description": "ABCD (default: SL1)"
+            "aliases": [],
+            "value": "ABCD",
+            "description": "(default: SL1)"
         },
         {
             "option": "--sla-output-precision",
-            "description": "N Minimum resolution in nanometers (mm, default: 0.001)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum resolution in nanometers (mm, default: 0.001)"
         },
         {
             "option": "--slow-tilt-time",
-            "description": "N ; Time of the slow tilt (s, default: 8)"
+            "aliases": [],
+            "value": "N",
+            "description": "Time of the slow tilt (s, default: 8)"
         },
         {
             "option": "--support-max-bridges-on-pillar",
-            "description": "N Maximum number of bridges that can be placed on a pillar. Bridges hold support point pinheads and connect to pillars as small branches. (default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum number of bridges that can be placed on a pillar. Bridges hold support point pinheads and connect to pillars as small branches. (default: 3)"
+        },
+        {
+            "option": "--support-pillar-connection-mode",
+            "aliases": [],
+            "value": null,
+            "description": "Controls the bridge type between two neighboring pillars. Can be zig-zag, cross (double zig-zag) or dynamic which will automatically switch between the first two depending on the distance of the two pillars. (zigzag, cross, dynamic; default: dynamic)"
         },
         {
             "option": "--support-tree-type",
+            "aliases": [],
+            "value": null,
             "description": "Support tree building strategy (default, branching; default: default)"
         },
         {
             "option": "--thumbnails",
-            "description": "ABCD ; Picture sizes to be stored into a .gcode / .bgcode and .sl1 / .sl1s files, in the following format: \"XxY/EXT, XxY/EXT, ...\" Currently supported extensions are PNG, QOI and JPG."
+            "aliases": [],
+            "value": "ABCD",
+            "description": "Picture sizes to be stored into a .gcode / .bgcode and .sl1 / .sl1s files, in the following format: \"XxY/EXT, XxY/EXT, ...\" Currently supported extensions are PNG, QOI and JPG."
         },
         {
             "option": "--thumbnails-format",
+            "aliases": [],
+            "value": null,
             "description": "Format of G-code thumbnails: PNG for best quality, JPG for smallest size, QOI for low memory firmware (PNG, JPG, QOI; default: PNG)"
         },
         {
             "option": "--tilt-down-cycles",
-            "description": "N Number of cycles to split the rest of the tilt down move. (default: 1,1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of cycles to split the rest of the tilt down move. (default: 1,1)"
         },
         {
             "option": "--tilt-down-delay",
-            "description": "N The delay between tilt-down cycles. (s, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The delay between tilt-down cycles. (s, default: 0,0)"
+        },
+        {
+            "option": "--tilt-down-finish-speed",
+            "aliases": [],
+            "value": null,
+            "description": "Tilt speed used for the rest of the tilt down move. (μ-steps/s, default: ,layer1750)"
+        },
+        {
+            "option": "--tilt-down-initial-speed",
+            "aliases": [],
+            "value": null,
+            "description": "Tilt speed used for an initial portion of tilt down move. (μ-steps/s, default: ,layer1750)"
         },
         {
             "option": "--tilt-down-offset-delay",
-            "description": "N Delay after the tilt reaches 'tilt_down_offset_steps' position. (s, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Delay after the tilt reaches 'tilt_down_offset_steps' position. (s, default: 0,0)"
         },
         {
             "option": "--tilt-down-offset-steps",
-            "description": "N Number of steps to move down from the calibrated (horizontal) position with 'tilt_down_initial_speed'. (\u00ce\u00bc-steps, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of steps to move down from the calibrated (horizontal) position with 'tilt_down_initial_speed'. (μ-steps, default: 0,0)"
         },
         {
             "option": "--tilt-up-cycles",
-            "description": "N ; Number of cycles to split the rest of the tilt-up. (default: 1,1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of cycles to split the rest of the tilt-up. (default: 1,1)"
         },
         {
             "option": "--tilt-up-delay",
-            "description": "N ; The delay between tilt-up cycles. (s, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The delay between tilt-up cycles. (s, default: 0,0)"
+        },
+        {
+            "option": "--tilt-up-finish-speed",
+            "aliases": [],
+            "value": null,
+            "description": "Tilt speed used for the rest of the tilt-up. (μ-steps/s, default: ,layer1750)"
+        },
+        {
+            "option": "--tilt-up-initial-speed",
+            "aliases": [],
+            "value": null,
+            "description": "Tilt speed used for an initial portion of tilt up move. (μ-steps/s, default: ,move8000)"
         },
         {
             "option": "--tilt-up-offset-delay",
-            "description": "N Delay after the tilt reaches 'tilt_up_offset_steps' position. (s, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Delay after the tilt reaches 'tilt_up_offset_steps' position. (s, default: 0,0)"
         },
         {
             "option": "--tilt-up-offset-steps",
-            "description": "N Move tilt up to calibrated (horizontal) position minus this offset. (\u00ce\u00bc-steps, default: 1200,1200)"
+            "aliases": [],
+            "value": "N",
+            "description": "Move tilt up to calibrated (horizontal) position minus this offset. (μ-steps, default: 1200,1200)"
         },
         {
             "option": "--tower-hop-height",
-            "description": "N The height of the tower raise. (mm, default: 0,0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The height of the tower raise. (mm, default: 0,0)"
         },
         {
             "option": "--tower-speed",
+            "aliases": [],
+            "value": null,
             "description": "Tower speed used for tower raise. (mm/s, default: ,layer22)"
         },
         {
             "option": "--use-tilt",
+            "aliases": [],
+            "value": null,
             "description": "If enabled, tilt is used for layer separation. Otherwise, all the parameters below are ignored. (default: 1,1)"
         }
     ],
     "advanced:": [
         {
             "option": "--elefant-foot-compensation",
-            "description": "N The first layer will be shrunk in the XY plane by the configured value to compensate for the 1st layer squish aka an Elephant Foot effect. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "The first layer will be shrunk in the XY plane by the configured value to compensate for the 1st layer squish aka an Elephant Foot effect. (mm, default: 0)"
         },
         {
             "option": "--elefant-foot-min-width",
-            "description": "N Minimum width of features to maintain when doing elephant foot compensation. (mm, default: 0.2)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum width of features to maintain when doing elephant foot compensation. (mm, default: 0.2)"
         },
         {
             "option": "--zcorrection-layers",
-            "description": "N Number of layers to Z correct to avoid cross layer bleed (default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Number of layers to Z correct to avoid cross layer bleed (default: 0)"
         }
     ],
     "hollowing:": [
         {
             "option": "--hollowing-closing-distance",
-            "description": "N Hollowing is done in two steps: first, an imaginary interior is calculated deeper (offset plus the closing distance) in the object and then it's inflated back to the specified offset. A greater closing distance makes the interior more rounded. At zero, the interior will resemble the exterior the most. (mm, default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "Hollowing is done in two steps: first, an imaginary interior is calculated deeper (offset plus the closing distance) in the object and then it's inflated back to the specified offset. A greater closing distance makes the interior more rounded. At zero, the interior will resemble the exterior the most. (mm, default: 2)"
         },
         {
             "option": "--hollowing-enable",
+            "aliases": [],
+            "value": null,
             "description": "Hollow out a model to have an empty interior"
         },
         {
             "option": "--hollowing-min-thickness",
-            "description": "N Minimum wall thickness of a hollowed model. (mm, default: 3)"
+            "aliases": [],
+            "value": "N",
+            "description": "Minimum wall thickness of a hollowed model. (mm, default: 3)"
         },
         {
             "option": "--hollowing-quality",
-            "description": "N Performance vs accuracy of calculation. Lower values may produce unwanted artifacts. (default: 0.5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Performance vs accuracy of calculation. Lower values may produce unwanted artifacts. (default: 0.5)"
         }
     ],
     "layers and perimeters:": [
         {
             "option": "--layer-height",
-            "description": "N ; This setting controls the height (and thus the total number) of the slices/layers. Thinner layers give better accuracy but take more time to print. (mm, default: 0.3)"
+            "aliases": [],
+            "value": "N",
+            "description": "This setting controls the height (and thus the total number) of the slices/layers. Thinner layers give better accuracy but take more time to print. (mm, default: 0.3)"
         }
     ],
     "pad:": [
         {
             "option": "--pad-around-object",
+            "aliases": [],
+            "value": null,
             "description": "Create pad around object and ignore the support elevation"
         },
         {
+            "option": "--pad-around-object-everywhere",
+            "aliases": [],
+            "value": null,
+            "description": "Force pad around object everywhere"
+        },
+        {
             "option": "--pad-brim-size",
-            "description": "N ; How far should the pad extend around the contained geometry (mm, default: 1.6)"
+            "aliases": [],
+            "value": "N",
+            "description": "How far should the pad extend around the contained geometry (mm, default: 1.6)"
         },
         {
             "option": "--pad-enable",
+            "aliases": [],
+            "value": null,
             "description": "Add a pad underneath the supported model"
         },
         {
             "option": "--pad-max-merge-distance",
-            "description": "N Some objects can get along with a few smaller pads instead of a single big one. This parameter defines how far the center of two smaller pads should be. If theyare closer, they will get merged into one pad. (mm, default: 50)"
+            "aliases": [],
+            "value": "N",
+            "description": "Some objects can get along with a few smaller pads instead of a single big one. This parameter defines how far the center of two smaller pads should be. If theyare closer, they will get merged into one pad. (mm, default: 50)"
         },
         {
             "option": "--pad-object-connector-penetration",
-            "description": "N How much should the tiny connectors penetrate into the model body. (mm, default: 0.3)"
+            "aliases": [],
+            "value": "N",
+            "description": "How much should the tiny connectors penetrate into the model body. (mm, default: 0.3)"
         },
         {
             "option": "--pad-object-connector-stride",
-            "description": "N Distance between two connector sticks which connect the object and the generated pad. (mm, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Distance between two connector sticks which connect the object and the generated pad. (mm, default: 10)"
         },
         {
             "option": "--pad-object-connector-width",
-            "description": "N Width of the connector sticks which connect the object and the generated pad. (mm, default: 0.5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Width of the connector sticks which connect the object and the generated pad. (mm, default: 0.5)"
         },
         {
             "option": "--pad-object-gap",
-            "description": "N ; The gap between the object bottom and the generated pad in zero elevation mode. (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The gap between the object bottom and the generated pad in zero elevation mode. (mm, default: 1)"
         },
         {
             "option": "--pad-wall-height",
-            "description": "N Defines the pad cavity depth. Set to zero to disable the cavity. Be careful when enabling this feature, as some resins may produce an extreme suction effect inside the cavity, which makes peeling the print off the vat foil difficult. (mm, default: 0)"
+            "aliases": [],
+            "value": "N",
+            "description": "Defines the pad cavity depth. Set to zero to disable the cavity. Be careful when enabling this feature, as some resins may produce an extreme suction effect inside the cavity, which makes peeling the print off the vat foil difficult. (mm, default: 0)"
         },
         {
             "option": "--pad-wall-slope",
-            "description": "N ; The slope of the pad wall relative to the bed plane. 90 degrees means straight walls. (\u00c2\u00b0, default: 90)"
+            "aliases": [],
+            "value": "N",
+            "description": "The slope of the pad wall relative to the bed plane. 90 degrees means straight walls. (°, default: 90)"
         },
         {
             "option": "--pad-wall-thickness",
-            "description": "N The thickness of the pad and its optional cavity walls. (mm, default: 2)"
+            "aliases": [],
+            "value": "N",
+            "description": "The thickness of the pad and its optional cavity walls. (mm, default: 2)"
         }
     ],
     "supports:": [
         {
             "option": "--branchingsupport-base-diameter",
-            "description": "N Diameter in mm of the pillar base (mm, default: 4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter in mm of the pillar base (mm, default: 4)"
         },
         {
             "option": "--branchingsupport-base-height",
-            "description": "N The height of the pillar base cone (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The height of the pillar base cone (mm, default: 1)"
         },
         {
             "option": "--branchingsupport-base-safety-distance",
-            "description": "N The minimum distance of the pillar base from the model in mm. Makes sense in zero elevation mode where a gap according to this parameter is inserted between the model and the pad. (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The minimum distance of the pillar base from the model in mm. Makes sense in zero elevation mode where a gap according to this parameter is inserted between the model and the pad. (mm, default: 1)"
+        },
+        {
+            "option": "--branchingsupport-buildplate-only",
+            "aliases": [],
+            "value": null,
+            "description": "Only create support if it lies on a build plate. Don't create support on a print."
         },
         {
             "option": "--branchingsupport-critical-angle",
-            "description": "N The default angle for connecting support sticks and junctions. (\u00c2\u00b0, default: 45)"
+            "aliases": [],
+            "value": "N",
+            "description": "The default angle for connecting support sticks and junctions. (°, default: 45)"
         },
         {
             "option": "--branchingsupport-head-front-diameter",
-            "description": "N Diameter of the pointing side of the head (mm, default: 0.4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter of the pointing side of the head (mm, default: 0.4)"
         },
         {
             "option": "--branchingsupport-head-penetration",
-            "description": "N How much the pinhead has to penetrate the model surface (mm, default: 0.2)"
+            "aliases": [],
+            "value": "N",
+            "description": "How much the pinhead has to penetrate the model surface (mm, default: 0.2)"
         },
         {
             "option": "--branchingsupport-head-width",
-            "description": "N Width from the back sphere center to the front sphere center (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Width from the back sphere center to the front sphere center (mm, default: 1)"
         },
         {
             "option": "--branchingsupport-max-bridge-length",
-            "description": "N The max length of a bridge (mm, default: 5)"
+            "aliases": [],
+            "value": "N",
+            "description": "The max length of a bridge (mm, default: 5)"
         },
         {
             "option": "--branchingsupport-max-pillar-link-distance",
-            "description": "N The max distance of two pillars to get linked with each other. A zero value will prohibit pillar cascading. (mm, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "The max distance of two pillars to get linked with each other. A zero value will prohibit pillar cascading. (mm, default: 10)"
         },
         {
             "option": "--branchingsupport-max-weight-on-model",
-            "description": "N Maximum weight of sub-trees that terminate on the model instead of the print bed. The weight is the sum of the lenghts of all branches emanating from the endpoint. (mm, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum weight of sub-trees that terminate on the model instead of the print bed. The weight is the sum of the lenghts of all branches emanating from the endpoint. (mm, default: 10)"
         },
         {
             "option": "--branchingsupport-object-elevation",
-            "description": "N How much the supports should lift up the supported object. If \"Pad around object\" is enabled, this value is ignored. (mm, default: 5)"
+            "aliases": [],
+            "value": "N",
+            "description": "How much the supports should lift up the supported object. If \"Pad around object\" is enabled, this value is ignored. (mm, default: 5)"
         },
         {
             "option": "--branchingsupport-pillar-diameter",
-            "description": "N Diameter in mm of the support pillars (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter in mm of the support pillars (mm, default: 1)"
         },
         {
             "option": "--branchingsupport-pillar-widening-factor",
-            "description": "N Merging bridges or pillars into another pillars can increase the radius. Zero means no increase, one means full increase. The exact amount of increase is unspecified and can change in the future. (default: 0.5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Merging bridges or pillars into another pillars can increase the radius. Zero means no increase, one means full increase. The exact amount of increase is unspecified and can change in the future. (default: 0.5)"
+        },
+        {
+            "option": "--branchingsupport-small-pillar-diameter-percent",
+            "aliases": [],
+            "value": null,
+            "description": "The percentage of smaller pillars compared to the normal pillar diameter which are used in problematic areas where a normal pilla cannot fit. (%, default: 50%)"
         },
         {
             "option": "--support-base-diameter",
-            "description": "N Diameter in mm of the pillar base (mm, default: 4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter in mm of the pillar base (mm, default: 4)"
         },
         {
             "option": "--support-base-height",
-            "description": "N The height of the pillar base cone (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The height of the pillar base cone (mm, default: 1)"
         },
         {
             "option": "--support-base-safety-distance",
-            "description": "N The minimum distance of the pillar base from the model in mm. Makes sense in zero elevation mode where a gap according to this parameter is inserted between the model and the pad. (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "The minimum distance of the pillar base from the model in mm. Makes sense in zero elevation mode where a gap according to this parameter is inserted between the model and the pad. (mm, default: 1)"
+        },
+        {
+            "option": "--support-buildplate-only",
+            "aliases": [],
+            "value": null,
+            "description": "Only create support if it lies on a build plate. Don't create support on a print."
         },
         {
             "option": "--support-critical-angle",
-            "description": "N The default angle for connecting support sticks and junctions. (\u00c2\u00b0, default: 45)"
+            "aliases": [],
+            "value": "N",
+            "description": "The default angle for connecting support sticks and junctions. (°, default: 45)"
+        },
+        {
+            "option": "--support-enforcers-only",
+            "aliases": [],
+            "value": null,
+            "description": "Only create support if it lies in a support enforcer."
         },
         {
             "option": "--support-head-front-diameter",
-            "description": "N Diameter of the pointing side of the head (mm, default: 0.4)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter of the pointing side of the head (mm, default: 0.4)"
         },
         {
             "option": "--support-head-penetration",
-            "description": "N How much the pinhead has to penetrate the model surface (mm, default: 0.2)"
+            "aliases": [],
+            "value": "N",
+            "description": "How much the pinhead has to penetrate the model surface (mm, default: 0.2)"
         },
         {
             "option": "--support-head-width",
-            "description": "N Width from the back sphere center to the front sphere center (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Width from the back sphere center to the front sphere center (mm, default: 1)"
         },
         {
             "option": "--support-max-bridge-length",
-            "description": "N The max length of a bridge (mm, default: 15)"
+            "aliases": [],
+            "value": "N",
+            "description": "The max length of a bridge (mm, default: 15)"
         },
         {
             "option": "--support-max-pillar-link-distance",
-            "description": "N The max distance of two pillars to get linked with each other. A zero value will prohibit pillar cascading. (mm, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "The max distance of two pillars to get linked with each other. A zero value will prohibit pillar cascading. (mm, default: 10)"
         },
         {
             "option": "--support-max-weight-on-model",
-            "description": "N Maximum weight of sub-trees that terminate on the model instead of the print bed. The weight is the sum of the lenghts of all branches emanating from the endpoint. (mm, default: 10)"
+            "aliases": [],
+            "value": "N",
+            "description": "Maximum weight of sub-trees that terminate on the model instead of the print bed. The weight is the sum of the lenghts of all branches emanating from the endpoint. (mm, default: 10)"
         },
         {
             "option": "--support-object-elevation",
-            "description": "N How much the supports should lift up the supported object. If \"Pad around object\" is enabled, this value is ignored. (mm, default: 5)"
+            "aliases": [],
+            "value": "N",
+            "description": "How much the supports should lift up the supported object. If \"Pad around object\" is enabled, this value is ignored. (mm, default: 5)"
         },
         {
             "option": "--support-pillar-diameter",
-            "description": "N Diameter in mm of the support pillars (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "Diameter in mm of the support pillars (mm, default: 1)"
         },
         {
             "option": "--support-pillar-widening-factor",
-            "description": "N Merging bridges or pillars into another pillars can increase the radius. Zero means no increase, one means full increase. The exact amount of increase is unspecified and can change in the future. (default: 0.5)"
+            "aliases": [],
+            "value": "N",
+            "description": "Merging bridges or pillars into another pillars can increase the radius. Zero means no increase, one means full increase. The exact amount of increase is unspecified and can change in the future. (default: 0.5)"
         },
         {
             "option": "--support-points-density-relative",
-            "description": "N This is a relative measure of support points density. (%, default: 100)"
+            "aliases": [],
+            "value": "N",
+            "description": "This is a relative measure of support points density. (%, default: 100)"
         },
         {
             "option": "--support-points-minimal-distance",
-            "description": "N No support points will be placed closer than this threshold. (mm, default: 1)"
+            "aliases": [],
+            "value": "N",
+            "description": "No support points will be placed closer than this threshold. (mm, default: 1)"
+        },
+        {
+            "option": "--support-small-pillar-diameter-percent",
+            "aliases": [],
+            "value": null,
+            "description": "The percentage of smaller pillars compared to the normal pillar diameter which are used in problematic areas where a normal pilla cannot fit. (%, default: 50%)"
         },
         {
             "option": "--supports-enable",
+            "aliases": [],
+            "value": null,
             "description": "Generate supports for the models"
         }
     ]
