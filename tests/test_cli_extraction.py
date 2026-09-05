@@ -111,7 +111,7 @@ def test_committed_data_matches_the_committed_parser(tmp_path):
 def test_every_option_in_the_help_reaches_the_extraction():
     """Nothing is silently dropped between the help output and the JSON.
 
-    67 options used to be missing here, because their description began on the
+    68 options used to be missing here, because their description began on the
     line after the flags and the parser required a description to emit an entry
     at all.
     """
