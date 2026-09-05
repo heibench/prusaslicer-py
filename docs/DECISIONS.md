@@ -14,9 +14,18 @@ it is the one Prusa documents and tests. Driving it over a process boundary
 means a PrusaSlicer upgrade cannot break us through ABI drift, only through a
 CLI change we can detect.
 
-The consequence is that `prusaslicer_py/slicer.py` is the only module that may
-import `subprocess` or name an executable. Everything the engine tells us has to
-come back through that one seam.
+The consequence is that within the package, `prusaslicer_py/slicer.py` is the
+only module that may import `subprocess` or name an executable. Everything the
+engine tells us has to come back through that one seam.
+
+Outside the package there is exactly one exception, and it is recorded rather
+than waved at: `scripts/01_store_helps.py` runs the engine and names
+`prusa-slicer-console.exe` directly, because capturing `--help` is the one job
+that has to happen before the driver exists. It is a capture script, not a
+consumer of the driver. Nothing else may join it -- `tests/conftest.py`
+deliberately resolves the engine by constructing `PrusaSlicer()` and catching
+`FileNotFoundError`, rather than repeating the executable-name choice where it
+would drift.
 
 ---
 
