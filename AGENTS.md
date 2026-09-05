@@ -77,6 +77,12 @@ call that did not do the thing must not return as though it did:
 - Capture the engine's `stdout`/`stderr` and hand them to the caller. A
   diagnostic that only reaches the parent process's terminal is unavailable to
   the program that needs it.
+- **Decode the engine's output with `errors="replace"`, always.** A strict
+  decode raises before the result can be checked, so a byte we cannot read
+  becomes a verdict on a slice that succeeded. See `docs/DECISIONS.md` D5.
+- Failure carries the same fields as success. Both `SliceEngineError` and
+  `SliceOutputError` expose `output_path`, `returncode`, `stdout` and `stderr`;
+  do not put a fact in a message string that the success path returns.
 - Do not add an "assume it worked" escape hatch.
 
 ## Status -- what has actually been established
@@ -84,11 +90,15 @@ call that did not do the thing must not return as though it did:
 Treat these lines as code: if a change makes one false, the change is not
 finished.
 
-- **Windows**: the driver is used regularly against a real
-  `prusa-slicer-console.exe`.
+- **Windows**: `get_example_shapes`, `check_version` and `generate_help` are
+  used regularly against a real `prusa-slicer-console.exe`.
+- **`slice_model` has not been run against a real PrusaSlicer on any
+  platform since it was rewritten** to verify its output. It is covered by
+  tests against stub engines and real subprocesses; the real engine is the gap.
+  Reports especially welcome here.
 - **Linux**: the mocked suite passes and the engine fixture has been exercised
-  against a stub, but the driver has **not** been run against a real
-  PrusaSlicer install on Linux. Reports welcome.
+  against a stub, but no part of the driver has been run against a real
+  PrusaSlicer install on Linux.
 - **macOS**: untested.
 - **CI**: runs `just check` and `just test` on Linux (3.11/3.12/3.13) and
   Windows (3.11). No runner has PrusaSlicer installed, so the engine tests skip

@@ -83,3 +83,83 @@ By the org's default that argues for Apache-2.0. The repository shipped under
 MIT and is left under MIT here, because relicensing is a decision for the
 copyright holder to make deliberately rather than a side effect of a scaffolding
 change. Flagged for the maintainer; supersede this entry either way.
+
+---
+
+## D5 -- `slice_model` verifies the artifact, and says exactly how far that goes
+
+**Decided:** 2026-09-05 (issue #3)
+
+`slice_model` used to return `None` and run `subprocess.run(..., check=True)`.
+The caller's only signal was "it did not raise" -- which the org contract's
+section 5 names directly as not a surface. PrusaSlicer can exit 0 having
+written nothing, and every such case read to the caller exactly like a
+successful slice.
+
+It now returns a `SliceResult` (`output_path`, `size_bytes`, `returncode`,
+`stdout`, `stderr`) and raises `SliceOutputError` when the engine exits 0
+without producing the G-code. Two things about the shape:
+
+- **The return is the guarantee, not a status to inspect.** `slice_model`
+  checks that the file exists and is non-empty *before* returning, so "it did
+  not raise" and "the artifact was produced" become the same fact -- a checked
+  one. A `produced: bool` on the result would have been a field that is always
+  `True`, which is not a state, it is decoration.
+- **`SliceOutputError` subclasses `RuntimeError`**, which the method already
+  raised for a non-zero exit, so existing callers keep catching it.
+
+The engine's `stdout` and `stderr` are now captured and carried on both the
+result and the exception. Previously the one verb that does real work was the
+only one that let them escape to the parent's streams, where the program that
+needed them could not read them.
+
+### Failure carries the same fields as success
+
+`SliceEngineError` (the engine exited non-zero) and `SliceOutputError` (it
+exited 0 and produced nothing) are both `SliceError`, which is a
+`RuntimeError`, and both carry `output_path`, `returncode`, `stdout` and
+`stderr`. The first draft interpolated stderr into the message on the non-zero
+path and dropped returncode and stdout entirely, which left a caller parsing
+prose for facts the success path hands over as fields -- the thing section 2.2
+says not to do, reintroduced on the path most likely to be hit.
+
+### The engine's output is decoded with `errors="replace"`
+
+Capturing the output introduced a way to fail a slice that had succeeded.
+`capture_output=True, text=True` decodes strictly under the locale codec, and
+that decode happens *inside* `subprocess.run` -- before any verification. An
+engine that wrote perfect G-code, exited 0 and printed one byte the codec could
+not read raised `UnicodeDecodeError`:
+
+```
+RAISED: UnicodeDecodeError 'utf-8' codec can't decode byte 0xb0 in position 15
+but the gcode WAS written: True 'G1 X0 Y0'
+```
+
+This was not hypothetical. D6 establishes that PrusaSlicer's own help output
+contains a degree sign and a mu, and that its encoding follows whatever machine
+it ran on. On `main` the risk did not exist because nothing was captured, so
+capturing is what created it.
+
+All three `subprocess.run` calls now pass `errors="replace"`. The *codec* is
+left as Python's locale default: there is no single right answer across
+platforms, and forcing UTF-8 would be wrong more often on Windows. What matters
+is that a byte we cannot decode never becomes a verdict.
+
+### What this deliberately does not establish
+
+It does **not** establish that *this run* wrote the file. A stale G-code left
+by an earlier run at the same destination satisfies exists-and-non-empty.
+
+The obvious guard -- compare `st_mtime_ns` before and after -- was implemented,
+and then removed, because it does not work. Measured on this machine, 198 of
+200 back-to-back writes to a file on `tmpfs` produced an **identical**
+`st_mtime_ns`; the check failed in a full test run and passed in isolation,
+which is a flaky test rather than a guarantee. Filesystem timestamps are not
+fine-grained enough to carry this.
+
+Making the stronger claim requires deleting the destination before invoking the
+engine, so that "a file is there afterwards" can only mean this run wrote it.
+That is a deliberate change in behaviour -- it destroys the previous output
+when a slice fails -- and belongs to the maintainer, not to this change.
+Supersede this entry if it is wanted.

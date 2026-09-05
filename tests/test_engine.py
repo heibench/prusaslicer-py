@@ -25,3 +25,17 @@ def test_check_version_against_real_engine(engine):
 
 def test_generate_help_against_real_engine(engine):
     assert engine.generate_help("fff").strip()
+
+
+def test_slice_produces_gcode_with_the_real_engine(engine, tmp_path):
+    """The end-to-end path: a real slice, verified by the driver's own result."""
+    shapes = [s for s in engine.get_example_shapes() if s.endswith(".stl")]
+    if not shapes:
+        raise AssertionError("engine is installed but shipped no example shapes to slice")
+
+    out = tmp_path / "out.gcode"
+    result = engine.slice_model(shapes[0], str(out))
+
+    assert result.output_path == out
+    assert result.size_bytes > 0
+    assert out.read_text().strip(), "slice_model returned but the G-code is blank"
