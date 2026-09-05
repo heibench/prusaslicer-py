@@ -1,5 +1,5 @@
-import os
 from pathlib import Path
+
 from prusaslicer_py import PrusaSlicer
 
 # Initialize the PrusaSlicer object
@@ -20,12 +20,8 @@ if torus_path:
 
     # Specify the output directory, one level above the script (beside 'examples')
     script_dir = Path(__file__).parent  # Get the directory of the current script
-    output_dir = (
-        script_dir.parent / "output"
-    )  # Path to the 'output' directory, one level above
-    output_dir.mkdir(
-        parents=True, exist_ok=True
-    )  # Create the output directory if it doesn't exist
+    output_dir = script_dir.parent / "output"  # Path to the 'output' directory, one level above
+    output_dir.mkdir(parents=True, exist_ok=True)  # Create the output directory if it doesn't exist
 
     # Specify the output G-code file path
     gcode_output = output_dir / "torus.gcode"
@@ -40,9 +36,7 @@ if torus_path:
 
     # Slice the torus.stl into G-code with the specified arguments
     try:
-        slicer.slice_model(
-            torus_path, str(gcode_output), additional_args=additional_args
-        )
+        slicer.slice_model(torus_path, str(gcode_output), additional_args=additional_args)
         print(f"Successfully sliced {torus_path} to G-code: {gcode_output}")
     except Exception as e:
         print(f"Error slicing {torus_path}: {e}")

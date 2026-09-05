@@ -1,5 +1,5 @@
-import re
 import os
+import re
 from pathlib import Path
 
 # Define the output directory for parsed help files
@@ -13,7 +13,7 @@ parsed_output_dir.mkdir(parents=True, exist_ok=True)
 
 
 def parse_help_output(file_path):
-    with open(file_path, "r") as file:
+    with open(file_path) as file:
         content = file.read()
 
     # Define regex pattern for sections (e.g., "Actions:", "Transform options:", etc.)

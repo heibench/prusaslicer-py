@@ -1,5 +1,5 @@
-import os
 from pathlib import Path
+
 from prusaslicer_py import PrusaSlicer
 
 # Initialize the PrusaSlicer object

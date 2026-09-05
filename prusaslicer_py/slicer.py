@@ -1,12 +1,11 @@
-import subprocess
 import os
 import shutil
+import subprocess
 from pathlib import Path
-from typing import Optional, Dict, List
 
 
 class PrusaSlicer:
-    def __init__(self, slicer_path: Optional[str] = None):
+    def __init__(self, slicer_path: str | None = None):
         """
         Initializes the PrusaSlicer wrapper.
 
@@ -47,14 +46,14 @@ class PrusaSlicer:
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to get version: {e}")
+            raise RuntimeError(f"Failed to get version: {e}") from e
 
     def slice_model(
         self,
         stl_path: str,
         gcode_output: str,
-        loglevel: Optional[str] = None,
-        additional_args: Optional[Dict[str, str]] = None,
+        loglevel: str | None = None,
+        additional_args: dict[str, str] | None = None,
     ) -> None:
         """
         Slices a 3D model using PrusaSlicer.
@@ -82,7 +81,7 @@ class PrusaSlicer:
         try:
             subprocess.run(command, check=True)
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Slicing failed: {e}")
+            raise RuntimeError(f"Slicing failed: {e}") from e
 
     def generate_help(self, mode: str = "fff") -> str:
         """
@@ -103,9 +102,9 @@ class PrusaSlicer:
             )
             return result.stdout.strip()
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to generate help: {e}")
+            raise RuntimeError(f"Failed to generate help: {e}") from e
 
-    def get_example_shapes(self) -> List[str]:
+    def get_example_shapes(self) -> list[str]:
         """
         Retrieves a list of example STL shapes available in the default shapes directory.
 
