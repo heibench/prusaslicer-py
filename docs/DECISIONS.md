@@ -1019,10 +1019,19 @@ having removed no `__pycache__` on some machines and not others.
 find (GNU findutils) 4.11.0
 ```
 
-So on GitHub's runner the POSIX body would have worked, and this job cannot
-demonstrate the failure it is guarding against. The `[windows]` body is kept for
-machines where PATH order differs, which is a class the runner cannot speak to --
-stated plainly rather than claimed as verified.
+So on this runner `rm` and `find` are the GNU programs the POSIX body expects, and
+the PATH hazard the `[windows]` body guards against does not arise here. Whether
+the body would then have *cleaned correctly* is not something this step
+establishes -- and its `find` line ends `2>/dev/null || true`, so a green run of it
+would not establish that either. The `[windows]` body is kept for machines where
+PATH order differs, which is a class the runner cannot speak to.
+
+An earlier draft of this paragraph said "the POSIX body would have worked" --
+resolution inferred into behaviour. It slipped precisely *because* it concedes
+against the change: a sentence that weakens your own work feels self-evidently safe
+to write, and this one would have been the strongest available argument for
+deleting the `[windows]` body, sitting unmeasured in the project's own decision
+record. The direction a claim points does not change what it owes.
 
 ### `clean` dispatches per OS, and `[unix]`/`[windows]` are safe where `[doc]` was not
 

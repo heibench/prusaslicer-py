@@ -126,11 +126,20 @@ jobs:
       - name: clean fails loudly when a real error stops it
         run: |
           $h = [System.IO.File]::Open("$pwd\.venv\pyvenv.cfg", 'Open', 'Read', 'None')
-          just clean
+          $out = just clean 2>&1 | Out-String
           $ec = $LASTEXITCODE
           $h.Close()
+          Write-Host $out
           if ($ec -eq 0) {
             throw "just clean exited 0 while .venv was locked open and could not be removed"
+          }
+          # Asserting non-zero is not enough: it says the recipe failed, not that it
+          # failed BECAUSE the removal was refused. This probe already reported
+          # success once (run 34064346890) over a `clean` that died at
+          # `ErrorActionPreference: unbound variable` before touching anything --
+          # green on precisely the broken state it exists to distinguish.
+          if ($out -notmatch 'RemoveFileSystemItemIOError') {
+            throw "clean failed, but not because Remove-Item could not remove the locked .venv"
           }
           exit 0
         shell: pwsh

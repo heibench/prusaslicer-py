@@ -13,8 +13,10 @@ reports as a single skipped line and takes every test in the file with it.
 import shutil
 
 import pytest
+from _pytest.outcomes import Failed, Skipped
 
-from tests.conftest import REQUIRE_ENGINE_ENV, engine_required
+from prusaslicer_py.slicer import PrusaSlicer
+from tests.conftest import REQUIRE_ENGINE_ENV, engine, engine_required
 
 
 def test_engine_resolves_to_something_runnable(engine):
@@ -75,3 +77,39 @@ def test_the_switch_is_off_when_the_variable_is_absent(monkeypatch: pytest.Monke
     """The other half: without it, a missing engine skips rather than failing."""
     monkeypatch.delenv(REQUIRE_ENGINE_ENV, raising=False)
     assert not engine_required()
+
+
+def test_the_fixture_actually_consults_the_switch(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The tests above watch `engine_required`. This watches that the fixture uses it.
+
+    Extracting the decision so it could be tested is what opened the seam: reverting
+    only the *call site* back to `os.environ.get(...)` -- leaving `engine_required`
+    itself correct -- left the whole suite green while restoring the fail-open, and a
+    run with the engine unreachable and the variable set to the empty string went
+    `5 passed, 4 skipped, exit 0`.
+
+    A gate on the helper says nothing about whether anything calls it. That is the
+    same shape as every other defeat in this issue, one level below where it lives.
+    """
+    monkeypatch.setenv(REQUIRE_ENGINE_ENV, "")
+
+    def _no_engine(self: PrusaSlicer) -> None:
+        raise FileNotFoundError("no engine")
+
+    monkeypatch.setattr(PrusaSlicer, "__init__", _no_engine)
+
+    # Not `pytest.raises(Failed)`. A fixture that skips raises `Skipped`, and letting
+    # that escape a test SKIPS the test -- so the first version of this reported
+    # "9 passed, 1 skipped" against the very revert it was written to catch. Each
+    # outcome is named instead, and skipping is a failure here.
+    try:
+        engine.__wrapped__()
+    except Failed as failure:
+        assert "is set but" in str(failure)
+    except Skipped:
+        pytest.fail(
+            "the fixture skipped with the switch set to the empty string, so it is "
+            "not consulting `engine_required()` -- the fail-open is back"
+        )
+    else:
+        pytest.fail("the fixture neither failed nor skipped without an engine")

@@ -653,6 +653,11 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
         "only `.venv` exists after `just setup`, so the assertion is vacuous for five "
         "of the six and the `__pycache__` sweep is exercised against no input at all"
     )
+    assert "RemoveFileSystemItemIOError" in body, (
+        "the loud-failure probe is gone. Deleting it and then dropping "
+        "`-ErrorAction Stop` in a later tidy-up restores a `clean` that exits 0 "
+        "having removed nothing, with nothing red anywhere"
+    )
     assert "PRUSASLICER_PY_REQUIRE_ENGINE is set but" in body, (
         "the #30 step is gone. D12 says #30 is settled by measurement in this job, "
         "and `engine.yml` cites it twice -- delete the step and three prose sites "
@@ -965,4 +970,47 @@ def test_both_ruff_pins_name_one_version() -> None:
     # installs 0.16.6", stating the versions match while failing on them.
     assert set(revs) == {running}, (
         f"pre-commit pins {sorted(set(revs))} but `uv run` installs ruff {running}"
+    )
+
+
+def _windows_clean_body() -> str:
+    """The body of the `[windows]`-attributed `clean` recipe, as written."""
+    lines = JUSTFILE.read_text(encoding="utf-8").splitlines()
+    for i, line in enumerate(lines):
+        if line.strip() != "[windows]":
+            continue
+        if i + 1 >= len(lines) or not re.match(r"^@?clean(\s|:)", lines[i + 1]):
+            continue
+        body = []
+        for below in lines[i + 2 :]:
+            if below.strip() and not below.startswith((" ", "\t")):
+                break
+            body.append(below)
+        return "\n".join(body).strip()
+    raise AssertionError("no `[windows]` clean recipe found in the justfile")
+
+
+def test_the_windows_clean_body_contains_no_dollar_sign() -> None:
+    """`just` runs recipe bodies through `sh -u`, including on Windows.
+
+    So a `$` in a PowerShell body is expanded by `sh` before PowerShell sees it.
+    That happened three times in this one recipe: `$_` in a `ForEach-Object` block,
+    which made `clean` delete nothing while exiting `0`, and `$ErrorActionPreference`
+    twice, which made it die at `unbound variable`, exit 127.
+
+    Each was found by a Windows CI round-trip. The rule is written above the recipe;
+    this makes it local and instant, because a fourth would otherwise cost the same
+    round-trip. `-ErrorAction Stop` on the cmdlet does the preference variable's job
+    with no sigil, so the rule costs nothing to keep.
+    """
+    body = _windows_clean_body()
+    assert "$" not in body, (
+        "the `[windows]` clean body contains a `$`, which `sh` will expand before "
+        f"PowerShell sees it -- use a cmdlet parameter instead:\n  {body}"
+    )
+    assert "-ErrorAction Stop" in body, (
+        "the `[windows]` clean body must fail loudly on a real error. Without "
+        "`-ErrorAction Stop`, `Remove-Item` raises a NON-terminating error, the "
+        "`__pycache__` sweep runs after it and succeeds, and `just clean` exits 0 "
+        "having removed nothing -- measured, with `.venv` held open"
     )
