@@ -622,9 +622,18 @@ attack.
 | attack | dry-run | count | canary | linecount |
 | --- | --- | --- | --- | --- |
 | a *complete* hand-written path list | **red** | green | green | green |
-| `exclude` a directory | green | **red** | green | green |
-| `disable_error_code` | green | green | **red** | green |
+| `exclude tests/` -- the one directory no other gate covers | green | **red** | green | green |
+| `disable_error_code` sparing the canary's shape | green | green | **red** | green |
 | `ignore_errors` on some modules | green | green | green | **red** |
+| `check_untyped_defs = false` | green | green | **red** | green |
+
+The second row was first written as "`exclude` a directory", generalised from one
+measurement. Measured across all three, the coverage is uneven and the label
+mattered: excluding `scripts/` reddens three gates, `examples/` two, and `tests/`
+only one. The row is making a true point -- the count gate is the only one
+covering `tests/` -- but as written it understated how much the canary and
+linecount catch, in the table a future reader would use to decide whether a gate
+is redundant.
 
 The first row is the one worth naming. A hand list naming every directory checks
 all 14 files today, so every outcome gate is satisfied -- it is red only because
@@ -639,6 +648,13 @@ about it, and both are the same mistake in different clothes:
   `disallow_untyped_defs` -- and `typeddict-item`, which *is* D6's schema
   protection. Both properties this entry rests on, dead, with every gate green.
   The canary now plants one defect per mechanism rather than one per gate.
+* **The canary lived only in annotated code.** `check_untyped_defs` is the fourth
+  mechanism this entry rests on -- it is the stated reason `tests/` may be exempt
+  from `disallow_untyped_defs`, since bodies are read either way. Turning it off
+  leaves the whole test suite with neither, and mypy reports that as a *note* at
+  exit `0`. No gate could see it: the count is unchanged, linecount excludes
+  `tests/` by design, and the canary's defects all sat in annotated functions. The
+  canary now plants one inside its unannotated function too.
 * **The linecount gate skipped `__init__.py` by name.** That was a hand-written
   exclusion inside the gate set built to argue against hand-written exclusions,
   and it was fail-open: `ignore_errors` on the `prusaslicer_py` module left the

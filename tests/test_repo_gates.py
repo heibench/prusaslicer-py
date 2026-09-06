@@ -563,9 +563,11 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
         # unconditionally and their result is the truth.
         for forbidden in ("if:", "continue-on-error:"):
             assert not re.search(rf"^\s*{re.escape(forbidden)}", body, re.M), (
-                f"the `{job}` job (or a step in it) carries `{forbidden}`, so it can "
-                "be made not to run, or to report success when it failed, while every "
-                "gate in this file stays green."
+                f"the `{job}` job (or a step in it) carries `{forbidden}`, which per "
+                "GitHub's documented behaviour lets it not run, or report success "
+                "when it failed, while every gate in this file stays green. "
+                "(Documented Actions behaviour, not measured here -- this suite "
+                "cannot run Actions.)"
             )
 
     # A trigger that never fires is the same defect one level out: the workflow is
@@ -575,8 +577,10 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     assert "pull_request" in trigger.group(), "ci.yml no longer triggers on pull_request"
     for narrowing in ("paths:", "paths-ignore:", "types:"):
         assert narrowing not in trigger.group(), (
-            f"the `on:` block carries `{narrowing}`, which can stop this workflow "
-            "running on a pull request entirely. Nothing else here would notice."
+            f"the `on:` block carries `{narrowing}`, which per GitHub's documented "
+            "behaviour can stop this workflow running on a pull request entirely, "
+            "with nothing else here noticing. (Documented Actions behaviour, not "
+            "measured here.)"
         )
 
     assert "needs.check.result != 'success'" in text, (
@@ -618,6 +622,14 @@ def test_the_typechecker_still_objects_to_a_defect_planted_in_scripts() -> None:
     # (which IS the D6 schema protection the TypedDict was added for). Both would
     # die silently behind a canary that only tests for a reversed call.
     #
+    # `[assignment]` covers the fourth mechanism, and it is deliberately planted
+    # INSIDE the unannotated function. `check_untyped_defs` is what reads bodies
+    # like that one, and `pyproject.toml` exempts `tests/` from annotation
+    # explicitly *because* of it -- so flipping that flag leaves the whole test
+    # suite with neither protection, and mypy says so with a NOTE at exit 0. No
+    # other gate can see it: the count is unchanged, linecount excludes `tests/`
+    # by design, and the canary's other three defects live in annotated code.
+    #
     # Deliberately ruff-clean: formatted as ruff formats, and lint-clean. An earlier
     # version used single quotes, so `fmt-check` rejected it before mypy ran and the
     # gate passed on ruff's output with the typechecker never consulted -- the gate
@@ -630,7 +642,8 @@ def test_the_typechecker_still_objects_to_a_defect_planted_in_scripts() -> None:
         "def _writes(data: dict[str, int], path: Path) -> None:\n"
         '    path.write_text(str(data), encoding="utf-8")\n\n\n'
         "def _unannotated(value):\n"
-        "    return value\n\n\n"
+        '    inner: int = "not an int"\n'
+        "    return value, inner\n\n\n"
         '_writes(Path("x"), {"a": 1})\n'
         '_record: _Record = {"optionn": "x"}\n',
         encoding="utf-8",
@@ -647,14 +660,16 @@ def test_the_typechecker_still_objects_to_a_defect_planted_in_scripts() -> None:
     # file for its own reasons -- which is how the first version of this passed.
     missing = [
         code
-        for code in ("[arg-type]", "[no-untyped-def]", "[typeddict-item]")
+        for code in ("[arg-type]", "[no-untyped-def]", "[typeddict-item]", "[assignment]")
         if code not in report
     ]
     assert not missing and "zz_typecheck_canary" in report, (
         f"`just check` did not report {missing or 'the planted defects'} for a "
         "canary in `scripts/`, so at least one of the properties D10 rests on is no "
         "longer being enforced. `no-untyped-def` is `disallow_untyped_defs`; "
-        "`typeddict-item` is D6's schema protection. An `exclude` entry, "
+        "`typeddict-item` is D6's schema protection; `assignment` is planted in an "
+        "unannotated body, so losing it means `check_untyped_defs` is off and "
+        "`tests/` has no checking at all. An `exclude` entry, "
         "`ignore_errors`, or a `disable_error_code` entry will each switch one off "
         f"while leaving the file count untouched.\n{report}"
     )
@@ -743,6 +758,12 @@ def test_mypy_actually_examined_every_tracked_module() -> None:
     is the same "read the outcome" move as the other two gates, aimed at the one
     property neither of them can see: not how mypy was invoked, not how many files
     it counted, but whether it looked inside them.
+
+    Deliberately NOT routed through `just check`. Adding `--linecount-report` to the
+    recipe would make every developer's `just check` write a test-only artifact, to
+    answer a question the recipe does not ask. This gate's only claim is "did mypy
+    look inside these modules"; whether CI's invocation was narrowed is the count
+    gate's job, and it asks that through the recipe.
     """
     # Only the modules `disallow_untyped_defs` covers. The first column counts lines
     # of *typed* code, so `tests/` legitimately reads zero -- it is exempt from
