@@ -794,10 +794,46 @@ reads as a cleanup and would silently remove the protection. A secret still pres
 in `HEAD` is caught at any depth; it is the added-then-removed case that needs the
 history, and that is the case the hook exists for.
 
+Pinning `rev:` to a commit SHA rather than a tag currently fails the pin gate,
+which compares against a version string. `pre-commit autoupdate` writes tags so it
+will not bite soon, but if this repository ever adopts supply-chain SHA pinning for
+hook repos, that test has to be taught first.
+
 If a real secret ever does land, `.gitleaksignore` with the reported fingerprint is
 the escape hatch. Recorded because without knowing it, the first true positive
 makes the hook permanently red for everyone and it gets deleted under pressure --
 which is how a control dies.
+
+### The job was watched failing, not reasoned about
+
+Every red proof in this issue was local, across three review rounds, and the one
+thing left asserted rather than observed was the part this repository has been
+burned by before: that the job *gates* rather than merely *runs*. `ci.yml` records
+that `contains(needs.*.result, 'failure')` once missed `'skipped'` and produced a
+fully green pull request with nothing checked. Reasoning about that wiring is what
+produced every other defect in this entry.
+
+So it was measured. A throwaway branch planted trailing whitespace **in a markdown
+file** -- ruff, mypy and pytest do not read `.md`, so the failure is isolated to
+one hook -- and
+[run 34062300790](https://github.com/heibench/prusaslicer-py/actions/runs/34062300790)
+gives:
+
+```
+pre-commit: failure
+Check: success
+Test (Python 3.11, 3.12, 3.13, windows-latest): success
+ok: failure
+```
+
+`ok` going red with every other job green can only be
+`needs.pre-commit.result != 'success'` evaluating correctly, which also settles
+that a hyphenated job id dereferences as expected. The branch was deleted; the run
+id is the record.
+
+One thing that stays unmeasured and is labelled as such in the gate itself:
+`continue-on-error` and `paths-ignore` are rejected on GitHub's documented
+behaviour, not on a run anyone has watched.
 
 ### The recurring failure here is a line-oriented pattern over YAML
 
@@ -808,8 +844,22 @@ step's first key, `- if: false`, where the guard's `^\s*` could not match the `-
 None needed an adversary and none needed unusual YAML -- mapping keys are
 unordered, so the reordering that defeated two of them is just as valid a document.
 
-Both gates now anchor on structure -- indentation and key position -- rather than
-matching text in a flattened document. `pyyaml` would close the class outright and
+Both rev gates now anchor on structure -- indentation and key position -- rather
+than matching text in a flattened document. Note that the `fetch-depth` guard
+added alongside them did **not**: it was a substring over a block containing
+comments, so `fetch-depth: 50` under a comment reading "was fetch-depth: 0; full
+history is slow on this runner" satisfied it, and per the depth table above that
+silently loses the added-then-removed case. The class named in this section was
+reintroduced in the commit that named it, which is the strongest evidence that
+naming it was right. It is matched as a key now.
+
+A related correction: this entry credited the line-wise rewrite with fixing a false
+positive on a second legitimate `ruff-pre-commit` block at the same rev. It did
+not -- the rewrite changed how revs are collected and left the `== [running]`
+comparison alone, so two identical revs still failed, with a message reading "pins
+['0.16.6', '0.16.6'] but installs 0.16.6". That claim was written from reading the
+new code rather than from watching the old complaint go green, which is the exact
+habit this whole entry is about. It is a set comparison now, verified both ways. `pyyaml` would close the class outright and
 is deliberately not added: it would be a dependency to read four lines, and the
 line-wise reads are a dozen. That is a size judgement, not a claim that a regex is
 adequate for YAML.
