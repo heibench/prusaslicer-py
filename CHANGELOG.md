@@ -6,6 +6,17 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ## [Unreleased]
 
+### Changed
+
+- **`just setup` verifies the committed lockfile instead of silently rewriting
+  it** (#23). It runs `uv sync --locked` and fails when `uv.lock` is stale;
+  `export UV_LOCKED := "1"` makes every other recipe refuse too, since `uv run`
+  locks-and-syncs by default and nobody runs `setup` again after the first day.
+  CI runs `just setup`, so the gate could not previously fail on a stale lock.
+
+  **New recipe `just lock`** re-resolves and rewrites it -- the only place
+  allowed to. Run it when a dependency changes, then commit the result.
+
 ## [0.1.0] — 2026-09-06
 
 ### Added

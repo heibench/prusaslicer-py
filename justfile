@@ -2,6 +2,15 @@
 
 set dotenv-load := false
 
+# Every recipe below reaches uv, and `uv run` locks-and-syncs by default -- so
+# `just test` on a stale lock rewrote uv.lock, exit 0, no diagnostic, exactly as
+# `uv sync` did. Verifying only in `setup` fixed CI (which runs setup first and
+# stops on failure) and left the local half of #23 open: after the first day
+# nobody runs setup again.
+#
+# `lock` is the one place allowed to write it, and unsets this for that one call.
+export UV_LOCKED := "1"
+
 # Show available recipes
 default:
     @just --list
@@ -10,16 +19,18 @@ default:
 setup:
     uv sync --locked
 
-# Separate from `setup` on purpose. `uv sync` alone updates the lockfile when it is out
-# of date and says nothing, so a setup that quietly fixes the thing it is meant to verify
-# is the same defect with a friendlier face -- and CI runs `setup`, so its green could not
-# have failed on a stale lock (#23).
+# Separate from `setup` on purpose. A setup that quietly fixes the thing it is meant to
+# verify is the same defect with a friendlier face (#23).
 #
-# `[doc]` rather than a trailing comment: `just` takes the LAST comment line as the doc
-# string, so a multi-line rationale silently publishes its final line to `just --list`.
-[doc("Re-resolve and rewrite uv.lock; run when a dependency changes, then commit it")]
+# The blank line below is load-bearing: `just` takes the LAST comment line before a
+# recipe as its doc string, so without it this rationale would be what `just --list`
+# shows. `[doc(...)]` says the same thing more clearly and needs just >= 1.27.0, where an
+# unknown attribute is a PARSE error -- it would break every recipe in this file for
+# anyone on an older just, including Ubuntu 24.04 LTS.
+
+# Re-resolve and rewrite uv.lock; run when a dependency changes, then commit it
 lock:
-    uv lock
+    UV_LOCKED=0 uv lock
 
 # Format code and apply lint fixes (mutates the working tree)
 fmt:

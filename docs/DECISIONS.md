@@ -41,6 +41,34 @@ start a process and read what comes back.
 `mypy` rather than `pyright` for type checking, matching gerberdiff, so a
 contributor moving between members does not meet two type checkers.
 
+### D2.1 -- the lock is verified, never silently repaired (amendment, #23)
+
+"Committed lock" was half a claim: nothing checked it. `just setup` ran `uv sync`,
+which **updates** a stale lockfile rather than failing, and every other recipe
+reaches `uv run`, which locks-and-syncs by default. Measured, with a dependency
+added to `pyproject.toml` and the lock left alone: `uv sync` and `just lint` both
+exited `0` and rewrote `uv.lock`, with no diagnostic on either.
+
+CI runs `just setup`, so the gate could not fail on a stale lock and its green
+said nothing about the dependency set that shipped.
+
+Two changes, and the second is the one that matters locally. `setup` is
+`uv sync --locked`, and `export UV_LOCKED := "1"` makes every other recipe refuse
+too -- because after the first day nobody runs `setup` again, so verifying only
+there fixes CI and leaves the contributor exactly where they were.
+
+**`lock` is the only recipe allowed to write it**, and unsets the variable for
+that one call. It is separate from `setup` on purpose: a setup that quietly fixes
+the thing it is meant to verify is the same defect with a friendlier face, which
+is the whole of #23.
+
+**No `[doc(...)]` attributes anywhere in the justfile.** It reads better than the
+comment convention and needs just >= 1.27.0, where an unknown attribute is a
+**parse** error rather than a warning -- so one `[doc]` would break every recipe
+in the file for anyone on an older `just`, including Ubuntu 24.04 LTS. The blank
+line above a recipe's doc comment is load-bearing instead: `just` takes the last
+comment line before a recipe as its doc string.
+
 ---
 
 ## D3 -- A missing engine skips; asserting it is present is opt-in
