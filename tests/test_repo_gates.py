@@ -13,12 +13,14 @@ import re
 import shutil
 import subprocess
 import tempfile
+import tomllib
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 JUSTFILE = ROOT / "justfile"
+PYPROJECT = ROOT / "pyproject.toml"
 
 
 def _resolved_recipe(name: str) -> str:
@@ -542,6 +544,11 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     ci = ROOT / ".github/workflows/ci.yml"
     assert ci.exists(), "ci.yml is gone; the gates in this file guard nothing"
     text = ci.read_text(encoding="utf-8")
+    assert "pre-commit/action" in text, (
+        "`ci.yml` no longer runs pre-commit, so `.pre-commit-config.yaml`'s eight "
+        "hooks -- gitleaks included -- are enforced only on machines that installed "
+        "the local hook, which `--no-verify` skips"
+    )
     for recipe in ("just check", "just test"):
         assert re.search(rf"^\s*(-\s*)?run:\s*{re.escape(recipe)}\s*$", text, re.M), (
             f"`ci.yml` no longer runs `{recipe}`, so the gates in this file do not "
@@ -551,7 +558,7 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     # A step or job that is present but never runs satisfies the check above while
     # running nothing. `if: false` on the `check` job was a fully green PR, because
     # the `ok` job tested for 'failure' and a skipped job reports 'skipped'.
-    for job in ("check", "test"):
+    for job in ("check", "test", "pre-commit"):
         block = re.search(rf"^  {job}:\n(?:(?:    .*)?\n)*", text, re.M)
         assert block, f"no `{job}` job in ci.yml"
         body = block.group()
@@ -821,3 +828,33 @@ def test_mypy_actually_examined_every_tracked_module() -> None:
         f"every count-based gate stays green: {unexamined}"
     )
     assert not missing, f"mypy never saw these tracked modules at all: {missing}"
+
+
+def test_both_ruff_pins_name_one_version() -> None:
+    """Two ruffs formatting one repository is a `commit` / `check` split.
+
+    `.pre-commit-config.yaml` pinned ruff `v0.11.12` while the dev group asked for
+    `ruff>=0.11`, which resolved to `0.16.6`. That is not a hypothetical drift: the
+    older ruff raised `UP038` on `isinstance(node, (ast.Module, ast.ClassDef, ...))`
+    in this repository's own test file, and the newer one does not have the rule.
+    A contributor with hooks installed could not commit code that CI accepts.
+
+    So both pins are exact and this holds them equal, which means bumping one alone
+    fails here instead of drifting quietly. Ported from partspec's
+    `tests/test_lint_config.py`, which exists for the same defect.
+
+    Parsed with a regex rather than YAML: pyyaml is not a dependency of this
+    project, and adding one to read four lines would be the heavier fix.
+    """
+    dev = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))["dependency-groups"]["dev"]
+    pinned = [d for d in dev if d.startswith("ruff")]
+    assert len(pinned) == 1, f"expected one ruff pin in the dev group, got {pinned}"
+
+    gate_pin = pinned[0].removeprefix("ruff==")
+    assert gate_pin != pinned[0], f"the gate's ruff pin must be exact `==`, not {pinned[0]!r}"
+    assert "*" not in gate_pin, f"the gate's ruff pin must be exact, not {pinned[0]!r}"
+
+    config = (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
+    revs = re.findall(r"ruff-pre-commit\s+rev:\s*v?(\S+)", " ".join(config.split()))
+    assert revs, "could not find the ruff-pre-commit rev"
+    assert revs == [gate_pin], f"pre-commit pins {revs} but `just check` runs {gate_pin}"

@@ -715,3 +715,57 @@ on `check` produced a fully green pull request with nothing checked. Past that, 
 runner told to execute nothing executes nothing, and no test can observe that from
 inside a process that was never started. That is a different threat model from
 drift, and it is visible in a diff.
+
+---
+
+## D11 -- pre-commit is enforced, and one ruff formats this repository
+
+**Decided:** 2026-09-06 (issue #25)
+
+`.pre-commit-config.yaml` makes a claim: eight hooks check this repository. It was
+true only on machines where somebody had run `pre-commit install`, and `--no-verify`
+skipped it there. `ruff` and `ruff-format` were covered independently by
+`just check`; the other six were not covered at all.
+
+**`gitleaks` is why this is a job and not a note.** Secret detection that runs only
+where it was opted into is not a control. A commit pushed from a fresh clone
+reaches `main` unscanned, and this repository is public. The job checks out with
+`fetch-depth: 0`, because gitleaks scans history rather than the diff and a shallow
+clone would report clean having seen almost nothing -- a green that verified next
+to nothing, which is section 2.4's shape.
+
+### One ruff, exactly
+
+The pins had already drifted. pre-commit named `v0.11.12`; the dev group asked for
+`ruff>=0.11`, which resolved to `0.16.6`. Measured rather than assumed: the older
+ruff raises `UP038` on
+
+```python
+isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+```
+
+in `tests/test_repo_gates.py`, and the newer one does not carry that rule at all.
+So a contributor with hooks installed could not commit code that CI accepts, and
+the failure would have read as their mistake.
+
+Both pins are now exact and equal, held by
+`tests/test_repo_gates.py::test_both_ruff_pins_name_one_version`, ported from
+partspec's `tests/test_lint_config.py` -- the same defect, found there first. An
+inexact pin on either side fails it, so bumping one alone is a red gate rather than
+a quiet split between what `git commit` writes and what `just check` rejects.
+
+Note what this does *not* claim. The gate holds the two version strings equal; it
+does not verify that two builds of the same version format identically, which
+nothing here can. Equal versions is the strongest available guarantee, not a proof.
+
+### It found something before it was merged
+
+Adding the job to `ci.yml` introduced a YAML syntax error -- a plain-scalar `if:`
+continued on an under-indented line, which is not the value it looks like.
+`just check` cannot see that: `ruff` and `mypy` read Python, and nothing else in
+the gate reads YAML. `check-yaml` caught it on the first run, in the very file
+that adds the job.
+
+That is the argument for this entry in one line. The six unenforced hooks were not
+covering a hypothetical gap, and the first thing enforcing them found was a real
+defect in the change that enforced them.

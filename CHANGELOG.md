@@ -8,6 +8,22 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ### Fixed
 
+- **pre-commit runs in CI, and both ruffs are the same ruff** (#25).
+  `.pre-commit-config.yaml` configured eight hooks and CI ran none of them, so
+  six -- `gitleaks` above all -- were enforced only on machines where somebody
+  had run `pre-commit install`, and `--no-verify` skipped those. A secret scan
+  that runs only where it was opted into is not a control, and this repository is
+  public. The job checks out full history, because `gitleaks` scans history
+  rather than the diff and a shallow clone reports clean by seeing almost
+  nothing.
+
+  The two ruffs had already drifted, and not subtly: pre-commit pinned `v0.11.12`
+  while `just check` resolved `ruff>=0.11` to `0.16.6`, and the older one raised
+  `UP038` on this repository's own test file over a rule the newer one does not
+  have. A contributor with hooks installed could not commit code CI accepts. Both
+  pins are now exact and equal, and a test holds them equal so bumping one alone
+  fails here instead of drifting quietly.
+
 - **The typechecker covers the whole repository, and `scripts/` is annotated**
   (#24). `typecheck` named `prusaslicer_py/ tests/`, so `scripts/` -- which holds
   the CLI-surface extraction that produces the data the package ships -- was

@@ -29,6 +29,25 @@ jobs:
       - run: just setup
       - run: just check
 
+  # `.pre-commit-config.yaml` claims eight hooks run. Six of them -- gitleaks
+  # above all -- had no enforcement outside a local hook someone had to install
+  # and `--no-verify` skips. A secret scan that runs only on machines that opted
+  # in is not a control, and this repository is public.
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # gitleaks scans history, not just the diff; a shallow clone would
+          # report clean by seeing almost nothing.
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - uses: pre-commit/action@v3.0.1
+
   test:
     name: Test (Python ${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -59,7 +78,7 @@ jobs:
   ok:
     name: ok
     if: always()
-    needs: [check, test]
+    needs: [check, test, pre-commit]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -67,7 +86,10 @@ jobs:
       # on `check` produced a fully green PR with nothing checked. Requiring
       # success names the only acceptable state instead of enumerating bad ones.
       - name: Fail unless every upstream job succeeded
-        if: needs.check.result != 'success' || needs.test.result != 'success'
+        if: >-
+          needs.check.result != 'success' ||
+          needs.test.result != 'success' ||
+          needs.pre-commit.result != 'success'
         run: exit 1
       - name: Pass
         run: echo 'All checks passed'
