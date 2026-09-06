@@ -18,14 +18,26 @@ The consequence is that within the package, `prusaslicer_py/slicer.py` is the
 only module that may import `subprocess` or name an executable. Everything the
 engine tells us has to come back through that one seam.
 
-Outside the package there is exactly one exception, and it is recorded rather
-than waved at: `scripts/01_store_helps.py` runs the engine and names
-`prusa-slicer-console.exe` directly, because capturing `--help` is the one job
-that has to happen before the driver exists. It is a capture script, not a
-consumer of the driver. Nothing else may join it -- `tests/conftest.py`
-deliberately resolves the engine by constructing `PrusaSlicer()` and catching
-`FileNotFoundError`, rather than repeating the executable-name choice where it
-would drift.
+This once had an exception, and it no longer does. `scripts/01_store_helps.py`
+named `prusa-slicer-console.exe` directly, on the argument that capturing
+`--help` is the one job that has to happen before the driver exists. That
+argument was wrong twice: the driver does exist by then, and hardcoding the
+Windows executable made the capture Windows-only. The script now constructs
+`PrusaSlicer()` like everything else, so `prusaslicer_py/slicer.py` is the only
+place outside the tests that names an executable, with no carve-out. The tests
+name a fake path and substitute a `subprocess` stand-in, which is the seam being
+exercised rather than a second home for the real choice.
+
+`tests/conftest.py` resolves the engine the same way -- constructing
+`PrusaSlicer()` and catching `FileNotFoundError` -- rather than repeating the
+executable-name choice where it would drift.
+
+**Amended 2026-09-06 (#24).** The exception was removed when the script was
+changed, but this entry and `AGENTS.md` went on describing it, so both asserted
+a carve-out the code had already closed and pointed readers at a name
+`01_store_helps.py` no longer contains. Section 2.5 counts a stale status claim
+as a defect in the gate, and a decision record is the strongest status claim
+there is.
 
 ---
 
@@ -463,14 +475,29 @@ save_json(output_dir / "actions.json", actions_data)  # arguments reversed
 with no error, because there is no signature to check the call against. That is
 the defect shape `scripts/` is most exposed to: it generates data, nothing
 downstream re-checks that data, and a wrong-order call writes a plausible file.
-So `disallow_untyped_defs` is set for the three script modules, all 12 signatures
-are annotated, and the reversed call is now an error at the call site.
+So all 12 signatures are annotated and `disallow_untyped_defs` holds them there,
+and the reversed call is now an error at the call site.
 
-`tests/` is deliberately not held to `disallow_untyped_defs`. It has 33
-unannotated signatures and a `-> None` on a pytest function buys nothing;
-`check_untyped_defs` already reads their bodies, which is where test defects
-live. `prusaslicer_py/` and `examples/` need no override -- they had zero
-unannotated signatures already.
+**It is required repo-wide, with one exemption, and that direction is the
+decision.** The first attempt listed the three script modules in a
+`[[tool.mypy.overrides]]` allowlist -- which is the same defect this entry opens
+by describing, moved from the justfile into `pyproject.toml` and out from under
+the gate that had just been written for it. Two ways it failed, both measured: a
+new `scripts/04_*.py` was unchecked the day it was added, so a reversed call in
+it passed clean; and renaming a listed module silently dropped its protection,
+because `warn_unused_configs` reports the stale entry as a *note* and the run
+still exits 0. A stale allowlist entry is precisely the shape of thing that
+cannot fail.
+
+`disallow_untyped_defs = true` therefore applies to everything, and `tests/`
+is exempted by name. It has 33 unannotated signatures and a `-> None` on a pytest
+function buys nothing; `check_untyped_defs` already reads their bodies, which is
+where test defects live. `prusaslicer_py/` and `examples/` need no mention --
+they had zero unannotated signatures already, and now cannot acquire one.
+
+The exemption is the part someone has to write down, which is the whole point:
+adding a directory to this repository now inherits the check instead of escaping
+it.
 
 ### D6's schema is now a type, not a comment
 

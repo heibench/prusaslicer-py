@@ -19,8 +19,10 @@ All notable changes to prusaslicer-py are documented here. Follows
   unannotated function, and 12 of the 13 functions in `scripts/` were
   unannotated; `check_untyped_defs` reads those bodies, but with no signatures to
   check calls against, `save_json(path, data)` -- arguments reversed -- still
-  passed. All 12 signatures are now annotated and `disallow_untyped_defs` holds
-  `scripts/` there, so the call sites are checked too.
+  passed. All 12 signatures are now annotated and `disallow_untyped_defs` is
+  required repo-wide -- exempting `tests/` by name rather than listing the
+  modules it covers, so a script added or renamed later inherits the check
+  instead of escaping it silently.
 
   The records the extraction emits are a `TypedDict` rather than
   `dict[str, object]`, which is what puts the schema D6 froze under the

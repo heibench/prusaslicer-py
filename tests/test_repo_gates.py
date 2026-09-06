@@ -20,7 +20,12 @@ JUSTFILE = ROOT / "justfile"
 
 
 def _recipe_body(source: str, name: str) -> str:
-    """The indented lines of one recipe, as written in the justfile."""
+    """The lines of one recipe that `just` would actually RUN.
+
+    Commented-out lines are dropped, and that is the point rather than tidiness:
+    a gate that greps a body including its comments is satisfied by a comment. The
+    sibling gate below already filters them for the same reason.
+    """
     lines = source.splitlines()
     starts = [n for n, line in enumerate(lines) if re.match(rf"^@?{re.escape(name)}(\s|:)", line)]
     assert len(starts) == 1, f"expected exactly one `{name}` recipe, found {len(starts)}"
@@ -28,7 +33,8 @@ def _recipe_body(source: str, name: str) -> str:
     for line in lines[starts[0] + 1 :]:
         if line.strip() and not line.startswith((" ", "\t")):
             break
-        body.append(line)
+        if not line.lstrip().startswith("#"):
+            body.append(line)
     return "\n".join(body).strip()
 
 
@@ -242,6 +248,7 @@ def test_the_doc_gate_is_not_fooled_by_an_assignment_sharing_a_recipe_name(
     )
 
 
+@pytest.mark.skipif(shutil.which("just") is None, reason="needs the just binary")
 def test_the_typecheck_recipe_checks_the_whole_repository() -> None:
     """#24 narrowed the typecheck scope by hand, which is fail-OPEN.
 
@@ -262,4 +269,9 @@ def test_the_typecheck_recipe_checks_the_whole_repository() -> None:
     assert re.search(r"\bmypy\s+\.(?:\s|$)", body), (
         "the `typecheck` recipe must run `mypy .` so no directory can be omitted "
         f"by forgetting to list it; it runs:\n  {body}"
+    )
+    assert "--exclude" not in body, (
+        "narrowing on the command line puts the excluded set where only a reader of "
+        "the recipe finds it; D10 says exclusions belong in `pyproject.toml`. It "
+        f"runs:\n  {body}"
     )

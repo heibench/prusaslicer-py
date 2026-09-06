@@ -72,14 +72,21 @@ check_untyped_defs = true
 # arguments are in the wrong order. tests/ has 33 unannotated signatures and
 # is deliberately left out; pytest functions gain nothing from a "-> None".
 # Bodies alone are not enough. With no signature to check a call against, mypy
-# accepts `save_json(path, data)` with the arguments reversed -- which is exactly
-# the shape of defect `scripts/` is exposed to, since it generates the CLI-surface
-# data D6 froze and nothing downstream re-checks it. Annotations are what make the
-# call sites checkable, so they are required here.
+# accepts `save_json(path, data)` with the arguments reversed -- exactly the shape
+# of defect `scripts/` is exposed to, since it generates the CLI-surface data D6
+# froze and nothing downstream re-checks it.
 #
-# Module names, not paths: `scripts/` is not a package, so mypy names each file by
-# its stem. `tests/` is deliberately not held to this -- 33 unannotated signatures,
-# and a `-> None` on a pytest function buys nothing.
-[[tool.mypy.overrides]]
-module = ["01_store_helps", "02_json_cli", "03_restructure_cli"]
+# Required repo-wide rather than listed per module, for the same reason D10 gives
+# about the `typecheck` recipe: a list omits by default. An allowlist of script
+# modules left a new `scripts/04_*.py` unchecked on the day it was added, and
+# silently un-checked a renamed one -- `warn_unused_configs` reports a stale entry
+# as a NOTE, so that still exits 0. Requiring it everywhere and exempting one
+# place inverts the default: the exemption is the part someone has to write down.
 disallow_untyped_defs = true
+
+# The one exemption. `tests/` had 33 unannotated signatures and a `-> None` on a
+# pytest function buys nothing; `check_untyped_defs` already reads their bodies,
+# which is where test defects live.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false

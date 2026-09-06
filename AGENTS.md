@@ -27,8 +27,11 @@ the schema as stable.
 - **No runtime dependencies.** The engine boundary is `subprocess`; keep it
   that way. Adding a runtime dependency needs a decision entry.
 - **`prusaslicer_py/slicer.py` is the only module in the package that may
-  import `subprocess` or name an executable.** `scripts/01_store_helps.py` is
-  the one recorded exception; see `docs/DECISIONS.md` D1.
+  import `subprocess` or name an executable**, and nothing outside the package
+  may name one either. `scripts/01_store_helps.py` was the one recorded
+  exception and no longer is; see `docs/DECISIONS.md` D1. Tests name a *fake*
+  executable and drive a `subprocess` stand-in, which is what makes the seam
+  testable rather than a second place the choice lives.
 - **Tooling** -- `ruff` (format + lint), `mypy` (types), `pytest` (tests),
   `just` (task runner), `pre-commit`.
 
