@@ -546,7 +546,11 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     text = ci.read_text(encoding="utf-8")
     pre_commit_job = re.search(r"^  pre-commit:\n(?:(?:    .*)?\n)*", text, re.M)
     assert pre_commit_job, "no `pre-commit` job in ci.yml"
-    assert "fetch-depth: 0" in pre_commit_job.group(), (
+    # Matched as a key, not as a substring. `fetch-depth: 50` under a comment reading
+    # "was fetch-depth: 0; full history is slow on this runner" satisfied the
+    # substring form -- an ordinary CI optimisation, and per the depth table below
+    # it silently loses the added-then-removed case this hook exists for.
+    assert re.search(r"^\s*(-\s*)?fetch-depth:\s*0\s*$", pre_commit_job.group(), re.M), (
         "the `pre-commit` job must check out full history. `gitleaks-history` scans "
         "what the clone contains and says nothing about what it cannot see: on a "
         "shallow clone a secret added and later removed reports `no leaks found` at "
@@ -906,4 +910,11 @@ def test_both_ruff_pins_name_one_version() -> None:
             if found:
                 revs.append(found.group(1))
     assert revs, "could not find the ruff-pre-commit rev"
-    assert revs == [running], f"pre-commit pins {revs} but `uv run` installs ruff {running}"
+    # `set(...)`, because two legitimate ruff-pre-commit blocks at the same rev are
+    # not a mismatch. The line-wise rewrite changed how revs are collected and left
+    # this comparison alone, so the false positive it was credited with fixing
+    # survived it -- and the failure message read "pins ['0.16.6', '0.16.6'] but
+    # installs 0.16.6", stating the versions match while failing on them.
+    assert set(revs) == {running}, (
+        f"pre-commit pins {sorted(set(revs))} but `uv run` installs ruff {running}"
+    )
