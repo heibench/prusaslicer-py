@@ -81,6 +81,16 @@ extract-cli:
     uv run --locked python scripts/03_restructure_cli.py
 
 # Remove build and tool caches
+[unix]
 clean:
     rm -rf .venv dist .pytest_cache .ruff_cache .mypy_cache
     find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# `just` runs this through `sh`, so the body must contain no `$` at all: `sh` ate a
+# `$_` here once and an `$ErrorActionPreference` here twice. `-ErrorAction Stop`
+# does the same job as the preference variable with no sigil to be eaten.
+
+# Remove build and tool caches
+[windows]
+clean:
+    powershell -NoLogo -Command "Get-Item -ErrorAction SilentlyContinue .venv, dist, .pytest_cache, .ruff_cache, .mypy_cache | Remove-Item -Recurse -Force -ErrorAction Stop; Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"

@@ -122,17 +122,21 @@ def _just_recipes() -> dict[str, dict]:
     return dump["recipes"]
 
 
-def _comment_block_above(name: str, lines: list[str]) -> list[str] | None:
-    """The contiguous comment block directly above `name`'s definition.
+def _comment_blocks_above(name: str, lines: list[str]) -> list[list[str]] | None:
+    """One comment block per definition of `name`, in file order.
 
-    None when the definition cannot be located, which is a defect in this helper and
-    is asserted as such rather than skipped -- silently finding nothing is how the
-    first version of this gate passed over the recipes it could not parse.
+    None when no definition can be located, which is a defect in this helper and is
+    asserted as such rather than skipped -- silently finding nothing is how the first
+    version of this gate passed over the recipes it could not parse.
+
+    EVERY definition, not just the last. `clean` has an `[unix]` and a `[windows]`
+    body, and `just --dump` reports only the one for the running platform, so taking
+    a single block left the other unchecked on every platform: the #27 defect could
+    be planted on the `[unix]` half with both doc gates green and `just --list`
+    publishing rationale as the description. Two OS-attributed bodies are both live
+    code, unlike `allow-duplicate-recipes` where the last simply wins.
     """
-    # Scanned from the BOTTOM, because that is `just`'s own precedence: under
-    # `allow-duplicate-recipes` the LAST definition wins, and taking the first matched
-    # a superseded one. It also steps over most text-that-looks-like-code above the
-    # real recipe -- see the blind spot recorded in D2.1.
+    blocks: list[list[str]] = []
     for i in range(len(lines) - 1, -1, -1):
         line = lines[i]
         # `@name:` is a quiet recipe and is still a definition.
@@ -157,8 +161,8 @@ def _comment_block_above(name: str, lines: list[str]) -> list[str] | None:
                 j -= 1
                 continue
             break
-        return block
-    return None
+        blocks.insert(0, block)
+    return blocks or None
 
 
 @pytest.mark.skipif(shutil.which("just") is None, reason="needs the just binary")
@@ -180,11 +184,14 @@ def test_every_recipe_has_exactly_one_doc_comment_line() -> None:
     for name, recipe in sorted(_just_recipes().items()):
         if recipe.get("private"):
             continue
-        block = _comment_block_above(name, lines)
-        if block is None:
+        found = _comment_blocks_above(name, lines)
+        if found is None:
             unlocatable.append(name)
-        elif len(block) != 1:
-            wrong.append(f"{name}: {len(block)} comment line(s) directly above it")
+            continue
+        for n, block in enumerate(found, 1):
+            if len(block) != 1:
+                where = f"{name} (definition {n} of {len(found)})" if len(found) > 1 else name
+                wrong.append(f"{where}: {len(block)} comment line(s) directly above it")
 
     assert not unlocatable, (
         f"this test could not find the definition of {unlocatable} in the justfile, so "
@@ -246,7 +253,9 @@ def test_the_doc_gate_is_not_fooled_by_an_assignment_sharing_a_recipe_name(
         "lint:",
         "    echo hi",
     ]
-    block = _comment_block_above("lint", lines)
+    found = _comment_blocks_above("lint", lines)
+    assert found is not None and len(found) == 1, "expected one `lint` definition"
+    block = found[0]
     assert block is not None, "the recipe must be found, not the assignment"
     assert len(block) == 2, (
         f"expected the RECIPE's two-line block, got {block!r} -- if this is one line the "
@@ -571,7 +580,7 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     # A step or job that is present but never runs satisfies the check above while
     # running nothing. `if: false` on the `check` job was a fully green PR, because
     # the `ok` job tested for 'failure' and a skipped job reports 'skipped'.
-    for job in ("check", "test", "pre-commit"):
+    for job in ("check", "test", "pre-commit", "recipes"):
         block = re.search(rf"^  {job}:\n(?:(?:    .*)?\n)*", text, re.M)
         assert block, f"no `{job}` job in ci.yml"
         body = block.group()
@@ -610,6 +619,50 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
             "measured here.)"
         )
 
+    assert "needs.recipes.result != 'success'" in text, (
+        "the `recipes` job must gate `ok`; it is the only place the Windows half of "
+        "`just clean` is executed rather than read"
+    )
+
+    # Asserting the job EXISTS says nothing about what it does. Three edits left it
+    # named, gating, and useless: moving it to `ubuntu-latest` (a plausible "cheaper
+    # runner" cleanup, which silently dispatches `clean` to the POSIX body), deleting
+    # the assertion step, and replacing `just clean` with anything else. The message
+    # above claims this job executes the Windows half -- so something has to make
+    # that true.
+    recipes = re.search(r"^  recipes:\n(?:(?:    .*)?\n)*", text, re.M)
+    assert recipes, "no `recipes` job in ci.yml"
+    body = recipes.group()
+    assert re.search(r"^\s*runs-on:\s*windows-latest\s*$", body, re.M), (
+        "the `recipes` job must run on windows-latest; on Linux `just clean` "
+        "dispatches to the `[unix]` body and the Windows half is never executed"
+    )
+    assert re.search(r"^\s*(-\s*)?run:\s*just clean\s*$", body, re.M), (
+        "the `recipes` job must actually run `just clean`"
+    )
+    # Matched as a line, not a substring -- the same lesson twelve lines above, and
+    # I made the same mistake again here. A comment left behind while removing the
+    # step ("the old step threw \"just clean left: $stale\"; removed as flaky")
+    # satisfies a substring test.
+    assert re.search(r'^\s*if \(\$stale\) \{ throw "just clean left:', body, re.M), (
+        "the assertion after `just clean` is gone, so a `clean` that silently "
+        "removes nothing passes -- which is the bug this job caught on its first run"
+    )
+    assert "no __pycache__ was produced" in body, (
+        "the step that creates the artifacts before `just clean` is gone. Without it "
+        "only `.venv` exists after `just setup`, so the assertion is vacuous for five "
+        "of the six and the `__pycache__` sweep is exercised against no input at all"
+    )
+    assert "RemoveFileSystemItemIOError" in body, (
+        "the loud-failure probe is gone. Deleting it and then dropping "
+        "`-ErrorAction Stop` in a later tidy-up restores a `clean` that exits 0 "
+        "having removed nothing, with nothing red anywhere"
+    )
+    assert "PRUSASLICER_PY_REQUIRE_ENGINE is set but" in body, (
+        "the #30 step is gone. D12 says #30 is settled by measurement in this job, "
+        "and `engine.yml` cites it twice -- delete the step and three prose sites "
+        "assert a measurement nothing performs, which is #30's own complaint"
+    )
     assert "needs.check.result != 'success'" in text, (
         "the `ok` job must require upstream success; testing only for 'failure' "
         "passes a job that was skipped"
@@ -917,4 +970,47 @@ def test_both_ruff_pins_name_one_version() -> None:
     # installs 0.16.6", stating the versions match while failing on them.
     assert set(revs) == {running}, (
         f"pre-commit pins {sorted(set(revs))} but `uv run` installs ruff {running}"
+    )
+
+
+def _windows_clean_body() -> str:
+    """The body of the `[windows]`-attributed `clean` recipe, as written."""
+    lines = JUSTFILE.read_text(encoding="utf-8").splitlines()
+    for i, line in enumerate(lines):
+        if line.strip() != "[windows]":
+            continue
+        if i + 1 >= len(lines) or not re.match(r"^@?clean(\s|:)", lines[i + 1]):
+            continue
+        body = []
+        for below in lines[i + 2 :]:
+            if below.strip() and not below.startswith((" ", "\t")):
+                break
+            body.append(below)
+        return "\n".join(body).strip()
+    raise AssertionError("no `[windows]` clean recipe found in the justfile")
+
+
+def test_the_windows_clean_body_contains_no_dollar_sign() -> None:
+    """`just` runs recipe bodies through `sh -u`, including on Windows.
+
+    So a `$` in a PowerShell body is expanded by `sh` before PowerShell sees it.
+    That happened three times in this one recipe: `$_` in a `ForEach-Object` block,
+    which made `clean` delete nothing while exiting `0`, and `$ErrorActionPreference`
+    twice, which made it die at `unbound variable`, exit 127.
+
+    Each was found by a Windows CI round-trip. The rule is written above the recipe;
+    this makes it local and instant, because a fourth would otherwise cost the same
+    round-trip. `-ErrorAction Stop` on the cmdlet does the preference variable's job
+    with no sigil, so the rule costs nothing to keep.
+    """
+    body = _windows_clean_body()
+    assert "$" not in body, (
+        "the `[windows]` clean body contains a `$`, which `sh` will expand before "
+        f"PowerShell sees it -- use a cmdlet parameter instead:\n  {body}"
+    )
+    assert "-ErrorAction Stop" in body, (
+        "the `[windows]` clean body must fail loudly on a real error. Without "
+        "`-ErrorAction Stop`, `Remove-Item` raises a NON-terminating error, the "
+        "`__pycache__` sweep runs after it and succeeds, and `just clean` exits 0 "
+        "having removed nothing -- measured, with `.venv` held open"
     )

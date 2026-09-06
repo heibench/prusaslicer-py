@@ -56,7 +56,8 @@ jobs:
         # PRUSASLICER_PY_REQUIRE_ENGINE is set at workflow level, so a missing
         # engine fails here rather than skipping. `just test` rather than
         # `just test-engine`: the latter prefixes `VAR=x cmd`, which is
-        # POSIX-only and does not run on the Windows job.
+        # POSIX shell syntax -- which `just` supplies on every platform, so it
+        # runs on the Windows job too; verified by ci.yml's `recipes` job (#30).
         run: just test
       - name: Capture and extract the CLI surface
         run: |
@@ -116,7 +117,8 @@ jobs:
         # PRUSASLICER_PY_REQUIRE_ENGINE is set at workflow level, so a missing
         # engine fails here rather than skipping. `just test` rather than
         # `just test-engine`: the latter prefixes `VAR=x cmd`, which is
-        # POSIX-only and does not run on the Windows job.
+        # POSIX shell syntax -- which `just` supplies on every platform, so it
+        # runs on the Windows job too; verified by ci.yml's `recipes` job (#30).
         run: just test
 
   windows:

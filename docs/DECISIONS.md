@@ -926,3 +926,189 @@ that adds the job.
 That is the argument for this entry in one line. The six unenforced hooks were not
 covering a hypothetical gap, and the first thing enforcing them found was a real
 defect in the change that enforced them.
+
+---
+
+## D12 -- Recipes work on Windows, and the Windows half is executed rather than read
+
+**Decided:** 2026-09-06 (issue #26)
+
+`just clean` used `rm -rf` and GNU `find`; `just test-engine` used `VAR=1 cmd`.
+Neither runs on Windows without a POSIX layer, on a project that deliberately
+supports Windows: `engine.yml` runs the real engine on `windows-latest`, and
+`_exec_name()`'s `prusa-slicer-console.exe` branch exists precisely so that a
+Windows contributor is a real contributor. A contributor who can run the tests but
+not the project's own recipes gets the second-class experience the rest of this
+repository argues against.
+
+### `test-engine` was not the problem, and the attempted fix was worse
+
+The issue named `test-engine` alongside `clean`, and the first version of this
+entry changed it to an exported recipe parameter:
+
+```
+test-engine $PRUSASLICER_PY_REQUIRE_ENGINE="1":
+```
+
+**That was wrong twice, and it is recorded rather than quietly reverted.**
+
+It fixed nothing. `just` runs recipe bodies through `sh` on *every* platform --
+its own documentation says so, and this issue produced independent evidence when
+`sh` ate a `$_` out of a PowerShell body. So `VAR=1 cmd` is ordinary `sh` syntax
+that works wherever `just` works at all. `clean` was a real portability problem
+because `rm -rf` and GNU `find` are external programs that need not exist; an
+environment-variable prefix is not in that class.
+
+It also **introduced a fail-open**, in the one recipe whose entire purpose is that
+a missing engine must not read as success. A parameter is settable, and `just`
+advertised it in `--list`:
+
+```
+just test-engine       -> 4 errors, exit 1
+just test-engine ""    -> 48 passed, 7 skipped, exit 0   <- green, no engine
+```
+
+An empty string exports as empty, `os.environ.get()` returns `''`, and
+`conftest.py` skipped. A wrapper written as `just test-engine "$REQUIRE"` with
+`REQUIRE` unset is a fully green "engine required" run. On `main` the recipe took
+no arguments and could not be weakened at all. The recipe is back to its original
+form.
+
+`conftest.py` is hardened independently, because the underlying defect was its
+own: it tested truthiness, so `PRUSASLICER_PY_REQUIRE_ENGINE=` in the environment
+disabled the switch by setting it to nothing. It tests membership now.
+
+### #30 is settled by measurement, in the same job
+
+`engine.yml` carried a comment calling `VAR=x cmd` POSIX-only, and #30 records that
+nothing in the repository settled whether that mattered -- `just` documents `sh` on
+Windows, but the repo had no Windows job that could tell.
+
+The `recipes` job now runs `just test-engine` on `windows-latest`, where no engine
+is installed, and requires it to fail **with the require-engine message**. If the
+prefix did not reach the child process the variable would be unset, `conftest`
+would skip, and the run would exit `0`; the only way to get that specific failure
+is for `sh` to have handled the prefix and `conftest` to have seen the variable.
+The comments in `engine.yml` are corrected to say so.
+
+That is a claim the repository can now break, rather than one it can only read.
+
+### What the `[windows]` body is actually for
+
+Not "makes it work where there is no POSIX layer". `just` launches
+`powershell -NoLogo -Command "..."` *through* `sh` -- which is how `sh` came to eat
+a `$_` -- so on a Windows box with no POSIX layer `just` runs nothing at all,
+`[windows]` body included. Neither body delivers that, and this entry should not
+imply otherwise.
+
+The benefit is narrower and real: independence from `rm` and `find` as external
+programs. That is also why reverting `test-engine` and keeping this is coherent
+rather than arbitrary -- `VAR=1 cmd` is `sh` syntax, while `rm` and `find` are
+separate executables that have to be found. Windows ships
+`C:\Windows\System32\find.exe`, a completely different program, so which one a
+recipe gets is PATH-order dependent -- and the POSIX body would swallow the
+failure, since its `find` line ends `2>/dev/null || true`. A `clean` that exits `0`
+having removed no `__pycache__` on some machines and not others.
+
+**Measured, and the measurement cuts both ways.** The `recipes` job prints what
+`sh` actually resolves on `windows-latest`:
+
+```
+/usr/bin/rm
+/usr/bin/find
+find (GNU findutils) 4.11.0
+```
+
+So on this runner `rm` and `find` are the GNU programs the POSIX body expects, and
+the PATH hazard the `[windows]` body guards against does not arise here. Whether
+the body would then have *cleaned correctly* is not something this step
+establishes -- and its `find` line ends `2>/dev/null || true`, so a green run of it
+would not establish that either. The `[windows]` body is kept for machines where
+PATH order differs, which is a class the runner cannot speak to.
+
+An earlier draft of this paragraph said "the POSIX body would have worked" --
+resolution inferred into behaviour. It slipped precisely *because* it concedes
+against the change: a sentence that weakens your own work feels self-evidently safe
+to write, and this one would have been the strongest available argument for
+deleting the `[windows]` body, sitting unmeasured in the project's own decision
+record. The direction a claim points does not change what it owes.
+
+### `clean` dispatches per OS, and `[unix]`/`[windows]` are safe where `[doc]` was not
+
+D2.1 bans `[doc]` because an unknown attribute is a *parse* error, so one of them
+breaks every recipe in the file for anyone on an older `just` -- Ubuntu 24.04 LTS
+ships **1.21.0**, below `[doc]`'s **1.27.0**. That ban does not extend here:
+`[unix]` and `[windows]` arrived in **1.8.0**, which is below the same floor.
+Checked in `just`'s own attribute table rather than assumed, because the version
+number is the whole argument.
+
+### The Windows body is executed, not read
+
+`clean`'s Windows half is PowerShell, and no amount of care on a Linux machine
+establishes that it works. That is exactly the habit D11 was written about, so a
+`recipes` job runs `just clean` on `windows-latest` and then asserts the
+directories are gone -- the assertion matters, because a recipe that silently does
+nothing would otherwise pass. It gates `ok` like every other job, and the repo
+gate requires it to.
+
+The POSIX half needs no such job: every other CI leg has a working tree and would
+break loudly.
+
+The job also **creates** every artifact `clean` claims to remove before running it.
+Without that, only `.venv` exists after `just setup` -- so the assertion was
+vacuous for five of the six, including the `__pycache__` sweep, which is the half
+of the Windows body most likely to break next and had never been exercised against
+a single input.
+
+And the gate asserts what the job *does*, not merely that it exists. Three edits
+left it named, gating `ok`, and useless: moving it to `ubuntu-latest`, which is a
+plausible cheaper-runner cleanup and silently dispatches `clean` to the POSIX body;
+deleting the assertion step; and replacing `just clean` with anything else. The
+gate's own message claims this job executes the Windows half, so something has to
+make that true -- an unmeasured claim that *loosens* a gate is the expensive kind.
+
+**It caught the first version on its first run**, which is the argument for it.
+`just` executes a recipe body through `sh` on Windows too, not through the
+platform shell -- so a body written as
+
+```
+powershell -NoLogo -Command "... | ForEach-Object { if (Test-Path $_) { ... } }"
+```
+
+had its `$_` expanded by `sh` before PowerShell ever saw it. The recipe ran, exited
+`0`, and deleted nothing; the assertion is what turned that into
+`just clean left: .venv` rather than a green run. A `clean` that silently cleans
+nothing is the failure this repository is named around, and reading the recipe
+would not have found it -- the `$_` is correct PowerShell and correct `just`, and
+wrong only in the seam between them.
+
+The body avoids `$_` entirely now, so there is nothing for `sh` to substitute.
+
+**And it caught a second one, which I had asserted was already handled.** Asked
+whether `clean` fails loudly when a real error stops it, I said the Windows body
+did. It did not. `Remove-Item` raises a *non-terminating* error, and the
+`__pycache__` sweep runs after it and always succeeds, so with `.venv` held open by
+another process the job measured:
+
+```
+Remove-Item : Cannot remove item ...\.venv: The directory is not empty
+just clean -> exit 0
+```
+
+An error on stderr and success to the caller -- while `rm -rf` exits non-zero and
+`just` aborts the recipe. The two halves were not equivalent in the way that
+matters most, and the difference was invisible to every green run because nothing
+had ever made `clean` fail. `$ErrorActionPreference = 'Stop'` inside the command
+makes the non-terminating error terminating; the `__pycache__` sweep keeps its own
+`-ErrorAction SilentlyContinue`, matching the POSIX body's `|| true` on the same
+sweep.
+
+The probe was added deliberately without a pre-emptive fix, so that the run would
+answer the question rather than confirm a guess. It answered it against me.
+
+The first fix for that was `$ErrorActionPreference = 'Stop'` -- and `sh`, running
+with `-u`, ate that too: `ErrorActionPreference: unbound variable`, exit 127. Three
+instances of one class in a single recipe. The rule the recipe carries now is
+therefore not "escape the `$`" but **the body must contain no `$` at all**;
+`-ErrorAction Stop` on the cmdlet does the same job with no sigil for `sh` to
+find.

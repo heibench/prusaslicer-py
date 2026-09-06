@@ -76,10 +76,99 @@ jobs:
       - run: just setup
       - run: just test
 
+  # `clean` is the one recipe with a per-OS body, and the Windows half is
+  # PowerShell that cannot be exercised on a Linux machine. Asserting it works
+  # from reading it is what #25 was about, so it runs here instead. Windows only:
+  # the POSIX half is exercised by every other job that has a working tree.
+  recipes:
+    name: recipes (windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.11"
+      - run: just setup
+      # Settles #30 by measurement rather than by reading `just`'s documentation.
+      # `test-engine` prefixes `VAR=1 cmd`, which engine.yml called POSIX-only. If
+      # that were true on Windows the variable would be unset, conftest would SKIP,
+      # and this would exit 0. It must instead fail the way a missing engine fails
+      # -- which is only possible if `sh` handled the prefix and conftest saw the
+      # variable. No engine is installed on this runner, which is what makes the
+      # distinction visible.
+      - name: test-engine reaches conftest on Windows (#30)
+        run: |
+          $out = just test-engine 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -eq 0) { throw "just test-engine exited 0 with no engine installed" }
+          if ($out -notmatch 'PRUSASLICER_PY_REQUIRE_ENGINE is set but') {
+            throw "failed for some other reason than the engine being required"
+          }
+          # The step asserts a NON-ZERO exit, and GitHub's pwsh wrapper ends with
+          # `exit $LASTEXITCODE` -- so without this the step leaks the very failure
+          # it was checking for and reports red on success.
+          exit 0
+        shell: pwsh
+      # Informational: which `rm` and `find` the POSIX body would actually get here.
+      # Windows ships C:\Windows\System32\find.exe -- a different program entirely --
+      # and `just` runs `sh` with the inherited Windows environment, so which one wins
+      # is PATH-order dependent. This step states the answer rather than guessing it.
+      - name: What the POSIX clean body would resolve to here (informational)
+        run: sh -cu 'command -v rm; command -v find; find --version 2>&1 | head -1'
+        shell: pwsh
+      # Does `clean` fail LOUDLY when a real error stops it? `rm -rf` exits non-zero
+      # and `just` aborts the recipe. PowerShell's `Remove-Item` raises a
+      # NON-terminating error, and the `__pycache__` sweep runs after it and always
+      # succeeds -- so the body may exit 0 having removed nothing. That is the failure
+      # this repository is named around, so it is measured rather than assumed.
+      - name: clean fails loudly when a real error stops it
+        run: |
+          $h = [System.IO.File]::Open("$pwd\.venv\pyvenv.cfg", 'Open', 'Read', 'None')
+          $out = just clean 2>&1 | Out-String
+          $ec = $LASTEXITCODE
+          $h.Close()
+          Write-Host $out
+          if ($ec -eq 0) {
+            throw "just clean exited 0 while .venv was locked open and could not be removed"
+          }
+          # Asserting non-zero is not enough: it says the recipe failed, not that it
+          # failed BECAUSE the removal was refused. This probe already reported
+          # success once (run 34064346890) over a `clean` that died at
+          # `ErrorActionPreference: unbound variable` before touching anything --
+          # green on precisely the broken state it exists to distinguish.
+          if ($out -notmatch 'RemoveFileSystemItemIOError') {
+            throw "clean failed, but not because Remove-Item could not remove the locked .venv"
+          }
+          exit 0
+        shell: pwsh
+      - run: just setup
+      # Without these, only `.venv` exists after `just setup` and the assertion
+      # below is vacuous for five of the six artifacts -- including `__pycache__`,
+      # whose sweep is the half of the Windows body most likely to break next.
+      - name: Create every artifact clean claims to remove
+        run: |
+          New-Item -ItemType Directory -Force dist, .pytest_cache, .ruff_cache, .mypy_cache | Out-Null
+          uv run --locked python -c "import prusaslicer_py"
+          if (-not (Get-ChildItem -Recurse -Directory -Filter __pycache__)) {
+            throw "no __pycache__ was produced, so the sweep would not be exercised"
+          }
+        shell: pwsh
+      - run: just clean
+      - name: Assert clean actually removed the artifacts
+        run: |
+          $stale = '.venv','dist','.pytest_cache','.ruff_cache','.mypy_cache' |
+            Where-Object { Test-Path $_ }
+          if ($stale) { throw "just clean left: $stale" }
+          $pyc = Get-ChildItem -Recurse -Directory -Filter __pycache__
+          if ($pyc) { throw "just clean left __pycache__: $($pyc.FullName)" }
+        shell: pwsh
+
   ok:
     name: ok
     if: always()
-    needs: [check, test, pre-commit]
+    needs: [check, test, pre-commit, recipes]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -90,7 +179,8 @@ jobs:
         if: >-
           needs.check.result != 'success' ||
           needs.test.result != 'success' ||
-          needs.pre-commit.result != 'success'
+          needs.pre-commit.result != 'success' ||
+          needs.recipes.result != 'success'
         run: exit 1
       - name: Pass
         run: echo 'All checks passed'
