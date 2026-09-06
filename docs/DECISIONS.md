@@ -613,6 +613,38 @@ list grow while the gate stayed green, which is the omit-by-default shape this
 entry exists to argue against. It is `>=` rather than `==` because an untracked
 scratch file legitimately raises the count and is nobody's defect.
 
+### Four gates, and why none is redundant
+
+Three of these read outcomes and one reads shape, and the temptation is to delete
+the overlap. There is none: each has a red state no other produces, verified by
+attack.
+
+| attack | dry-run | count | canary | linecount |
+| --- | --- | --- | --- | --- |
+| a *complete* hand-written path list | **red** | green | green | green |
+| `exclude` a directory | green | **red** | green | green |
+| `disable_error_code` | green | green | **red** | green |
+| `ignore_errors` on some modules | green | green | green | **red** |
+
+The first row is the one worth naming. A hand list naming every directory checks
+all 14 files today, so every outcome gate is satisfied -- it is red only because
+the *shape* omits by default, which is what this entry opens by arguing against.
+That is a gate on shape, and no outcome gate can express it.
+
+Two holes in this set were found by planting defects rather than by reasoning
+about it, and both are the same mistake in different clothes:
+
+* **The canary planted one error shape.** `disable_error_code` sparing `arg-type`
+  left it objecting while switching off `no-untyped-def` -- which *is*
+  `disallow_untyped_defs` -- and `typeddict-item`, which *is* D6's schema
+  protection. Both properties this entry rests on, dead, with every gate green.
+  The canary now plants one defect per mechanism rather than one per gate.
+* **The linecount gate skipped `__init__.py` by name.** That was a hand-written
+  exclusion inside the gate set built to argue against hand-written exclusions,
+  and it was fail-open: `ignore_errors` on the `prusaslicer_py` module left the
+  package's public entry point checked for nothing, invisible to all four. The
+  filename is now mapped to its package instead of dropped.
+
 ### Where it actually stops
 
 Not at the recipe, and not at `set shell := ["true", "-c"]` -- an earlier draft of

@@ -612,15 +612,27 @@ def test_the_typechecker_still_objects_to_a_defect_planted_in_scripts() -> None:
     """
     canary = ROOT / "scripts" / "zz_typecheck_canary.py"
     assert not canary.exists(), f"{canary} already exists; refusing to overwrite it"
+    # One defect per mechanism D10 relies on, not one per gate. A single shape is
+    # not enough: `disable_error_code` can spare `arg-type` while switching off
+    # `no-untyped-def` (which IS `disallow_untyped_defs`) and `typeddict-item`
+    # (which IS the D6 schema protection the TypedDict was added for). Both would
+    # die silently behind a canary that only tests for a reversed call.
+    #
     # Deliberately ruff-clean: formatted as ruff formats, and lint-clean. An earlier
     # version used single quotes, so `fmt-check` rejected it before mypy ran and the
     # gate passed on ruff's output with the typechecker never consulted -- the gate
     # passing for the wrong reason, which is the thing it exists to catch.
     canary.write_text(
-        "from pathlib import Path\n\n\n"
+        "from pathlib import Path\n"
+        "from typing import TypedDict\n\n\n"
+        "class _Record(TypedDict):\n"
+        "    option: str\n\n\n"
         "def _writes(data: dict[str, int], path: Path) -> None:\n"
         '    path.write_text(str(data), encoding="utf-8")\n\n\n'
-        '_writes(Path("x"), {"a": 1})\n',
+        "def _unannotated(value):\n"
+        "    return value\n\n\n"
+        '_writes(Path("x"), {"a": 1})\n'
+        '_record: _Record = {"optionn": "x"}\n',
         encoding="utf-8",
     )
     try:
@@ -631,13 +643,20 @@ def test_the_typechecker_still_objects_to_a_defect_planted_in_scripts() -> None:
     finally:
         canary.unlink()
 
-    # `[arg-type]` is mypy's code, so this cannot be satisfied by ruff objecting to
-    # the file for its own reasons -- which is how the first version of this passed.
-    assert "[arg-type]" in report and "zz_typecheck_canary" in report, (
-        "`just check` did not object to a reversed-argument call planted in "
-        "`scripts/`, so whatever it is doing, it is not typechecking that directory. "
-        "An `exclude` entry, `ignore_errors`, or `disable_error_code` will each do "
-        f"this while leaving the file count untouched.\n{report}"
+    # These are mypy's codes, so this cannot be satisfied by ruff objecting to the
+    # file for its own reasons -- which is how the first version of this passed.
+    missing = [
+        code
+        for code in ("[arg-type]", "[no-untyped-def]", "[typeddict-item]")
+        if code not in report
+    ]
+    assert not missing and "zz_typecheck_canary" in report, (
+        f"`just check` did not report {missing or 'the planted defects'} for a "
+        "canary in `scripts/`, so at least one of the properties D10 rests on is no "
+        "longer being enforced. `no-untyped-def` is `disallow_untyped_defs`; "
+        "`typeddict-item` is D6's schema protection. An `exclude` entry, "
+        "`ignore_errors`, or a `disable_error_code` entry will each switch one off "
+        f"while leaving the file count untouched.\n{report}"
     )
     assert out.returncode != 0, (
         "`just check` reported the planted defect and still exited 0, so its exit "
@@ -730,10 +749,16 @@ def test_mypy_actually_examined_every_tracked_module() -> None:
     # annotation by design, and flagging it would be reading the exemption as a
     # defect. Everywhere else, zero typed lines in a file that is fully annotated
     # means mypy stopped looking.
+    # `__init__.py` is mapped to its package rather than dropped. Skipping it by
+    # name was a hand-written exclusion inside the gate set built to argue against
+    # hand-written exclusions, and it was fail-open: `ignore_errors` on the
+    # `prusaslicer_py` module left the package's public entry point -- the one that
+    # defines `__all__` and every re-export consumers import -- checked for nothing,
+    # invisible to all four gates. mypy already reports it as `prusaslicer_py`.
     tracked = {
-        Path(f).stem
+        Path(f).parent.name if Path(f).name == "__init__.py" else Path(f).stem
         for f in _tracked_python_files()
-        if Path(f).name != "__init__.py" and not f.startswith("tests/")
+        if not f.startswith("tests/")
     }
     with tempfile.TemporaryDirectory() as tmp:
         out = subprocess.run(
@@ -752,8 +777,13 @@ def test_mypy_actually_examined_every_tracked_module() -> None:
     analysed: dict[str, int] = {}
     for row in rows:
         parts = row.split()
-        if len(parts) == 5 and parts[4] != "total":
-            analysed[parts[4].rsplit(".", 1)[-1]] = int(parts[0])
+        if len(parts) != 5 or parts[4] == "total":
+            continue
+        if not parts[0].isdigit():
+            # A future report shape should be a diagnosis, not a ValueError from
+            # inside a gate everything else now leans on.
+            continue
+        analysed[parts[4].rsplit(".", 1)[-1]] = int(parts[0])
 
     unexamined = sorted(name for name in tracked if analysed.get(name, 0) == 0 and name in analysed)
     missing = sorted(name for name in tracked if name not in analysed)
