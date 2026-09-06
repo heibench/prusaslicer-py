@@ -97,7 +97,7 @@ reports "not installed" on the most common Linux install (D9).
    Or, for development:
 
    ```sh
-   just setup     # uv sync
+   just setup     # uv sync --locked
    just check     # fmt-check + lint + typecheck
    just test      # run the suite
    ```

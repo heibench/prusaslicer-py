@@ -6,9 +6,20 @@ set dotenv-load := false
 default:
     @just --list
 
-# Install dependencies and set up the environment
+# Install dependencies from the committed lockfile, and fail if it is stale
 setup:
-    uv sync
+    uv sync --locked
+
+# Separate from `setup` on purpose. `uv sync` alone updates the lockfile when it is out
+# of date and says nothing, so a setup that quietly fixes the thing it is meant to verify
+# is the same defect with a friendlier face -- and CI runs `setup`, so its green could not
+# have failed on a stale lock (#23).
+#
+# `[doc]` rather than a trailing comment: `just` takes the LAST comment line as the doc
+# string, so a multi-line rationale silently publishes its final line to `just --list`.
+[doc("Re-resolve and rewrite uv.lock; run when a dependency changes, then commit it")]
+lock:
+    uv lock
 
 # Format code and apply lint fixes (mutates the working tree)
 fmt:

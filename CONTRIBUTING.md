@@ -3,7 +3,8 @@
 ## Getting set up
 
 ```sh
-just setup          # sync the environment
+just setup          # sync the environment from the committed lockfile
+just lock           # re-resolve uv.lock after changing a dependency
 just check          # format check + lint + typecheck
 just test           # the suite
 ```

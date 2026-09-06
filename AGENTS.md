@@ -45,7 +45,8 @@ docs/DECISIONS.md   numbered decisions and their reasoning
 ## Commands
 
 ```sh
-just setup          # uv sync
+just setup          # uv sync --locked; fails if uv.lock is stale
+just lock           # re-resolve uv.lock after a dependency change, then commit it
 just fmt            # format + autofix
 just check          # fmt-check + lint + typecheck (CI-equivalent)
 just test           # run tests; engine tests skip if PrusaSlicer is absent
