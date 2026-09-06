@@ -729,10 +729,46 @@ skipped it there. `ruff` and `ruff-format` were covered independently by
 
 **`gitleaks` is why this is a job and not a note.** Secret detection that runs only
 where it was opted into is not a control. A commit pushed from a fresh clone
-reaches `main` unscanned, and this repository is public. The job checks out with
-`fetch-depth: 0`, because gitleaks scans history rather than the diff and a shallow
-clone would report clean having seen almost nothing -- a green that verified next
-to nothing, which is section 2.4's shape.
+reaches `main` unscanned, and this repository is public.
+
+### Running a hook is not the same as the hook checking anything
+
+The first version of this entry said the job made eight hooks real, and that
+`fetch-depth: 0` mattered because gitleaks scans history. **Both were wrong**, and
+they were wrong in the way this repository is supposed to catch: stated from
+reading a config rather than from watching a check fail.
+
+Three of the eight were no-ops even once CI ran them, measured on a repository
+with a secret, a 2 MB binary and a file full of conflict markers all **committed**
+and the tree clean:
+
+```
+Detect hardcoded secrets.................................................Passed
+check for merge conflicts................................................Passed
+check for added large files..............................................Passed
+```
+
+* The stock gitleaks hook is `gitleaks git --pre-commit --redact --staged`. On a
+  CI checkout the index equals `HEAD`, so `git diff --staged` is empty and it
+  scans **zero bytes**. The positive control -- the same secret merely *staged* --
+  reports `leaks found: 1`, so the hook works and the invocation never asks it to
+  look.
+* `check-added-large-files` intersects its filenames with
+  `git diff --staged --diff-filter=A`, empty for the same reason.
+* `check-merge-conflict` returns 0 immediately unless the repository is mid-merge.
+
+So `fetch-depth: 0` was pure cost, and issue #25's actual complaint -- a commit
+reaching `main` unscanned -- was not fixed by running the hooks.
+
+A second gitleaks hook, aliased `gitleaks-history`, overrides the entry to
+`gitleaks git --redact --verbose` and scans history; the other two now carry
+`--enforce-all` and `--assume-in-merge`. On that same committed-secret tree all
+three go red, and `fetch-depth: 0` is now load-bearing rather than decorative.
+
+`CONTRIBUTING.md` says it exactly: *a check that cannot fail is not a check; break
+the thing it checks and watch it go red before you trust it.* That was not done
+for these three, and the cost was a security control that existed only on paper --
+in a decision record, which by this repo's own rule is not to be relitigated.
 
 ### One ruff, exactly
 
@@ -753,6 +789,14 @@ Both pins are now exact and equal, held by
 partspec's `tests/test_lint_config.py` -- the same defect, found there first. An
 inexact pin on either side fails it, so bumping one alone is a red gate rather than
 a quiet split between what `git commit` writes and what `just check` rejects.
+
+The gate compares the **resolved** version from `uv.lock`, not the declared one.
+Declaring `ruff==0.16.6` does not mean `uv run` installs it:
+`[tool.uv] override-dependencies = ["ruff==0.14.0"]` resolves to 0.14.0 with every
+gate green, measured. `uv.lock` is what actually gets installed, so it is the only
+version worth comparing. Comments are stripped before the `rev:` is read, because
+a comment reading `ruff-pre-commit rev: v0.16.6` satisfied the earlier regex while
+the real `rev:` sat lower in the block naming a different version.
 
 Note what this does *not* claim. The gate holds the two version strings equal; it
 does not verify that two builds of the same version format identically, which

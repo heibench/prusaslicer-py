@@ -568,7 +568,10 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
         # `ok` job passes -- a green pull request over a red gate, with no `if:`
         # anywhere. State the positive property instead: these two jobs run
         # unconditionally and their result is the truth.
-        for forbidden in ("if:", "continue-on-error:"):
+        # `env:` is here because `SKIP=gitleaks,check-yaml` on the pre-commit
+        # action turns those hooks off and reports success -- the same defeat as
+        # `if: false`, one level above where the ban was looking.
+        for forbidden in ("if:", "continue-on-error:", "env:"):
             assert not re.search(rf"^\s*{re.escape(forbidden)}", body, re.M), (
                 f"the `{job}` job (or a step in it) carries `{forbidden}`, which per "
                 "GitHub's documented behaviour lets it not run, or report success "
@@ -849,12 +852,27 @@ def test_both_ruff_pins_name_one_version() -> None:
     dev = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))["dependency-groups"]["dev"]
     pinned = [d for d in dev if d.startswith("ruff")]
     assert len(pinned) == 1, f"expected one ruff pin in the dev group, got {pinned}"
+    assert pinned[0].startswith("ruff=="), f"the pin must be exact `==`, not {pinned[0]!r}"
+    assert "*" not in pinned[0], f"the pin must be exact, not {pinned[0]!r}"
 
-    gate_pin = pinned[0].removeprefix("ruff==")
-    assert gate_pin != pinned[0], f"the gate's ruff pin must be exact `==`, not {pinned[0]!r}"
-    assert "*" not in gate_pin, f"the gate's ruff pin must be exact, not {pinned[0]!r}"
+    # The RESOLVED version, not the declared one. A declared `ruff==0.16.6` can still
+    # run a different ruff: `[tool.uv] override-dependencies = ["ruff==0.14.0"]`
+    # resolves to 0.14.0 with every gate green, measured. `uv.lock` is what `uv run`
+    # actually installs, so it is the only version worth comparing against.
+    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+    resolved = [pkg["version"] for pkg in lock["package"] if pkg["name"] == "ruff"]
+    assert len(resolved) == 1, f"expected one ruff in uv.lock, got {resolved}"
+    running = resolved[0]
+    assert pinned[0] == f"ruff=={running}", (
+        f"the dev group declares {pinned[0]!r} but `uv.lock` resolves ruff {running}"
+    )
 
+    # Comments stripped first: flattening the file and searching for
+    # `ruff-pre-commit ... rev:` was satisfied by a comment saying so, while the real
+    # `rev:` sat below `hooks:` naming a different version. YAML keys are unordered,
+    # so the decoy needed no unusual layout.
     config = (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
-    revs = re.findall(r"ruff-pre-commit\s+rev:\s*v?(\S+)", " ".join(config.split()))
+    uncommented = " ".join(" ".join(line.split("#", 1)[0] for line in config.splitlines()).split())
+    revs = re.findall(r"ruff-pre-commit\s+(?:(?!repo:).)*?rev:\s*v?(\S+)", uncommented)
     assert revs, "could not find the ruff-pre-commit rev"
-    assert revs == [gate_pin], f"pre-commit pins {revs} but `just check` runs {gate_pin}"
+    assert revs == [running], f"pre-commit pins {revs} but `uv run` installs ruff {running}"

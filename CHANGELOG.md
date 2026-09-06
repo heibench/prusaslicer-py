@@ -8,14 +8,20 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ### Fixed
 
-- **pre-commit runs in CI, and both ruffs are the same ruff** (#25).
-  `.pre-commit-config.yaml` configured eight hooks and CI ran none of them, so
-  six -- `gitleaks` above all -- were enforced only on machines where somebody
-  had run `pre-commit install`, and `--no-verify` skipped those. A secret scan
-  that runs only where it was opted into is not a control, and this repository is
-  public. The job checks out full history, because `gitleaks` scans history
-  rather than the diff and a shallow clone reports clean by seeing almost
-  nothing.
+- **pre-commit runs in CI, three hooks that did nothing now do, and both ruffs
+  are the same ruff** (#25). `.pre-commit-config.yaml` configured eight hooks and
+  CI ran none of them, so six were enforced only where somebody had run
+  `pre-commit install`, and `--no-verify` skipped them there.
+
+  Running them was not enough. Three were no-ops even when run: the stock
+  `gitleaks` hook is `gitleaks git --pre-commit --staged`, which scans
+  `git diff --staged` -- empty on a CI checkout, so it scanned **zero bytes** and
+  passed. `check-added-large-files` intersects with newly staged files, and
+  `check-merge-conflict` returns 0 unless the repo is mid-merge. Measured: a
+  committed secret, a committed 2 MB binary and a committed file full of conflict
+  markers all passed on a clean tree. A second `gitleaks` hook now scans history
+  -- which is what makes `fetch-depth: 0` load-bearing -- and the other two carry
+  `--enforce-all` and `--assume-in-merge`. All three go red on that same tree.
 
   The two ruffs had already drifted, and not subtly: pre-commit pinned `v0.11.12`
   while `just check` resolved `ruff>=0.11` to `0.16.6`, and the older one raised

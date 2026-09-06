@@ -29,10 +29,10 @@ jobs:
       - run: just setup
       - run: just check
 
-  # `.pre-commit-config.yaml` claims eight hooks run. Six of them -- gitleaks
-  # above all -- had no enforcement outside a local hook someone had to install
-  # and `--no-verify` skips. A secret scan that runs only on machines that opted
-  # in is not a control, and this repository is public.
+  # `.pre-commit-config.yaml` claims its hooks check this repository. They ran
+  # only where someone had run `pre-commit install`, and `--no-verify` skipped
+  # them there. Three of them also did nothing even when run -- see D11; they
+  # now carry the flags that make them bite.
   pre-commit:
     name: pre-commit
     runs-on: ubuntu-latest
@@ -40,8 +40,9 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          # gitleaks scans history, not just the diff; a shallow clone would
-          # report clean by seeing almost nothing.
+          # Needed by the `gitleaks-history` hook, which scans history. The
+          # stock gitleaks hook is `--staged` and scans nothing on a CI
+          # checkout, so without that hook this depth would buy nothing.
           fetch-depth: 0
       - uses: actions/setup-python@v6
         with:
