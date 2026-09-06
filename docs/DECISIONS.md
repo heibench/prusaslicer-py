@@ -52,22 +52,28 @@ exited `0` and rewrote `uv.lock`, with no diagnostic on either.
 CI runs `just setup`, so the gate could not fail on a stale lock and its green
 said nothing about the dependency set that shipped.
 
-Two changes, and the second is the one that matters locally. `setup` is
-`uv sync --locked`, and `export UV_LOCKED := "1"` makes every other recipe refuse
-too -- because after the first day nobody runs `setup` again, so verifying only
-there fixes CI and leaves the contributor exactly where they were.
+`setup` is `uv sync --locked`, and **every other recipe passes `--locked` to
+`uv run`** -- which matters more locally, because after the first day nobody runs
+`setup` again, so verifying only there fixes CI and leaves the contributor exactly
+where they were.
 
-**`lock` is the only recipe allowed to write it**, and unsets the variable for
-that one call. It is separate from `setup` on purpose: a setup that quietly fixes
-the thing it is meant to verify is the same defect with a friendlier face, which
-is the whole of #23.
+Per-invocation rather than an exported `UV_LOCKED`. Both work, but the exported
+form needs `lock` to override it with a `VAR=x cmd` prefix, and `engine.yml`
+records that construct as POSIX-only and not runnable on its Windows job.
+Whether that record is right is a separate question (see #30) -- `lock` is the
+only way out of a stale lock, so it is the one recipe that must work everywhere,
+and it should not depend on the answer.
 
-**No `[doc(...)]` attributes anywhere in the justfile.** It reads better than the
-comment convention and needs just >= 1.27.0, where an unknown attribute is a
-**parse** error rather than a warning -- so one `[doc]` would break every recipe
-in the file for anyone on an older `just`, including Ubuntu 24.04 LTS. The blank
-line above a recipe's doc comment is load-bearing instead: `just` takes the last
-comment line before a recipe as its doc string.
+**`lock` is the only recipe that writes the lock.** Separate from `setup` on
+purpose: a setup that quietly fixes the thing it is meant to verify is the same
+defect with a friendlier face, which is the whole of #23.
+
+**No `[doc(...)]` attributes anywhere in the justfile.** Unknown attributes are a
+**parse** error in every `just` -- not a warning -- and `[doc]` was only added in
+1.27.0, so one of them breaks *every recipe in the file* for anyone on an older
+one, including Ubuntu 24.04 LTS. The blank line above a recipe's doc comment does
+the same job on any version: `just` takes the last comment line before a recipe as
+its doc string.
 
 ---
 
