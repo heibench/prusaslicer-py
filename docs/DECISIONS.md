@@ -57,12 +57,23 @@ said nothing about the dependency set that shipped.
 `setup` again, so verifying only there fixes CI and leaves the contributor exactly
 where they were.
 
-Per-invocation rather than an exported `UV_LOCKED`. Both work, but the exported
-form needs `lock` to override it with a `VAR=x cmd` prefix, and `engine.yml`
-records that construct as POSIX-only and not runnable on its Windows job.
-Whether that record is right is a separate question (see #30) -- `lock` is the
-only way out of a stale lock, so it is the one recipe that must work everywhere,
-and it should not depend on the answer.
+Per-invocation rather than an exported `UV_LOCKED`, and the trade is real in both
+directions. The exported form needs `lock` to override it with a `VAR=x cmd`
+prefix, and `engine.yml` records that construct as POSIX-only and not runnable on
+its Windows job; whether that record is right is a separate question (#30). `lock`
+is the only way out of a stale lock, so it is the one recipe that must work
+everywhere and must not depend on the answer. `--locked` is also the more portable
+flag by version: uv has accepted it since at least 0.5.5, where `uv lock
+--no-locked` -- the purpose-built escape for the exported form -- landed only in
+0.12.9.
+
+**What it costs is that the guard is fail-open.** An exported variable protects a
+recipe added next year by default; ten explicit flags do not, and a new `uv run`
+without one would silently rewrite the lock at exit 0 -- the exact defect. So the
+convention is gated rather than remembered:
+`tests/test_repo_gates.py::test_every_uv_run_in_the_justfile_is_locked` fails on any
+unflagged `uv run`, and a sibling asserts `uv lock` appears exactly once. A check
+that cannot fail is not a check (`CONTRIBUTING.md`).
 
 **`lock` is the only recipe that writes the lock.** Separate from `setup` on
 purpose: a setup that quietly fixes the thing it is meant to verify is the same

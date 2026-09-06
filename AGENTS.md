@@ -51,6 +51,7 @@ just fmt            # format + autofix
 just check          # fmt-check + lint + typecheck (CI-equivalent)
 just test           # run tests; engine tests skip if PrusaSlicer is absent
 just test-engine    # run tests; engine tests FAIL if PrusaSlicer is absent
+just extract-cli    # regenerate scripts/02_ and 03_ data from captured help
 ```
 
 **Every recipe passes `--locked`, so the whole gate fails after a dependency change
@@ -59,10 +60,6 @@ with *"The lockfile at `uv.lock` needs to be updated"* -- that is not a test fai
 and not a broken environment. Run `just lock`, commit the result, and re-run. The
 lockfile is committed and CI runs the same recipes, so a lock nothing verified was a
 claim this repo did not keep (D2.1, #23).
-
-```sh
-just extract-cli    # regenerate scripts/02_ and 03_ data from captured help
-```
 
 Run `just check && just test` before every commit. Never `--no-verify`.
 

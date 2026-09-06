@@ -98,6 +98,7 @@ reports "not installed" on the most common Linux install (D9).
 
    ```sh
    just setup     # uv sync --locked
+   just lock      # re-resolve uv.lock after a dependency change
    just check     # fmt-check + lint + typecheck
    just test      # run the suite
    ```
