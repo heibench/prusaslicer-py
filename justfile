@@ -66,10 +66,10 @@ test-engine:
 # they are separate recipes. The captures are PrusaSlicer's output rather than ours
 # and are not committed -- see D8.
 #
-# One comment line each below the blank, because `just` takes the LAST comment line
-# before a recipe as its doc string: these three lines used to sit directly above
-# `capture-cli`, so `just --list` published the D8 sentence as its description and
-# `extract-cli`'s own line was absorbed upward, leaving it with none (#27).
+# One comment line each below the blank, per the rule above `lock`: these three lines
+# used to sit directly against `capture-cli`, so `just --list` published the D8
+# sentence as its description and `extract-cli`'s own line was absorbed upward,
+# leaving it with none (#27).
 
 # Capture PrusaSlicer's --help into scripts/01_helps (needs the engine installed)
 capture-cli:

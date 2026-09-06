@@ -51,6 +51,7 @@ just fmt            # format + autofix
 just check          # fmt-check + lint + typecheck (CI-equivalent)
 just test           # run tests; engine tests skip if PrusaSlicer is absent
 just test-engine    # run tests; engine tests FAIL if PrusaSlicer is absent
+just capture-cli    # re-capture PrusaSlicer's --help (needs the engine installed)
 just extract-cli    # regenerate scripts/02_ and 03_ data from captured help
 ```
 

@@ -86,6 +86,19 @@ one, including Ubuntu 24.04 LTS. The blank line above a recipe's doc comment doe
 the same job on any version: `just` takes the last comment line before a recipe as
 its doc string.
 
+That rule has a cost, and #27 is what it looks like: a recipe with a two-line
+comment publishes the **wrong** line, and the recipe below it can be left with
+none. So the convention is **exactly one comment line directly above each recipe,
+rationale above a blank line**, gated by
+`tests/test_repo_gates.py::test_every_recipe_has_exactly_one_doc_comment_line`.
+
+The gate reads `just --dump --dump-format json` for the authoritative recipe list
+rather than parsing the file itself. The first version did parse it, and skipped
+any line with an `=` before the colon -- which silently excluded every recipe with
+a defaulted parameter, so #27 could be reintroduced verbatim on one and the test
+stayed green. Found in review. Where the tool will answer a question about itself,
+ask it.
+
 ---
 
 ## D3 -- A missing engine skips; asserting it is present is opt-in

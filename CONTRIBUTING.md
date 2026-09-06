@@ -14,6 +14,13 @@ the whole gate red until you re-lock**: `just check` exits `2` saying the lockfi
 needs updating. That is the intended friction, not a broken environment. Run
 `just lock`, commit the result, and carry on.
 
+**Adding a recipe:** give it **exactly one** comment line directly above it, and put any
+rationale above a blank line. `just` publishes the last comment line before a recipe as
+its description, so a two-line block silently publishes the wrong half and starves the
+recipe below it of one — which is what happened to `capture-cli` and `extract-cli`
+(#27). A test enforces it. Do not reach for `[doc(...)]`: it says the same thing more
+clearly and breaks the whole justfile on any `just` before 1.27.0 (D2.1).
+
 `just check && just test` is what CI runs. Run it before every commit, and
 never bypass hooks.
 
