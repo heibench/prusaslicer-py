@@ -26,12 +26,14 @@ the schema as stable.
   against a committed `uv.lock`.
 - **No runtime dependencies.** The engine boundary is `subprocess`; keep it
   that way. Adding a runtime dependency needs a decision entry.
-- **`prusaslicer_py/slicer.py` is the only module in the package that may
-  import `subprocess` or name an executable**, and nothing outside the package
-  may name one either. `scripts/01_store_helps.py` was the one recorded
-  exception and no longer is; see `docs/DECISIONS.md` D1. Tests name a *fake*
-  executable and drive a `subprocess` stand-in, which is what makes the seam
-  testable rather than a second place the choice lives.
+- **`prusaslicer_py/slicer.py` is the only module that may name the engine
+  executable**, and the only one in the package that may import `subprocess`.
+  `scripts/01_store_helps.py` was the one recorded exception and no longer is;
+  see `docs/DECISIONS.md` D1. `tests/` names executable paths to drive a
+  `subprocess` stand-in -- that is the seam being exercised, not a second home
+  for the choice. Enforced by
+  `tests/test_repo_gates.py::test_only_the_driver_names_the_engine_executable`,
+  because this sentence drifted three times before it was gated.
 - **Tooling** -- `ruff` (format + lint), `mypy` (types), `pytest` (tests),
   `just` (task runner), `pre-commit`.
 

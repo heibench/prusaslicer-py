@@ -5,9 +5,10 @@ The captures are PrusaSlicer's output, not ours, so they are not committed
 `just extract-cli` to rebuild the structured data.
 
 The engine is located by the driver rather than by a hardcoded name: D1 says
-`prusaslicer_py/slicer.py` is the only module that may name an executable, and
-this script hardcoding `prusa-slicer-console.exe` was the one exception --
-which also made the capture Windows-only.
+`prusaslicer_py/slicer.py` is the only module that may name an executable. This
+script was once the recorded exception, which also made the capture Windows-only.
+D1 carries that history; repeating the executable's name here would put it back
+in a file that is not allowed to hold it.
 """
 
 from pathlib import Path

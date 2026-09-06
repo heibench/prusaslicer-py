@@ -2,8 +2,9 @@ from pathlib import Path
 
 from prusaslicer_py import PrusaSlicer, SliceError
 
-# Initialize the PrusaSlicer object
-slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe")
+# Let the driver find the engine. Naming the Windows executable here made this
+# example Windows-only -- the same defect D1 removed from the capture script.
+slicer = PrusaSlicer()
 
 # Retrieve the list of example shapes
 example_shapes = slicer.get_example_shapes()

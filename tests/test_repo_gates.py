@@ -22,9 +22,15 @@ JUSTFILE = ROOT / "justfile"
 def _recipe_body(source: str, name: str) -> str:
     """The lines of one recipe that `just` would actually RUN.
 
-    Commented-out lines are dropped, and that is the point rather than tidiness:
-    a gate that greps a body including its comments is satisfied by a comment. The
-    sibling gate below already filters them for the same reason.
+    Comments are stripped to end-of-line, which is stronger than dropping
+    commented-out lines and is the difference that matters here. A gate looking for
+    a *required* token is satisfied by that token appearing in a trailing note --
+    `mypy prusaslicer_py/ tests/  # was: mypy .` passed while `just` ran the narrow
+    command. The sibling `uv run` gate looks for a *missing* token, so a comment
+    can only cost it a false red; this one needs the text gone.
+
+    Truncating at a `#` inside a shell string would only ever produce a false red,
+    which is the safe direction for a gate to be wrong in.
     """
     lines = source.splitlines()
     starts = [n for n, line in enumerate(lines) if re.match(rf"^@?{re.escape(name)}(\s|:)", line)]
@@ -33,8 +39,7 @@ def _recipe_body(source: str, name: str) -> str:
     for line in lines[starts[0] + 1 :]:
         if line.strip() and not line.startswith((" ", "\t")):
             break
-        if not line.lstrip().startswith("#"):
-            body.append(line)
+        body.append(line.split("#", 1)[0])
     return "\n".join(body).strip()
 
 
@@ -274,4 +279,43 @@ def test_the_typecheck_recipe_checks_the_whole_repository() -> None:
         "narrowing on the command line puts the excluded set where only a reader of "
         "the recipe finds it; D10 says exclusions belong in `pyproject.toml`. It "
         f"runs:\n  {body}"
+    )
+
+
+#: The engine's executable, as each platform spells it. `slicer.py` builds these
+#: from `_exec_name()`; anywhere else they are a literal someone typed.
+_EXEC_LITERALS = ("prusa-slicer-console.exe", "prusa-slicer")
+
+#: The two places allowed to contain one. `slicer.py` is the seam D1 defines;
+#: `tests/` names paths to drive a `subprocess` stand-in, which is that seam being
+#: exercised rather than a second home for the choice.
+_MAY_NAME_THE_ENGINE = ("prusaslicer_py/slicer.py", "tests/")
+
+
+def test_only_the_driver_names_the_engine_executable() -> None:
+    """D1's claim has now been wrong three times, so it stops being a claim.
+
+    D1 says one module may name an executable. The sentence has drifted every time
+    it was rewritten: it described a `scripts/01_store_helps.py` carve-out that the
+    script had already removed; the correction overlooked that `tests/` name one
+    deliberately; and the re-correction overlooked `examples/`, which named the real
+    Windows executable and was Windows-only for exactly the reason D1 gives for
+    removing the original carve-out.
+
+    Each rewrite was checkable by grep and none of them was checked. That is the
+    definition CONTRIBUTING.md gives -- a check that cannot fail is not a check --
+    applied to the sentence rather than to the code, so the sentence is now gated.
+    """
+    offenders = []
+    for path in sorted(ROOT.rglob("*.py")):
+        rel = path.relative_to(ROOT).as_posix()
+        if rel.startswith((".venv/", "build/")) or rel.startswith(_MAY_NAME_THE_ENGINE):
+            continue
+        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+            if any(lit in line for lit in _EXEC_LITERALS):
+                offenders.append(f"{rel}:{n}: {line.strip()}")
+
+    assert not offenders, (
+        "only `prusaslicer_py/slicer.py` may name the engine executable (D1); "
+        "construct `PrusaSlicer()` and let the driver find it. Found:\n  " + "\n  ".join(offenders)
     )

@@ -25,8 +25,21 @@ argument was wrong twice: the driver does exist by then, and hardcoding the
 Windows executable made the capture Windows-only. The script now constructs
 `PrusaSlicer()` like everything else, so `prusaslicer_py/slicer.py` is the only
 place outside the tests that names an executable, with no carve-out. The tests
-name a fake path and substitute a `subprocess` stand-in, which is the seam being
-exercised rather than a second home for the real choice.
+name executable paths -- some fake, some plausible-looking -- as return values
+for a `subprocess` stand-in, which is the seam being exercised rather than a
+second home for the real choice.
+
+`examples/` named `prusa-slicer-console.exe` too, and was Windows-only for
+exactly the reason given above for removing the script's carve-out. Both examples
+now construct `PrusaSlicer()`.
+
+This is now enforced rather than asserted:
+`tests/test_repo_gates.py::test_only_the_driver_names_the_engine_executable`
+fails on an executable-name literal in any `.py` outside `slicer.py` and
+`tests/`. The gate exists because this paragraph was rewritten three times and
+was wrong all three -- describing a carve-out the code had removed, then
+overlooking the tests, then overlooking `examples/` -- each time from memory when
+a grep would have settled it.
 
 `tests/conftest.py` resolves the engine the same way -- constructing
 `PrusaSlicer()` and catching `FileNotFoundError` -- rather than repeating the
@@ -498,6 +511,19 @@ they had zero unannotated signatures already, and now cannot acquire one.
 The exemption is the part someone has to write down, which is the whole point:
 adding a directory to this repository now inherits the check instead of escaping
 it.
+
+### What was considered and not done
+
+A `NewType` for the flag spelling would catch `flags[-1] = (value, spelling)` --
+a swap between two `str`s that types clean. It is not taken. `OptionRecord.option`
+must stay `str` because D6 froze it, so a `Spelling` alias would put a second
+vocabulary in front of a frozen schema, which is the failure this entry already
+argues against two paragraphs up. Against that: three construction sites and one
+swap shape, in a generator pinned by nine parametrised `split_option_line` cases
+and reproduced byte for byte by
+`test_committed_data_matches_the_committed_parser`. A test is the right instrument
+for a same-type swap, and it already exists. Recorded so the next reviewer does
+not re-raise it.
 
 ### D6's schema is now a type, not a comment
 
