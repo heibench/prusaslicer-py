@@ -63,11 +63,24 @@ def engine() -> PrusaSlicer:
     function means the test exercises the real code path instead of a private
     attribute.
 
-    Nothing gates that this line stays `resolve_engine()`, and that is a
-    deliberate call rather than an oversight: replacing it with `PrusaSlicer()`
-    makes engine tests *error* on a machine without the engine instead of
-    skipping. That is loud and fails closed. The gates in this repository are
-    spent on the other direction -- claims that could make something read as
-    green when it was not verified.
+    Nothing gates that this line stays `resolve_engine()`, deliberately -- but
+    not because every divergence fails closed. It does not, and that premise was
+    wrong when first written here. Replacing this with a bare `PrusaSlicer()`
+    errors loudly, which is what the earlier note reasoned about; inlining the
+    fixture and faithfully reproducing only the *skip* -- dropping the require
+    branch, which is the invisible half -- leaves an engine-less runner with
+    `PRUSASLICER_PY_REQUIRE_ENGINE=1` at `6 passed, 4 skipped, exit 0`. Measured.
+    That is `engine.yml`'s exact condition going green, which is the one thing it
+    promises cannot happen.
+
+    What catches it is `ci.yml`'s #30 step: it runs `just test-engine` on
+    `windows-latest` where no engine exists and requires the require-engine
+    message, which that mutation does not produce. And the step itself is gated,
+    by `test_ci_runs_the_gates_that_guard_all_of_this`.
+
+    So the protection is real and checkable, and it is a Windows round-trip away
+    rather than local. Left as a comment rather than a local gate because the
+    alternatives are worse: a source-shape assertion reads rather than runs, and
+    `pytester` is a great deal of machinery for one line.
     """
     return resolve_engine()

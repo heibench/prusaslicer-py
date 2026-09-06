@@ -13,7 +13,6 @@ reports as a single skipped line and takes every test in the file with it.
 import shutil
 
 import pytest
-from _pytest.outcomes import Failed, Skipped
 
 from prusaslicer_py.slicer import PrusaSlicer
 from tests.conftest import REQUIRE_ENGINE_ENV, engine_required, resolve_engine
@@ -108,9 +107,9 @@ def test_the_fixture_actually_consults_the_switch(monkeypatch: pytest.MonkeyPatc
     # outcome is named instead, and skipping is a failure here.
     try:
         resolve_engine()
-    except Failed as failure:
+    except pytest.fail.Exception as failure:
         assert "is set but" in str(failure)
-    except Skipped:
+    except pytest.skip.Exception:
         pytest.fail(
             "the fixture skipped with the switch set to the empty string, so it is "
             "not consulting `engine_required()` -- the fail-open is back"
