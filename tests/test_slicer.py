@@ -95,13 +95,16 @@ def test_shape_candidates_include_the_macos_app_bundle():
     slicer = PrusaSlicer.__new__(PrusaSlicer)
     slicer.engine_kind = "path"
     slicer.slicer_path = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"
-    candidates = [str(c) for c in slicer._shape_dir_candidates()]
-    assert "/Applications/PrusaSlicer.app/Contents/Resources/shapes" in candidates
+    # Compare path COMPONENTS, not strings: on Windows the same candidate is
+    # spelled D:\Applications\...\Contents\Resources\shapes, and asserting the
+    # POSIX spelling failed there for a list that was entirely correct.
+    tails = {c.parts[-3:] for c in slicer._shape_dir_candidates()}
+    assert ("Contents", "Resources", "shapes") in tails
 
 
 def test_shape_candidates_cover_the_unix_prefix_layout():
     slicer = PrusaSlicer.__new__(PrusaSlicer)
     slicer.engine_kind = "path"
     slicer.slicer_path = "/usr/local/bin/prusa-slicer"
-    candidates = [str(c) for c in slicer._shape_dir_candidates()]
-    assert "/usr/local/share/PrusaSlicer/shapes" in candidates
+    tails = {c.parts[-3:] for c in slicer._shape_dir_candidates()}
+    assert ("share", "PrusaSlicer", "shapes") in tails
