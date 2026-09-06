@@ -104,49 +104,35 @@ reports "not installed" on the most common Linux install (D9).
 
 ### Usage
 
-Below is an example of running a basic slicing operation with the built-in example shapes provided as stl files with all prusaslicer installations:
-
 ```python
-import os
-from pathlib import Path
 from prusaslicer_py import PrusaSlicer, SliceError
 
-# Initialize the PrusaSlicer object
-slicer = PrusaSlicer(slicer_path="prusa-slicer-console.exe")  # slicer_path="prusa-slicer" on Linux
+slicer = PrusaSlicer()  # found on PATH, or as a Flathub Flatpak
+print(slicer.engine_kind)  # "path" or "flatpak"
+print(slicer.check_version())  # PrusaSlicer-2.9.6+flathub.org based on Slic3r ...
 
-# Retrieve the list of example shapes
-example_shapes = slicer.get_example_shapes()
+# PrusaSlicer ships example models; pick one to slice.
+torus = next(s for s in slicer.get_example_shapes() if s.endswith("torus.stl"))
 
-# Find the path to the torus.stl example
-torus_path = None
-for shape in example_shapes:
-    if "torus.stl" in shape:
-        torus_path = shape
-        break
-
-if torus_path:
-    print(f"Found torus.stl at: {torus_path}")
-
-    # Specify the output directory, one level above the script (beside 'examples')
-    script_dir = Path(__file__).parent  # Get the directory of the current script
-    output_dir = script_dir.parent / "output"  # Path to the 'output' directory, one level above
-    output_dir.mkdir(parents=True, exist_ok=True)  # Create the output directory if it doesn't exist
-
-    # Specify the output G-code file path
-    gcode_output = output_dir / "torus.gcode"
-
-    # Slice the torus.stl into G-code without any extra arguments
-    try:
-        result = slicer.slice_model(torus_path, str(gcode_output))
-    except SliceError as e:
-        # Either the engine failed, or it exited 0 without producing the file
-        # -- a mistyped destination, an option that no-ops, an empty plate.
-        # Both carry returncode, stdout and stderr as attributes.
-        print(f"No G-code produced: {e}\n{e.stderr}")
-    else:
-        print(f"Sliced {torus_path} -> {result.output_path} ({result.size_bytes} bytes)")
+try:
+    result = slicer.slice_model(torus, "torus.gcode")
+except SliceError as e:
+    # Either the engine failed, or it exited 0 without producing the file --
+    # a mistyped destination, an option that no-ops, an empty plate. Both
+    # carry output_path, returncode, stdout and stderr as attributes.
+    print(f"no G-code produced: {e}\n{e.stderr}")
 else:
-    print("torus.stl not found in example shapes.")
+    print(f"{result.output_path} ({result.size_bytes} bytes, exit {result.returncode})")
+```
+
+`slice_model` returns only once it has checked that the file exists and is not
+empty. "The call did not raise" and "the artifact was produced" are not the
+same claim, and this package will not conflate them.
+
+Pass `slicer_path=` to point at a specific executable instead of searching:
+
+```python
+slicer = PrusaSlicer(slicer_path="/opt/PrusaSlicer/bin/prusa-slicer")
 ```
 
 **NOTE:**

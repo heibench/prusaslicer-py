@@ -83,3 +83,25 @@ def test_generate_help():
         )  # Simulating the subprocess error
         with pytest.raises(RuntimeError):
             slicer.generate_help("fff")
+
+
+def test_shape_candidates_include_the_macos_app_bundle():
+    """A macOS .app keeps resources in Contents/Resources, not beside the binary.
+
+    Looking only beside the executable made `brew install --cask prusaslicer`
+    fail with "Shapes directory not found" on a working install -- found by the
+    Engine workflow, not by any local run.
+    """
+    slicer = PrusaSlicer.__new__(PrusaSlicer)
+    slicer.engine_kind = "path"
+    slicer.slicer_path = "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer"
+    candidates = [str(c) for c in slicer._shape_dir_candidates()]
+    assert "/Applications/PrusaSlicer.app/Contents/Resources/shapes" in candidates
+
+
+def test_shape_candidates_cover_the_unix_prefix_layout():
+    slicer = PrusaSlicer.__new__(PrusaSlicer)
+    slicer.engine_kind = "path"
+    slicer.slicer_path = "/usr/local/bin/prusa-slicer"
+    candidates = [str(c) for c in slicer._shape_dir_candidates()]
+    assert "/usr/local/share/PrusaSlicer/shapes" in candidates
