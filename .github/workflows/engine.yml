@@ -1,0 +1,156 @@
+name: Engine
+
+# The real engine, across the ways people actually install it.
+#
+# ci.yml runs the mocked suite everywhere and SKIPS the engine tests, because
+# no standard runner has PrusaSlicer. That leaves the end-to-end slice path --
+# the reason this package exists -- covered by stubs alone, and stubs are what
+# hid `--version` (which PrusaSlicer has never supported) and the fact that a
+# Flatpak install was invisible to discovery.
+#
+# Every job here sets PRUSASLICER_PY_REQUIRE_ENGINE=1, so a failed install is a
+# LOUD failure rather than a green run full of skips. A job that cannot get the
+# engine must not look like a job that tested it.
+#
+# Not on every push: these install a large GUI application and are slower and
+# more fragile than the gate. Run on demand, and weekly so upstream packaging
+# changes surface without anyone remembering to look.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1" # Mondays, 06:00 UTC
+
+permissions:
+  contents: read
+
+concurrency:
+  group: engine-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PRUSASLICER_PY_REQUIRE_ENGINE: "1"
+
+jobs:
+  flatpak:
+    name: Linux / Flatpak (Flathub)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install PrusaSlicer from Flathub
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y flatpak
+          sudo flatpak remote-add --if-not-exists flathub \
+            https://dl.flathub.org/repo/flathub.flatpakrepo
+          sudo flatpak install -y --noninteractive flathub com.prusa3d.PrusaSlicer
+      - name: Show what was installed
+        run: flatpak info com.prusa3d.PrusaSlicer | head -20
+      - run: just setup
+      - name: Full suite, engine required
+        # PRUSASLICER_PY_REQUIRE_ENGINE is set at workflow level, so a missing
+        # engine fails here rather than skipping. `just test` rather than
+        # `just test-engine`: the latter prefixes `VAR=x cmd`, which is
+        # POSIX-only and does not run on the Windows job.
+        run: just test
+      - name: Capture and extract the CLI surface
+        run: |
+          just capture-cli
+          just extract-cli
+      - name: Full suite again, now with the captured corpus present
+        # The corpus tests skip when scripts/01_helps is empty; this is the one
+        # place they actually run, against a real PrusaSlicer's real --help.
+        run: just test
+
+  linux-path:
+    name: Linux / AppImage on PATH
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install PrusaSlicer as an extracted AppImage on PATH
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y libfuse2 libgtk-3-0 libwebkit2gtk-4.1-0 || true
+          url=$(curl -fsSL https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest \
+            | grep -o 'https://[^"]*GTK3[^"]*\.AppImage' | head -1)
+          test -n "$url"
+          curl -fsSL "$url" -o PrusaSlicer.AppImage
+          chmod +x PrusaSlicer.AppImage
+          # Extract rather than mount: FUSE is unreliable on runners, and this
+          # exercises the plain PATH discovery path rather than the Flatpak one.
+          ./PrusaSlicer.AppImage --appimage-extract >/dev/null
+          sudo install -Dm755 squashfs-root/usr/bin/prusa-slicer /usr/local/bin/prusa-slicer
+          command -v prusa-slicer
+      - run: just setup
+      - name: Full suite, engine required
+        # PRUSASLICER_PY_REQUIRE_ENGINE is set at workflow level, so a missing
+        # engine fails here rather than skipping. `just test` rather than
+        # `just test-engine`: the latter prefixes `VAR=x cmd`, which is
+        # POSIX-only and does not run on the Windows job.
+        run: just test
+
+  macos:
+    name: macOS / Homebrew cask
+    runs-on: macos-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install PrusaSlicer
+        run: |
+          set -euo pipefail
+          brew install --cask prusaslicer
+          # The cask installs an .app bundle; expose the CLI on PATH.
+          sudo ln -sf "/Applications/PrusaSlicer.app/Contents/MacOS/PrusaSlicer" \
+            /usr/local/bin/prusa-slicer
+          command -v prusa-slicer
+      - run: just setup
+      - name: Full suite, engine required
+        # PRUSASLICER_PY_REQUIRE_ENGINE is set at workflow level, so a missing
+        # engine fails here rather than skipping. `just test` rather than
+        # `just test-engine`: the latter prefixes `VAR=x cmd`, which is
+        # POSIX-only and does not run on the Windows job.
+        run: just test
+
+  windows:
+    name: Windows / Chocolatey
+    runs-on: windows-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          enable-cache: true
+      - name: Install PrusaSlicer
+        shell: pwsh
+        run: |
+          choco install prusaslicer -y --no-progress
+          $dir = Get-ChildItem 'C:\Program Files\Prusa3D' -Recurse -Filter 'prusa-slicer-console.exe' |
+                 Select-Object -First 1 -ExpandProperty DirectoryName
+          if (-not $dir) { throw 'prusa-slicer-console.exe not found after install' }
+          Add-Content -Path $env:GITHUB_PATH -Value $dir
+      - name: Confirm it is on PATH
+        shell: pwsh
+        run: Get-Command prusa-slicer-console.exe | Select-Object -ExpandProperty Source
+      - run: just setup
+      - name: Full suite, engine required
+        # PRUSASLICER_PY_REQUIRE_ENGINE is set at workflow level, so a missing
+        # engine fails here rather than skipping. `just test` rather than
+        # `just test-engine`: the latter prefixes `VAR=x cmd`, which is
+        # POSIX-only and does not run on the Windows job.
+        run: just test

@@ -81,3 +81,9 @@ output/
 # Tool caches
 .ruff_cache/
 .pytest_cache/
+
+# Captured PrusaSlicer help and everything derived from it (D8).
+# Regenerate with `just capture-cli` + `just extract-cli`.
+scripts/01_helps/
+scripts/02_structured_data/
+scripts/03_restructured_data/

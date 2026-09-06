@@ -86,21 +86,124 @@ class PrusaSlicer:
         :param slicer_path: Path to the PrusaSlicer CLI executable.
                             If None, the method will attempt to locate it in the system PATH.
         """
-        self.slicer_path = slicer_path or self._find_executable()
+        if slicer_path:
+            self.slicer_path = str(slicer_path)
+            self._argv: list[str] = [self.slicer_path]
+            self.engine_kind = "path"
+        else:
+            try:
+                self.slicer_path = self._find_executable()
+                self._argv = [self.slicer_path]
+                self.engine_kind = "path"
+            except FileNotFoundError:
+                flatpak = self._find_flatpak()
+                if flatpak is None:
+                    raise
+                self._argv = flatpak
+                self.slicer_path = f"flatpak:{self.FLATPAK_APP_ID}"
+                self.engine_kind = "flatpak"
+
+    #: The Flatpak application id PrusaSlicer publishes on Flathub.
+    FLATPAK_APP_ID = "com.prusa3d.PrusaSlicer"
 
     @staticmethod
-    def _find_executable() -> str:
+    def _exec_name() -> str:
+        return "prusa-slicer-console.exe" if os.name == "nt" else "prusa-slicer"
+
+    @classmethod
+    def _find_flatpak(cls) -> list[str] | None:
+        """The argv prefix for a Flathub PrusaSlicer, or None if absent.
+
+        Flathub is how PrusaSlicer is normally installed on Linux, and a
+        Flatpak is invisible to ``shutil.which`` -- the app is not on PATH and
+        there is no binary to find. Discovery that only asks PATH reports "not
+        installed" on a machine where the engine is sitting right there.
+
+        ``--command=prusa-slicer`` bypasses the wrapper the Flatpak runs by
+        default, which swallows CLI arguments and answers ``Unknown option``.
+        """
+        flatpak = shutil.which("flatpak")
+        if not flatpak:
+            return None
+        probe = subprocess.run(
+            [flatpak, "info", cls.FLATPAK_APP_ID],
+            capture_output=True,
+            text=True,
+            errors="replace",
+        )
+        if probe.returncode != 0:
+            return None
+        return [flatpak, "run", f"--command={cls._exec_name()}", cls.FLATPAK_APP_ID]
+
+    def _flatpak_roots(self) -> list[Path]:
+        """Host locations where this Flatpak's own files are mounted."""
+        return [
+            Path("/var/lib/flatpak/app") / self.FLATPAK_APP_ID / "current/active/files",
+            Path.home() / ".local/share/flatpak/app" / self.FLATPAK_APP_ID / "current/active/files",
+        ]
+
+    def _to_engine_path(self, path: str) -> str:
+        """A path as the engine will see it.
+
+        Inside the sandbox a Flatpak's own files are mounted at ``/app``, not at
+        the host path they occupy on disk. A bundled example shape found at
+        ``/var/lib/flatpak/.../files/share/...`` is therefore real to us and
+        absent to the engine, which answers "No such file" for a model that
+        plainly exists. Paths outside the app's own tree are the caller's files
+        and pass through unchanged -- those are reachable via ``--filesystem``.
+        """
+        if self.engine_kind != "flatpak":
+            return path
+        resolved = Path(path).expanduser().resolve()
+        for root in self._flatpak_roots():
+            # resolve() follows `current/active`, which is a symlink into a
+            # hashed deployment directory -- comparing against the unresolved
+            # root never matches.
+            try:
+                real_root = root.resolve()
+            except OSError:
+                continue
+            try:
+                relative = resolved.relative_to(real_root)
+            except ValueError:
+                continue
+            return str(Path("/app") / relative)
+        return path
+
+    def _sandbox_grants(self, *paths: str) -> list[str]:
+        """The argv prefix, plus filesystem access for the paths involved.
+
+        A Flatpak sees only its own sandbox. Slicing reads an STL and writes a
+        G-code file, and both normally live outside it, so their directories
+        have to be granted or the engine reports a file it cannot open --
+        which would surface here as a slice that "failed" for a model that is
+        perfectly fine.
+
+        Only the directories actually involved are granted, not
+        ``--filesystem=host``: this runs somebody else's build pipeline, and a
+        driver should not hand the engine the whole filesystem to slice one
+        part.
+        """
+        if self.engine_kind != "flatpak":
+            return list(self._argv)
+        directories = {str(Path(p).expanduser().resolve().parent) for p in paths}
+        grants = [f"--filesystem={d}" for d in sorted(directories)]
+        *head, app_id = self._argv
+        return [*head, *grants, app_id]
+
+    @classmethod
+    def _find_executable(cls) -> str:
         """
         Finds the PrusaSlicer executable in the system PATH.
 
         :return: Path to the executable.
         :raises FileNotFoundError: If the executable is not found.
         """
-        exec_name = "prusa-slicer-console.exe" if os.name == "nt" else "prusa-slicer"
-        slicer_path = shutil.which(exec_name)
+        slicer_path = shutil.which(cls._exec_name())
         if not slicer_path:
             raise FileNotFoundError(
-                f"Could not find {exec_name}. Ensure PrusaSlicer is installed and added to PATH."
+                f"Could not find {cls._exec_name()}. "
+                "Ensure PrusaSlicer is installed and added to PATH."
             )
         return slicer_path
 
@@ -113,13 +216,20 @@ class PrusaSlicer:
         """
         try:
             result = subprocess.run(
-                [self.slicer_path, "--version"],
+                # PrusaSlicer's CLI has NO --version flag -- 2.9.6 answers
+                # "Unknown option --version" and exits 1. The version is only
+                # ever printed as the first line of --help:
+                #   PrusaSlicer-2.9.6+flathub.org based on Slic3r (with GUI support)
+                # This went unnoticed because the stub engines used in tests
+                # answered --version; the real engine never has.
+                [*self._argv, "--help"],
                 check=True,
                 stdout=subprocess.PIPE,
                 text=True,
                 errors="replace",
             )
-            return result.stdout.strip()
+            first_line = result.stdout.strip().splitlines()
+            return first_line[0] if first_line else ""
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to get version: {e}") from e
 
@@ -161,7 +271,13 @@ class PrusaSlicer:
             raise FileNotFoundError(f"STL file not found: {stl_path}")
 
         output = Path(gcode_output)
-        command = [self.slicer_path, "--export-gcode", stl_path, "-o", gcode_output]
+        command = [
+            *self._sandbox_grants(stl_path, gcode_output),
+            "--export-gcode",
+            self._to_engine_path(stl_path),
+            "-o",
+            gcode_output,
+        ]
 
         if loglevel:
             command.extend(["--loglevel", loglevel])
@@ -219,15 +335,16 @@ class PrusaSlicer:
         """
         Generates help text for the PrusaSlicer CLI.
 
-        :param mode: Help mode ('fff' or 'sla').
+        :param mode: Help mode -- 'fff', 'sla', or 'all' for the top-level --help.
         :return: The help text.
         :raises RuntimeError: If the CLI command fails.
         """
-        if mode not in ("fff", "sla"):
-            raise ValueError("Invalid mode. Choose 'fff' or 'sla'.")
+        if mode not in ("fff", "sla", "all"):
+            raise ValueError("Invalid mode. Choose 'fff', 'sla' or 'all'.")
+        flag = "--help" if mode == "all" else f"--help-{mode}"
         try:
             result = subprocess.run(
-                [self.slicer_path, f"--help-{mode}"],
+                [*self._argv, flag],
                 check=True,
                 stdout=subprocess.PIPE,
                 text=True,
@@ -243,10 +360,26 @@ class PrusaSlicer:
 
         :return: List of paths to example STL files.
         """
-        shapes_dir = Path(self._find_executable()).parent / "resources" / "shapes"
-        if not shapes_dir.exists():
-            raise FileNotFoundError(f"Shapes directory not found at {shapes_dir}")
+        candidates = self._shape_dir_candidates()
+        for shapes_dir in candidates:
+            if shapes_dir.is_dir():
+                return [str(f) for f in sorted(shapes_dir.glob("*.stl"))]
+        listed = ", ".join(str(c) for c in candidates)
+        raise FileNotFoundError(f"Shapes directory not found. Looked in: {listed}")
 
-        # Get all STL files in the shapes directory
-        stl_files = [file for file in shapes_dir.glob("*.stl")]
-        return [str(file) for file in stl_files]
+    def _shape_dir_candidates(self) -> list[Path]:
+        """Where this engine's bundled example shapes might live.
+
+        Derived from the engine that was actually resolved, not from a fresh
+        discovery: re-running lookup here ignored an explicitly supplied
+        ``slicer_path`` and raised FileNotFoundError even when the caller had
+        handed us a perfectly good binary.
+
+        A Flatpak keeps its resources under the app's ``files/share`` rather
+        than beside the executable, and the executable is inside the sandbox
+        where this process cannot reach it at all.
+        """
+        if self.engine_kind == "flatpak":
+            return [r / "share/PrusaSlicer/shapes" for r in self._flatpak_roots()]
+        binary = Path(self.slicer_path).resolve().parent
+        return [binary / "resources" / "shapes", binary.parent / "share/PrusaSlicer/shapes"]

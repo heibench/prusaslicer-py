@@ -11,18 +11,37 @@
 
 ## Status
 
-- **Windows** -- `get_example_shapes`, `check_version` and `generate_help` are
-  used regularly against a real `prusa-slicer-console.exe`.
-- **`slice_model` has not been run against a real PrusaSlicer on any platform**
-  since it was rewritten to verify its output. It is covered by tests against
-  stub engines; the real engine is the gap. Reports especially welcome.
-- **Linux** -- the test suite passes, but no part of the driver has been run
-  against a real PrusaSlicer install on Linux. Contributors and testers very
-  welcome.
-- **macOS** -- untested.
-- **CI** -- runs the gate on Linux and Windows. No runner has PrusaSlicer
-  installed, so the engine-dependent tests skip there; the end-to-end slice path
-  is not covered by CI. See [`docs/DECISIONS.md`](./docs/DECISIONS.md) D3.
+Pre-1.0. The API may change; what it establishes will not be overstated.
+
+- **Linux / Flatpak (Flathub)** -- the full path is exercised, including a real
+  end-to-end slice: `slice_model` produced 133 KB of G-code from PrusaSlicer's
+  own 3DBenchy against PrusaSlicer 2.9.6.
+- **Windows** -- `generate_help` and `get_example_shapes` have been used
+  against a real `prusa-slicer-console.exe`, though not since the rewrite.
+  `check_version` cannot have been: it called `--version`, which PrusaSlicer
+  does not support on any platform (it answers `Unknown option` and exits 1),
+  so the previous claim that it was in regular use was false and is withdrawn.
+- **Linux on PATH, macOS** -- covered by the mocked suite and by stub engines;
+  not yet run against a real install. The `Engine` workflow installs PrusaSlicer
+  four different ways and runs the real tests on each; reports from real
+  machines are still welcome.
+- **CI** -- `CI` runs the gate on Linux (3.11/3.12/3.13) and Windows with no
+  engine present, so the engine tests skip and the log says how many were
+  withheld. `Engine` installs the real thing and runs them, with a missing
+  engine as a hard failure rather than a skip. See
+  [`docs/DECISIONS.md`](./docs/DECISIONS.md) D3.
+
+## Finding the engine
+
+PrusaSlicer is located in this order:
+
+1. an explicit `slicer_path` you pass in,
+2. `prusa-slicer` (or `prusa-slicer-console.exe`) on `PATH`,
+3. a Flathub Flatpak (`com.prusa3d.PrusaSlicer`).
+
+`PrusaSlicer().engine_kind` tells you which was found. Flatpak support is not
+cosmetic: a Flatpak has no binary on `PATH`, so discovery that only asks `PATH`
+reports "not installed" on the most common Linux install (D9).
 
 ---
 

@@ -1,37 +1,38 @@
-import subprocess
+"""Capture PrusaSlicer's own --help output into scripts/01_helps/.
+
+The captures are PrusaSlicer's output, not ours, so they are not committed
+(D8). Run this with PrusaSlicer installed to regenerate them, then
+`just extract-cli` to rebuild the structured data.
+
+The engine is located by the driver rather than by a hardcoded name: D1 says
+`prusaslicer_py/slicer.py` is the only module that may name an executable, and
+this script hardcoding `prusa-slicer-console.exe` was the one exception --
+which also made the capture Windows-only.
+"""
+
 from pathlib import Path
 
-# Define the commands to run
-commands = [
-    ["prusa-slicer-console.exe", "--help"],
-    ["prusa-slicer-console.exe", "--help-fff"],
-    ["prusa-slicer-console.exe", "--help-sla"],
-]
+from prusaslicer_py.slicer import PrusaSlicer
 
-# Define the output directory
-script_dir = Path(__file__).parent  # Get the directory of the current script
-output_dir = script_dir / "01_helps"  # Folder inside 'scripts' to store the output files
+MODES = {"--help": "all", "--help-fff": "fff", "--help-sla": "sla"}
 
-# Create the output directory if it doesn't exist
-output_dir.mkdir(parents=True, exist_ok=True)
 
-# Run each command and store the output
-output = {}
+def main() -> None:
+    output_dir = Path(__file__).parent / "01_helps"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-for cmd in commands:
-    # errors="replace": a byte the locale codec cannot read must not abort the
-    # capture. The codec itself stays the platform default -- it is the OS's
-    # best guess at what its own console produced.
-    result = subprocess.run(cmd, capture_output=True, text=True, errors="replace")
-    output[cmd[-1]] = result.stdout
+    slicer = PrusaSlicer()
+    for filename_stem, mode in MODES.items():
+        content = slicer.generate_help(mode)
+        # Always UTF-8 with LF, whatever platform captured it. Step 02 reads
+        # these as UTF-8; a locale-encoded capture (cp1252 on Windows) would
+        # either fail outright or reintroduce the mojibake this pipeline lost.
+        (output_dir / f"{filename_stem}_output.txt").write_text(
+            content + "\n", encoding="utf-8", newline="\n"
+        )
 
-# Save the outputs to text files inside the 'helps' folder
-for key, content in output.items():
-    output_file = output_dir / f"{key}_output.txt"
-    # Always UTF-8 with LF, whatever platform captured it. Step 02 reads these
-    # as UTF-8; a locale-encoded capture (cp1252 on Windows) would either make
-    # it fail outright or reintroduce the mojibake this pipeline just lost.
-    with open(output_file, "w", encoding="utf-8", newline="\n") as file:
-        file.write(content)
+    print(f"Help outputs saved to {output_dir}")
 
-print(f"Help outputs saved to {output_dir}")
+
+if __name__ == "__main__":
+    main()
