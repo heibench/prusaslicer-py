@@ -8,6 +8,36 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ### Fixed
 
+- **The typechecker covers the whole repository, and `scripts/` is annotated**
+  (#24). `typecheck` named `prusaslicer_py/ tests/`, so `scripts/` -- which holds
+  the CLI-surface extraction that produces the data the package ships -- was
+  never checked, and `examples/` was outside it on the same terms. The recipe now
+  runs `mypy .`, which cannot omit a directory by forgetting to list it, and a
+  test asserts that spelling.
+
+  Scope alone would have bought almost nothing. mypy skips the body of an
+  unannotated function, and 12 of the 13 functions in `scripts/` were
+  unannotated; `check_untyped_defs` reads those bodies, but with no signatures to
+  check calls against, `save_json(path, data)` -- arguments reversed -- still
+  passed. All 12 signatures are now annotated and `disallow_untyped_defs` is
+  required repo-wide -- exempting `tests/` by name rather than listing the
+  modules it covers, so a script added or renamed later inherits the check
+  instead of escaping it silently.
+
+  The records the extraction emits are a `TypedDict` rather than
+  `dict[str, object]`, which is what puts the schema D6 froze under the
+  typechecker: a renamed key, a wrong field type, or an `option` that could be
+  `None` are now errors rather than valid `object`s. The flag pairs that feed it
+  are `tuple[str, str | None]`, matching D6's `option: str` -- the previous
+  `list[list[str | None]]` declared the spelling nullable, which it never is.
+
+  What the first pass of this actually turned up was smaller than a defect
+  report: three `var-annotated` errors on empty literals in `scripts/`, where
+  mypy could not infer an element type, and six in `tests/` from calling
+  `module_from_spec` on a possibly-`None` spec. Nothing had behaved wrongly. The
+  value here is the checking that now exists, not the errors it cleared on the
+  way in.
+
 - **`just --list` describes every recipe, and describes them correctly** (#27).
   `just` publishes the LAST comment line before a recipe, so `capture-cli`'s
   three-line block published a note about D8 instead of a description, and

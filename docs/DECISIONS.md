@@ -18,14 +18,39 @@ The consequence is that within the package, `prusaslicer_py/slicer.py` is the
 only module that may import `subprocess` or name an executable. Everything the
 engine tells us has to come back through that one seam.
 
-Outside the package there is exactly one exception, and it is recorded rather
-than waved at: `scripts/01_store_helps.py` runs the engine and names
-`prusa-slicer-console.exe` directly, because capturing `--help` is the one job
-that has to happen before the driver exists. It is a capture script, not a
-consumer of the driver. Nothing else may join it -- `tests/conftest.py`
-deliberately resolves the engine by constructing `PrusaSlicer()` and catching
-`FileNotFoundError`, rather than repeating the executable-name choice where it
-would drift.
+This once had an exception, and it no longer does. `scripts/01_store_helps.py`
+named `prusa-slicer-console.exe` directly, on the argument that capturing
+`--help` is the one job that has to happen before the driver exists. That
+argument was wrong twice: the driver does exist by then, and hardcoding the
+Windows executable made the capture Windows-only. The script now constructs
+`PrusaSlicer()` like everything else, so `prusaslicer_py/slicer.py` is the only
+place outside the tests that names an executable, with no carve-out. The tests
+name executable paths -- some fake, some plausible-looking -- as return values
+for a `subprocess` stand-in, which is the seam being exercised rather than a
+second home for the real choice.
+
+`examples/` named `prusa-slicer-console.exe` too, and was Windows-only for
+exactly the reason given above for removing the script's carve-out. Both examples
+now construct `PrusaSlicer()`.
+
+This is now enforced rather than asserted:
+`tests/test_repo_gates.py::test_only_the_driver_names_the_engine_executable`
+fails on an executable-name literal in any `.py` outside `slicer.py` and
+`tests/`. The gate exists because this paragraph was rewritten three times and
+was wrong all three -- describing a carve-out the code had removed, then
+overlooking the tests, then overlooking `examples/` -- each time from memory when
+a grep would have settled it.
+
+`tests/conftest.py` resolves the engine the same way -- constructing
+`PrusaSlicer()` and catching `FileNotFoundError` -- rather than repeating the
+executable-name choice where it would drift.
+
+**Amended 2026-09-06 (#24).** The exception was removed when the script was
+changed, but this entry and `AGENTS.md` went on describing it, so both asserted
+a carve-out the code had already closed and pointed readers at a name
+`01_store_helps.py` no longer contains. Section 2.5 counts a stale status claim
+as a defect in the gate, and a decision record is the strongest status claim
+there is.
 
 ---
 
@@ -425,3 +450,268 @@ option --version` and exits 1. The version appears only as the first line of
 `--help`. Every stub in the suite answered `--version`, so the tests agreed
 with the code and both were wrong.
 
+
+---
+
+## D10 -- The typechecker covers the repository, and `scripts/` carries annotations
+
+**Decided:** 2026-09-06 (issue #24)
+
+`just typecheck` named `prusaslicer_py/ tests/`. Two directories were outside it:
+`scripts/`, which holds the CLI-surface extraction that produces the data D6
+froze, and `examples/`, which nothing had thought about either way. A hand-written
+path list omits by default -- the omission is invisible until someone re-reads the
+recipe, and the next directory added to the repository joins the omitted set
+automatically.
+
+The recipe is now `mypy .`. What it covers is decided by the repository's
+contents rather than by a list someone has to remember to extend, and
+`tests/test_repo_gates.py::test_the_typecheck_recipe_checks_the_whole_repository`
+asserts that spelling -- it goes red against the exact recipe this issue started
+from. Exclusions, if any are ever needed, belong in `pyproject.toml` where they
+are visible and reviewable.
+
+### Scope alone would have been close to nothing
+
+mypy skips the body of any function with no annotations. 12 of the 13 functions
+in `scripts/` were unannotated, so `scripts/` in the recipe would have bought one
+checked function. `check_untyped_defs` reads those bodies and is set for the whole
+project.
+
+That is still not enough, and the measurement is the point. With bodies checked
+but signatures absent, mypy accepts
+
+```python
+save_json(output_dir / "actions.json", actions_data)  # arguments reversed
+```
+
+with no error, because there is no signature to check the call against. That is
+the defect shape `scripts/` is most exposed to: it generates data, nothing
+downstream re-checks that data, and a wrong-order call writes a plausible file.
+So all 12 signatures are annotated and `disallow_untyped_defs` holds them there,
+and the reversed call is now an error at the call site.
+
+**It is required repo-wide, with one exemption, and that direction is the
+decision.** The first attempt listed the three script modules in a
+`[[tool.mypy.overrides]]` allowlist -- which is the same defect this entry opens
+by describing, moved from the justfile into `pyproject.toml` and out from under
+the gate that had just been written for it. Two ways it failed, both measured: a
+new `scripts/04_*.py` was unchecked the day it was added, so a reversed call in
+it passed clean; and renaming a listed module silently dropped its protection,
+because `warn_unused_configs` reports the stale entry as a *note* and the run
+still exits 0. A stale allowlist entry is precisely the shape of thing that
+cannot fail.
+
+`disallow_untyped_defs = true` therefore applies to everything, and `tests/`
+is exempted by name. It has 33 unannotated signatures and a `-> None` on a pytest
+function buys nothing; `check_untyped_defs` already reads their bodies, which is
+where test defects live. `prusaslicer_py/` needs no mention -- it had zero unannotated
+signatures already, and now cannot acquire one. `examples/` has no functions at
+all, so it contributed nothing either way; it is in scope now so that it cannot
+start contributing silently.
+
+The exemption is the part someone has to write down, which is the whole point:
+adding a directory to this repository now inherits the check instead of escaping
+it.
+
+### And something has to call it
+
+Gating a recipe's body says nothing about whether anything runs it. Every gate
+above verifies what `typecheck` contains; none verified that `check` still
+depends on it, so `check: fmt-check lint` passed all of them while
+`.github/workflows/ci.yml` ran `just check` and typechecked nothing. The sharper
+form keeps every gate green and reintroduces this issue verbatim:
+
+```
+check: fmt-check lint
+    uv run --locked mypy prusaslicer_py/ tests/
+```
+
+`check: fmt-check lint typecheck` is a hand-written list -- the shape this entry
+opens by arguing against -- and it was the last unguarded one.
+`test_the_check_recipe_actually_runs_the_typechecker` reads the dependency list
+out of `just --dump` and asserts `typecheck` is in it.
+
+### D6's schema is now a type, not a comment
+
+The records the extraction emits were `dict[str, object]`. `object` accepts
+anything, so the schema D6 explicitly froze -- and told consumers to rely on --
+was the one part of the pipeline the typechecker could not check. It is now a
+`TypedDict`, and a renamed key, a wrong field type, or an `option` that could be
+`None` are errors.
+
+The flag pairs feeding it are `tuple[str, str | None]`. They were
+`list[list[str | None]]`, which was wrong twice over: the shape is a pair rather
+than a variable-length list, and it declared the spelling nullable when only the
+value ever is. That second error contradicted D6 in writing -- D6 says
+`option: str` -- and it was the annotation itself that carried the contradiction,
+which is why restating a frozen schema loosely is worse than not restating it.
+`scripts/03_restructure_cli.py` therefore keeps its element type opaque
+(`dict[str, list[object]]`): it never looks inside a record, so it has no reason
+to repeat those four fields where they could drift from the parser that writes
+them.
+
+### What was considered and not done
+
+A `NewType` for the flag spelling would catch `flags[-1] = (value, spelling)` --
+a swap between two `str`s that types clean. It is not taken.
+`OptionRecord.option` must stay `str` because D6 froze it, so a `Spelling` alias
+would put a second vocabulary in front of a frozen schema, which is the failure
+this entry argues against above. Against that: two construction sites and one
+swap shape, in a generator pinned by nine parametrised `split_option_line` cases.
+A test is the right instrument for a same-type swap, and it already exists.
+
+Note which test does the work.
+`test_committed_data_matches_the_committed_parser` is gated on a captured corpus
+and so skips on every pull request, running only in `engine.yml`. The instrument
+that actually catches a swapped pair is those nine parametrised cases, which are
+always on -- verified by swapping the pair and watching six of them fail.
+Recorded so the next reviewer does not re-raise it, and so the citation does not
+rest on a test that is usually skipped.
+
+### What this actually found on the way in
+
+Three `var-annotated` errors on empty literals in `scripts/`, where mypy could not
+infer an element type, and six in `tests/` from calling `module_from_spec` on a
+possibly-`None` spec. Nothing had behaved wrongly. Recorded plainly because
+section 7's rule cuts both ways: a change is not more valuable for being described
+as a defect fix, and the value here is the checking that now exists rather than
+the errors it cleared.
+
+### Gate the outcome, not the instruction
+
+Each version of this gate read an *instruction* and asked whether it looked right,
+and each was defeated one layer further down. The recipe's text came first. Then
+the text after `just` interpolation, via `just --dry-run` -- which still missed a
+defaulted parameter, because the default is empty and only `check` supplies the
+narrowing. Then, once `check` was resolved, the shell turned out to be below
+`just` entirely:
+
+```
+uv run --locked mypy . $(cat .mypyargs 2>/dev/null)   # 11 files, gate green
+uv run --locked mypy . $MYPY_EXTRA                    # 9 files, gate green
+uv run --locked mypy . "$@"                           # 11 files, gate green
+```
+
+None of those is sabotage; each is an ordinary refactor. The lesson is that
+**there is always another layer of instruction, and there is only one outcome.**
+mypy names its own scope in both the passing and the failing case -- `Success: no
+issues found in 14 source files`, `Found 2 errors in 1 file (checked 14 source
+files)` -- and that number cannot be argued with.
+
+So `test_the_typechecker_actually_covered_every_tracked_file` runs `just check`
+and compares mypy's own count against every `.py` git tracks. A narrowing lowers
+it, whatever produced the narrowing, and the gate does not need to know which
+trick was used. It closed the three shell cases above and a
+`[tool.mypy] exclude` entry at the same time -- the last of which nothing else
+checked, because D10 routes exclusions into `pyproject.toml` and then nothing read
+them.
+
+The comparison is deliberately against *all* tracked files rather than
+tracked-minus-excluded: subtracting the declared excludes would let the exclusion
+list grow while the gate stayed green, which is the omit-by-default shape this
+entry exists to argue against. It is `>=` rather than `==` because an untracked
+scratch file legitimately raises the count and is nobody's defect.
+
+### Four gates, and why none is redundant
+
+Three of these read outcomes and one reads shape, and the temptation is to delete
+the overlap. There is none: each has a red state no other produces, verified by
+attack.
+
+| attack | dry-run | count | canary | linecount |
+| --- | --- | --- | --- | --- |
+| a *complete* hand-written path list | **red** | green | green | green |
+| `exclude tests/` -- the one directory no other gate covers | green | **red** | green | green |
+| `disable_error_code` sparing the canary's shape | green | green | **red** | green |
+| `ignore_errors` on some modules | green | green | green | **red** |
+| `check_untyped_defs = false` | green | green | **red** | green |
+
+The second row was first written as "`exclude` a directory", generalised from one
+measurement. Measured across all three, the coverage is uneven and the label
+mattered: excluding `scripts/` reddens three gates, `examples/` two, and `tests/`
+only one. The row is making a true point -- the count gate is the only one
+covering `tests/` -- but as written it understated how much the canary and
+linecount catch, in the table a future reader would use to decide whether a gate
+is redundant.
+
+The first row is the one worth naming. A hand list naming every directory checks
+all 14 files today, so every outcome gate is satisfied -- it is red only because
+the *shape* omits by default, which is what this entry opens by arguing against.
+That is a gate on shape, and no outcome gate can express it.
+
+Two holes in this set were found by planting defects rather than by reasoning
+about it, and both are the same mistake in different clothes:
+
+* **The canary planted one error shape.** `disable_error_code` sparing `arg-type`
+  left it objecting while switching off `no-untyped-def` -- which *is*
+  `disallow_untyped_defs` -- and `typeddict-item`, which *is* D6's schema
+  protection. Both properties this entry rests on, dead, with every gate green.
+  The canary now plants one defect per mechanism rather than one per gate.
+* **The canary lived only in annotated code.** `check_untyped_defs` is the fourth
+  mechanism this entry rests on -- it is the stated reason `tests/` may be exempt
+  from `disallow_untyped_defs`, since bodies are read either way. Turning it off
+  leaves the whole test suite with neither, and mypy reports that as a *note* at
+  exit `0`. No gate could see it: the count is unchanged, linecount excludes
+  `tests/` by design, and the canary's defects all sat in annotated functions. The
+  canary now plants one inside its unannotated function too.
+* **The linecount gate skipped `__init__.py` by name.** That was a hand-written
+  exclusion inside the gate set built to argue against hand-written exclusions,
+  and it was fail-open: `ignore_errors` on the `prusaslicer_py` module left the
+  package's public entry point checked for nothing, invisible to all four. The
+  filename is now mapped to its package instead of dropped.
+
+### Accepted, and why
+
+Three gaps are known, measured, and deliberately left. Recorded because the
+difference between *measured and accepted* and *never noticed* is the whole point
+of writing any of this down, and without a line here they read as the latter.
+
+* **`warn_unused_configs`, `warn_redundant_casts` and `warn_unused_ignores` are
+  ungated.** None carries a claim this entry rests on, so switching one off is a
+  loss of hygiene rather than a directory going unchecked. Gating them would mean
+  asserting the contents of `[tool.mypy]`, which is the config-allowlist shape this
+  entry rejects everywhere else.
+* **An in-band `# mypy: ignore-errors` silences a file, and passes.** Measured.
+  Not closed, because it is visible in the diff of the very file it silences, and
+  closing it would mean rejecting a legitimate escape hatch. `warn_unused_ignores`
+  already catches a stale one.
+* **`set shell := ["true", "-c"]` makes `just` run nothing**, as described under
+  *Where it actually stops*. Listed here too so the three sit together.
+
+### Is this too much machinery?
+
+`tests/test_repo_gates.py` is larger than the `scripts/` it protects, and
+`just test` spawns three extra typechecks. That ratio is worth naming rather than
+discovering later.
+
+It is not disproportionate, and the reason is not that typechecking is
+high-stakes. It is that this repository's own standard was violated five
+consecutive times while being fixed, each violation reproducing the previous one
+exactly one level up, and **not one of them required an adversary** -- every
+attack that worked was an ordinary refactor. That is evidence the failure mode is
+live here rather than theoretical.
+
+The durable asset is the sentence, not the gates: *an instruction gate always has
+a next layer, and an outcome gate does not.* The gates are its local application.
+
+**A falsifiable test for when this has outrun the risk:** if a review of this kind
+comes back clean on its first attempt, the machinery is doing more work than the
+risk warrants and something should go. Five rounds and roughly thirty attacks
+found a live hole every round -- including two in the gates themselves, and one
+in the reviewer's own harness, which had disabled the thing it was measuring.
+
+### Where it actually stops
+
+Not at the recipe, and not at `set shell := ["true", "-c"]` -- an earlier draft of
+this entry said the latter and was wrong, because every shell expansion above sat
+below that claim and needed no sabotage.
+
+It stops at whether the suite runs at all. `ci.yml` is gated: it must invoke
+`just check` and `just test`, the `check` and `test` jobs may carry no `if:`, and
+the `ok` job now requires upstream *success* rather than the absence of failure --
+`contains(needs.*.result, 'failure')` does not match `'skipped'`, so an `if: false`
+on `check` produced a fully green pull request with nothing checked. Past that, a
+runner told to execute nothing executes nothing, and no test can observe that from
+inside a process that was never started. That is a different threat model from
+drift, and it is visible in a diff.

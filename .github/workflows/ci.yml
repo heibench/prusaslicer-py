@@ -63,8 +63,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Fail if any upstream job failed or was cancelled
-        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+      # `contains(needs.*.result, 'failure')` misses 'skipped', so an `if: false`
+      # on `check` produced a fully green PR with nothing checked. Requiring
+      # success names the only acceptable state instead of enumerating bad ones.
+      - name: Fail unless every upstream job succeeded
+        if: needs.check.result != 'success' || needs.test.result != 'success'
         run: exit 1
       - name: Pass
         run: echo 'All checks passed'

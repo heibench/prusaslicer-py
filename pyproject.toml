@@ -60,3 +60,44 @@ python_version = "3.11"
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
+# Without this mypy skips the BODY of any function with no annotations, so adding
+# `scripts/` to the gate would have checked almost nothing: 12 of its 13 functions
+# were unannotated at the time.
+check_untyped_defs = true
+
+# `mypy .` does not read `.gitignore`, so foreign Python inside the working tree
+# is checked as if it were ours: a virtualenv at `venv/`, a `build/` tree, or the
+# repo's own sdist unpacked under `dist/` each turn `just check` red (the last two
+# abort with duplicate modules, checking nothing at all). D10 says the excluded set
+# belongs here rather than on the command line, where only a reader of the recipe
+# would find it -- and the gate on the `typecheck` recipe enforces that direction.
+# Any depth, matching `.gitignore`: git ignores `venv/` wherever it appears, while
+# a root-anchored regex let `tools/venv/` red-line the build. Widening these is safe
+# because `test_the_typechecker_actually_covered_every_tracked_file` compares mypy's
+# own count against every tracked `.py` -- an exclude that swallowed a real file
+# would lower that count and go red.
+exclude = [
+    "(^|/)\\.?venv/",
+    "(^|/)build/",
+    "(^|/)dist/",
+]
+
+# Bodies alone are not enough. With no signature to check a call against, mypy
+# accepts `save_json(path, data)` with the arguments reversed -- exactly the shape
+# of defect `scripts/` is exposed to, since it generates the CLI-surface data D6
+# froze and nothing downstream re-checks it.
+#
+# Required repo-wide rather than listed per module, for the same reason D10 gives
+# about the `typecheck` recipe: a list omits by default. An allowlist of script
+# modules left a new `scripts/04_*.py` unchecked on the day it was added, and
+# silently un-checked a renamed one -- `warn_unused_configs` reports a stale entry
+# as a NOTE, so that still exits 0. Requiring it everywhere and exempting one
+# place inverts the default: the exemption is the part someone has to write down.
+disallow_untyped_defs = true
+
+# The one exemption. `tests/` had 33 unannotated signatures and a `-> None` on a
+# pytest function buys nothing; `check_untyped_defs` already reads their bodies,
+# which is where test defects live.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+disallow_untyped_defs = false

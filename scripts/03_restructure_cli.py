@@ -1,31 +1,39 @@
 import json
 from pathlib import Path
 
+# The extracted CLI surface as this script handles it: section name to the
+# option records under it. Nothing here looks inside a record -- the four
+# fields D6 froze are read by consumers, not by the restructuring step -- so
+# the element type stays opaque rather than restating that schema a second
+# time where it could drift from the parser that writes it.
+Sections = dict[str, list[object]]
 
-def load_json(file_path):
+
+def load_json(file_path: Path) -> Sections:
     """Load JSON data from a file."""
     with open(file_path, encoding="utf-8") as file:
-        return json.load(file)
+        data: Sections = json.load(file)
+    return data
 
 
-def save_json(data, file_path):
+def save_json(data: Sections, file_path: Path) -> None:
     """Save data to a JSON file."""
     with open(file_path, "w", encoding="utf-8") as file:
         json.dump(data, file, indent=4, ensure_ascii=False)
 
 
-def find_common_sections(data1, data2, data3):
+def find_common_sections(data1: Sections, data2: Sections, data3: Sections) -> set[str]:
     """Find sections that are common across all three JSONs."""
     common_sections = set(data1.keys()) & set(data2.keys()) & set(data3.keys())
     return common_sections
 
 
-def filter_common_sections(data, common_sections):
+def filter_common_sections(data: Sections, common_sections: set[str]) -> Sections:
     """Remove common sections from the given data."""
     return {section: options for section, options in data.items() if section not in common_sections}
 
 
-def create_output_jsons(structured_data_dir, common_sections=None):
+def create_output_jsons(structured_data_dir: Path) -> None:
     """Create the five JSON files: actions, transform, options_common,
     options_fff, and options_sla."""
     # Load the three JSON files
@@ -87,7 +95,7 @@ def create_output_jsons(structured_data_dir, common_sections=None):
     save_json(sla_filtered, output_dir / "options_sla.json")
 
 
-def main():
+def main() -> None:
     # Define directory where structured data is located
     script_dir = Path(__file__).parent
     structured_data_dir = script_dir / "02_structured_data"  # Folder with the structured JSON files
