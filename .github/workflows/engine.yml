@@ -67,8 +67,8 @@ jobs:
         # place they actually run, against a real PrusaSlicer's real --help.
         run: just test
 
-  linux-path:
-    name: Linux / AppImage on PATH
+  linux-apt:
+    name: Linux / distro package on PATH
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
@@ -77,36 +77,20 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - name: Install PrusaSlicer as an extracted AppImage on PATH
+      - name: Install PrusaSlicer from the distro archive
+        # Was an AppImage job. PrusaSlicer publishes NO Linux assets on its
+        # GitHub releases -- checked across the last five, including 2.9.6:
+        # only setup.exe, .dmg and a Windows .zip. Linux is Flathub and distro
+        # packages, so this exercises plain PATH discovery via the distro
+        # package rather than an artifact that does not exist.
         run: |
           set -euo pipefail
           sudo apt-get update
-          sudo apt-get install -y libfuse2 libgtk-3-0 libwebkit2gtk-4.1-0 || true
-          # Match any Linux AppImage asset, not just one spelled "GTK3": the
-          # asset naming changes between releases, and a too-narrow grep here
-          # produced an empty URL and a failure that looked like "no AppImage
-          # exists" rather than "the pattern missed".
-          assets=$(curl -fsSL https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest)
-          url=$(printf '%s' "$assets" | grep -oE 'https://[^"]+\.AppImage' | head -1)
-          if [ -z "$url" ]; then
-            echo "::error::no .AppImage asset in the latest PrusaSlicer release"
-            printf '%s' "$assets" | grep -oE '"name": "[^"]+"' | head -20
-            exit 1
-          fi
-          echo "downloading $url"
-          curl -fsSL "$url" -o PrusaSlicer.AppImage
-          chmod +x PrusaSlicer.AppImage
-          # Extract rather than mount: FUSE is unreliable on runners, and this
-          # exercises the plain PATH discovery path rather than the Flatpak one.
-          ./PrusaSlicer.AppImage --appimage-extract >/dev/null
-          sudo install -Dm755 squashfs-root/usr/bin/prusa-slicer /usr/local/bin/prusa-slicer
+          sudo apt-get install -y prusa-slicer
           command -v prusa-slicer
+          prusa-slicer --help | head -1
       - run: just setup
       - name: Full suite, engine required
-        # PRUSASLICER_PY_REQUIRE_ENGINE is set at workflow level, so a missing
-        # engine fails here rather than skipping. `just test` rather than
-        # `just test-engine`: the latter prefixes `VAR=x cmd`, which is
-        # POSIX-only and does not run on the Windows job.
         run: just test
 
   macos:
@@ -136,7 +120,7 @@ jobs:
         run: just test
 
   windows:
-    name: Windows / Chocolatey
+    name: Windows / official portable zip
     runs-on: windows-latest
     timeout-minutes: 45
     steps:
@@ -145,33 +129,30 @@ jobs:
       - uses: astral-sh/setup-uv@v7
         with:
           enable-cache: true
-      - name: Install PrusaSlicer
+      - name: Install PrusaSlicer from the official portable zip
+        # Was `choco install prusaslicer`. The package exists, but its install
+        # location is not something to guess at, and a recursive sweep of
+        # Program Files reported "not found" for an install that had probably
+        # succeeded. The upstream .zip is the same build the installer ships,
+        # needs no admin, pins an exact version, and lands the layout discovery
+        # expects: <dir>/prusa-slicer-console.exe beside <dir>/resources/shapes.
         shell: pwsh
         run: |
-          choco install prusaslicer -y --no-progress
-          # Do not assume the install root: Chocolatey's PrusaSlicer package has
-          # used more than one, and hardcoding C:\Program Files\Prusa3D made a
-          # successful install look like a missing binary.
-          $roots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ChocolateyInstall) |
-                   Where-Object { $_ -and (Test-Path $_) }
-          $exe = Get-ChildItem -Path $roots -Recurse -Filter 'prusa-slicer-console.exe' `
-                   -ErrorAction SilentlyContinue | Select-Object -First 1
-          if (-not $exe) {
-            Write-Host '::error::prusa-slicer-console.exe not found after install. Searched:'
-            $roots | ForEach-Object { Write-Host "  $_" }
-            Get-ChildItem -Path $roots -Recurse -Filter 'prusa-slicer*.exe' `
-              -ErrorAction SilentlyContinue | Select-Object -First 20 -ExpandProperty FullName
-            throw 'prusa-slicer-console.exe not found'
-          }
+          $ErrorActionPreference = 'Stop'
+          $rel = Invoke-RestMethod https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest
+          $asset = $rel.assets | Where-Object { $_.name -like '*.zip' } | Select-Object -First 1
+          if (-not $asset) { throw "no .zip asset in $($rel.tag_name)" }
+          Write-Host "downloading $($asset.name)"
+          Invoke-WebRequest $asset.browser_download_url -OutFile prusaslicer.zip
+          Expand-Archive prusaslicer.zip -DestinationPath "$env:RUNNER_TEMP\ps"
+          $exe = Get-ChildItem "$env:RUNNER_TEMP\ps" -Recurse -Filter 'prusa-slicer-console.exe' |
+                 Select-Object -First 1
+          if (-not $exe) { throw 'prusa-slicer-console.exe not present in the zip' }
           Write-Host "found: $($exe.FullName)"
           Add-Content -Path $env:GITHUB_PATH -Value $exe.DirectoryName
       - name: Confirm it is on PATH
         shell: pwsh
-        run: Get-Command prusa-slicer-console.exe | Select-Object -ExpandProperty Source
+        run: (Get-Command prusa-slicer-console.exe).Source
       - run: just setup
       - name: Full suite, engine required
-        # PRUSASLICER_PY_REQUIRE_ENGINE is set at workflow level, so a missing
-        # engine fails here rather than skipping. `just test` rather than
-        # `just test-engine`: the latter prefixes `VAR=x cmd`, which is
-        # POSIX-only and does not run on the Windows job.
         run: just test
