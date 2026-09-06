@@ -59,8 +59,8 @@ test:
     uv run --locked pytest
 
 # Run tests and fail (rather than skip) if PrusaSlicer is not installed
-test-engine:
-    PRUSASLICER_PY_REQUIRE_ENGINE=1 uv run --locked pytest
+test-engine $PRUSASLICER_PY_REQUIRE_ENGINE="1":
+    uv run --locked pytest
 
 # Regenerating the CLI surface is two steps and only the first needs the engine, so
 # they are separate recipes. The captures are PrusaSlicer's output rather than ours
@@ -81,6 +81,12 @@ extract-cli:
     uv run --locked python scripts/03_restructure_cli.py
 
 # Remove build and tool caches
+[unix]
 clean:
     rm -rf .venv dist .pytest_cache .ruff_cache .mypy_cache
     find . -type d -name __pycache__ -exec rm -rf {} + 2>/dev/null || true
+
+# Remove build and cache artifacts
+[windows]
+clean:
+    powershell -NoLogo -Command "'.venv','dist','.pytest_cache','.ruff_cache','.mypy_cache' | ForEach-Object { if (Test-Path $_) { Remove-Item -Recurse -Force $_ } }; Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force"

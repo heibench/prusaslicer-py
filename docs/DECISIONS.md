@@ -926,3 +926,53 @@ that adds the job.
 That is the argument for this entry in one line. The six unenforced hooks were not
 covering a hypothetical gap, and the first thing enforcing them found was a real
 defect in the change that enforced them.
+
+---
+
+## D12 -- Recipes work on Windows, and the Windows half is executed rather than read
+
+**Decided:** 2026-09-06 (issue #26)
+
+`just clean` used `rm -rf` and GNU `find`; `just test-engine` used `VAR=1 cmd`.
+Neither runs on Windows without a POSIX layer, on a project that deliberately
+supports Windows: `engine.yml` runs the real engine on `windows-latest`, and
+`_exec_name()`'s `prusa-slicer-console.exe` branch exists precisely so that a
+Windows contributor is a real contributor. A contributor who can run the tests but
+not the project's own recipes gets the second-class experience the rest of this
+repository argues against.
+
+### `test-engine` needs no shell at all
+
+`PRUSASLICER_PY_REQUIRE_ENGINE=1 uv run --locked pytest` is shell syntax --
+the same construct `engine.yml` elsewhere calls POSIX-only, which is #30. It is now
+
+```
+test-engine $PRUSASLICER_PY_REQUIRE_ENGINE="1":
+    uv run --locked pytest
+```
+
+`just` exports the parameter into the child process itself, so no shell is
+involved. Verified by the contrast the recipe exists for, on a `PATH` with no
+engine reachable: `just test-engine` **errors**, while `just test` skips and stays
+green.
+
+### `clean` dispatches per OS, and `[unix]`/`[windows]` are safe where `[doc]` was not
+
+D2.1 bans `[doc]` because an unknown attribute is a *parse* error, so one of them
+breaks every recipe in the file for anyone on an older `just` -- Ubuntu 24.04 LTS
+ships **1.21.0**, below `[doc]`'s **1.27.0**. That ban does not extend here:
+`[unix]` and `[windows]` arrived in **1.8.0**, which is below the same floor.
+Checked in `just`'s own attribute table rather than assumed, because the version
+number is the whole argument.
+
+### The Windows body is executed, not read
+
+`clean`'s Windows half is PowerShell, and no amount of care on a Linux machine
+establishes that it works. That is exactly the habit D11 was written about, so a
+`recipes` job runs `just clean` on `windows-latest` and then asserts the
+directories are gone -- the assertion matters, because a recipe that silently does
+nothing would otherwise pass. It gates `ok` like every other job, and the repo
+gate requires it to.
+
+The POSIX half needs no such job: every other CI leg has a working tree and would
+break loudly.

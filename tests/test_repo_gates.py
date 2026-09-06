@@ -571,7 +571,7 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     # A step or job that is present but never runs satisfies the check above while
     # running nothing. `if: false` on the `check` job was a fully green PR, because
     # the `ok` job tested for 'failure' and a skipped job reports 'skipped'.
-    for job in ("check", "test", "pre-commit"):
+    for job in ("check", "test", "pre-commit", "recipes"):
         block = re.search(rf"^  {job}:\n(?:(?:    .*)?\n)*", text, re.M)
         assert block, f"no `{job}` job in ci.yml"
         body = block.group()
@@ -610,6 +610,10 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
             "measured here.)"
         )
 
+    assert "needs.recipes.result != 'success'" in text, (
+        "the `recipes` job must gate `ok`; it is the only place the Windows half of "
+        "`just clean` is executed rather than read"
+    )
     assert "needs.check.result != 'success'" in text, (
         "the `ok` job must require upstream success; testing only for 'failure' "
         "passes a job that was skipped"

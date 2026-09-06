@@ -76,10 +76,35 @@ jobs:
       - run: just setup
       - run: just test
 
+  # `clean` is the one recipe with a per-OS body, and the Windows half is
+  # PowerShell that cannot be exercised on a Linux machine. Asserting it works
+  # from reading it is what #25 was about, so it runs here instead. Windows only:
+  # the POSIX half is exercised by every other job that has a working tree.
+  recipes:
+    name: recipes (windows)
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7
+      - uses: extractions/setup-just@v4
+      - uses: astral-sh/setup-uv@v7
+        with:
+          python-version: "3.11"
+      - run: just setup
+      - run: just clean
+      - name: Assert clean actually removed the artifacts
+        run: |
+          $stale = '.venv','dist','.pytest_cache','.ruff_cache','.mypy_cache' |
+            Where-Object { Test-Path $_ }
+          if ($stale) { throw "just clean left: $stale" }
+          $pyc = Get-ChildItem -Recurse -Directory -Filter __pycache__
+          if ($pyc) { throw "just clean left __pycache__: $($pyc.FullName)" }
+        shell: pwsh
+
   ok:
     name: ok
     if: always()
-    needs: [check, test, pre-commit]
+    needs: [check, test, pre-commit, recipes]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -90,7 +115,8 @@ jobs:
         if: >-
           needs.check.result != 'success' ||
           needs.test.result != 'success' ||
-          needs.pre-commit.result != 'success'
+          needs.pre-commit.result != 'success' ||
+          needs.recipes.result != 'success'
         run: exit 1
       - name: Pass
         run: echo 'All checks passed'

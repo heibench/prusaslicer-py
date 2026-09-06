@@ -8,6 +8,19 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ### Fixed
 
+- **`just clean` and `just test-engine` work on Windows** (#26). Both were
+  POSIX-only on a project that deliberately supports Windows -- `engine.yml` runs
+  the real engine on `windows-latest`, and the `prusa-slicer-console.exe` handling
+  exists so a Windows contributor is a real contributor. `test-engine` set its
+  environment variable with `VAR=1 cmd`, which is shell syntax; it now uses
+  `just`'s exported recipe parameter, which sets the variable in the child process
+  and needs no shell at all. `clean` gains a `[windows]` body beside the POSIX one.
+
+  The Windows body is PowerShell that cannot be exercised on a Linux machine, so a
+  `recipes` CI job runs `just clean` on `windows-latest` and asserts the artifacts
+  are actually gone. Asserting a platform-specific body works by reading it is the
+  defect #25 turned out to be about.
+
 - **pre-commit runs in CI, three hooks that did nothing now do, and both ruffs
   are the same ruff** (#25). `.pre-commit-config.yaml` configured eight hooks and
   CI ran none of them, so six were enforced only where somebody had run
