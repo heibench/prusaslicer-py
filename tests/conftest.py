@@ -32,8 +32,7 @@ def engine_required() -> bool:
     return REQUIRE_ENGINE_ENV in os.environ
 
 
-@pytest.fixture
-def engine() -> PrusaSlicer:
+def resolve_engine() -> PrusaSlicer:
     """A PrusaSlicer bound to the real engine, or a skipped test.
 
     Requesting this fixture is how a test declares "I need the engine".  When
@@ -53,3 +52,22 @@ def engine() -> PrusaSlicer:
         if engine_required():
             pytest.fail(f"{REQUIRE_ENGINE_ENV} is set but: {message}")
         pytest.skip(message)
+
+
+@pytest.fixture
+def engine() -> PrusaSlicer:
+    """The fixture is this one call, deliberately.
+
+    Reaching into a fixture to test it needs `__wrapped__`, which is untyped
+    and which mypy rejects. Keeping the fixture a single call to a plain
+    function means the test exercises the real code path instead of a private
+    attribute.
+
+    Nothing gates that this line stays `resolve_engine()`, and that is a
+    deliberate call rather than an oversight: replacing it with `PrusaSlicer()`
+    makes engine tests *error* on a machine without the engine instead of
+    skipping. That is loud and fails closed. The gates in this repository are
+    spent on the other direction -- claims that could make something read as
+    green when it was not verified.
+    """
+    return resolve_engine()

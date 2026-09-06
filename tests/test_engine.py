@@ -16,7 +16,7 @@ import pytest
 from _pytest.outcomes import Failed, Skipped
 
 from prusaslicer_py.slicer import PrusaSlicer
-from tests.conftest import REQUIRE_ENGINE_ENV, engine, engine_required
+from tests.conftest import REQUIRE_ENGINE_ENV, engine_required, resolve_engine
 
 
 def test_engine_resolves_to_something_runnable(engine):
@@ -88,6 +88,10 @@ def test_the_fixture_actually_consults_the_switch(monkeypatch: pytest.MonkeyPatc
     run with the engine unreachable and the variable set to the empty string went
     `5 passed, 4 skipped, exit 0`.
 
+    This calls `resolve_engine()`, which is the function the fixture is, rather than
+    reaching through the fixture's `__wrapped__` -- that attribute is untyped and
+    mypy rejects it, and CI said so after a local `grep` of mine hid it.
+
     A gate on the helper says nothing about whether anything calls it. That is the
     same shape as every other defeat in this issue, one level below where it lives.
     """
@@ -103,7 +107,7 @@ def test_the_fixture_actually_consults_the_switch(monkeypatch: pytest.MonkeyPatc
     # "9 passed, 1 skipped" against the very revert it was written to catch. Each
     # outcome is named instead, and skipping is a failure here.
     try:
-        engine.__wrapped__()
+        resolve_engine()
     except Failed as failure:
         assert "is set but" in str(failure)
     except Skipped:
