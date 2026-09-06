@@ -89,4 +89,4 @@ clean:
 # Remove build and tool caches
 [windows]
 clean:
-    powershell -NoLogo -Command "Get-Item -ErrorAction SilentlyContinue .venv, dist, .pytest_cache, .ruff_cache, .mypy_cache | Remove-Item -Recurse -Force; Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+    powershell -NoLogo -Command "$ErrorActionPreference = 'Stop'; Get-Item -ErrorAction SilentlyContinue .venv, dist, .pytest_cache, .ruff_cache, .mypy_cache | Remove-Item -Recurse -Force; Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"

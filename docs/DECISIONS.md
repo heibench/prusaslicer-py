@@ -1043,3 +1043,25 @@ would not have found it -- the `$_` is correct PowerShell and correct `just`, an
 wrong only in the seam between them.
 
 The body avoids `$_` entirely now, so there is nothing for `sh` to substitute.
+
+**And it caught a second one, which I had asserted was already handled.** Asked
+whether `clean` fails loudly when a real error stops it, I said the Windows body
+did. It did not. `Remove-Item` raises a *non-terminating* error, and the
+`__pycache__` sweep runs after it and always succeeds, so with `.venv` held open by
+another process the job measured:
+
+```
+Remove-Item : Cannot remove item ...\.venv: The directory is not empty
+just clean -> exit 0
+```
+
+An error on stderr and success to the caller -- while `rm -rf` exits non-zero and
+`just` aborts the recipe. The two halves were not equivalent in the way that
+matters most, and the difference was invisible to every green run because nothing
+had ever made `clean` fail. `$ErrorActionPreference = 'Stop'` inside the command
+makes the non-terminating error terminating; the `__pycache__` sweep keeps its own
+`-ErrorAction SilentlyContinue`, matching the POSIX body's `|| true` on the same
+sweep.
+
+The probe was added deliberately without a pre-emptive fix, so that the run would
+answer the question rather than confirm a guess. It answered it against me.
