@@ -107,10 +107,28 @@ recipe's name matched before the recipe did. Both found in review, both fail-ope
 the defect being gated. Where the tool will answer a question about itself, ask it.
 
 **This does not undercut the `[doc]` ban.** `--dump-format json` has shipped since
-just **0.10.4** (2021-11-21); `[doc]` only since **1.27.0** (2024-05-25). Ubuntu
-24.04 LTS's 1.21.0 has the first and not the second, so the contributor that ban
-protects can still run these gates. If some `just` ever cannot, the gate says which
-tool failed and prints its stderr rather than raising a bare `CalledProcessError`.
+just **0.10.4** (2021-11-21) and the format was stabilised in **1.15.0**
+(2023-10-09); `[doc]` only arrived in **1.27.0** (2024-05-25). Ubuntu 24.04 LTS's
+1.21.0 is above the stabilisation and below the attribute, so the contributor that
+ban protects can still run these gates. If some `just` ever cannot, the gate names
+the tool and prints its stderr rather than raising a bare `CalledProcessError`.
+
+**What the comment-count gate does and does not guarantee.** It is a best-effort
+read of the *file*, and its blind spot is text that is not code: `just` parses a
+string literal or a recipe body, this reads lines. Three shapes are known to slip
+it, all found in review, none present here:
+
+- a triple-quoted string whose interior contains a line shaped like a recipe head
+- under `allow-duplicate-recipes`, a superseded definition (mitigated: the scan runs
+  bottom-up, matching `just`'s own last-wins precedence)
+- recipes inside a `mod` submodule, which live under the dump's `modules` key rather
+  than `recipes` (mitigated: the gate refuses to run at all once a module exists,
+  rather than passing over it silently)
+
+`test_every_listed_recipe_has_a_description` has no such blind spot -- it reads
+`just`'s own answer -- which is why it is the gate to trust and the count is the one
+that explains *how* a description goes wrong. Stating the limit is the point: an
+implied completeness this cannot deliver would be the same defect one level up.
 
 ---
 

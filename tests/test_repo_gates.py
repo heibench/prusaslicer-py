@@ -85,7 +85,16 @@ def _just_recipes() -> dict[str, dict]:
         f"`just --dump --dump-format json` failed ({out.returncode}); this gate reads "
         f"the recipe list from it:\n{out.stderr.strip()}"
     )
-    return json.loads(out.stdout)["recipes"]
+    dump = json.loads(out.stdout)
+    # Fail closed on a scope this gate does not cover. Submodule recipes live under
+    # `modules`, not `recipes`, so #27 could live in one unseen -- and splitting a
+    # growing justfile into modules is the normal path, where nobody would think to
+    # re-check this test. An assertion is cheaper than the silence.
+    assert not dump.get("modules"), (
+        f"this gate does not descend into submodules {sorted(dump['modules'])}; extend "
+        "it before adding one, or a recipe there can carry #27 unseen"
+    )
+    return dump["recipes"]
 
 
 def _comment_block_above(name: str, lines: list[str]) -> list[str] | None:
@@ -95,10 +104,16 @@ def _comment_block_above(name: str, lines: list[str]) -> list[str] | None:
     is asserted as such rather than skipped -- silently finding nothing is how the
     first version of this gate passed over the recipes it could not parse.
     """
-    for i, line in enumerate(lines):
-        if not re.match(rf"^{re.escape(name)}(\s|:)", line):
+    # Scanned from the BOTTOM, because that is `just`'s own precedence: under
+    # `allow-duplicate-recipes` the LAST definition wins, and taking the first matched
+    # a superseded one. It also steps over most text-that-looks-like-code above the
+    # real recipe -- see the blind spot recorded in D2.1.
+    for i in range(len(lines) - 1, -1, -1):
+        line = lines[i]
+        # `@name:` is a quiet recipe and is still a definition.
+        if not re.match(rf"^@?{re.escape(name)}(\s|:)", line):
             continue
-        if re.match(rf"^{re.escape(name)}\s*:=", line):
+        if re.match(rf"^@?{re.escape(name)}\s*:=", line):
             # `just` allows a variable and a recipe to share a name, and `lint := "ruff"`
             # matches the pattern above because of the space before `:=`. Matching the
             # assignment instead of the recipe counted the wrong comment block and let
@@ -188,7 +203,10 @@ def test_no_doc_attribute_is_used() -> None:
     assert not offenders, f"[doc(...)] on line(s) {offenders}; see D2.1"
 
 
-def test_the_doc_gate_is_not_fooled_by_an_assignment_sharing_a_recipe_name(tmp_path) -> None:
+@pytest.mark.parametrize("assignment", ['lint := "ruff"', 'lint:="ruff"', 'lint  :=  "ruff"'])
+def test_the_doc_gate_is_not_fooled_by_an_assignment_sharing_a_recipe_name(
+    assignment: str,
+) -> None:
     """The F9 false pass, pinned. `just` allows `lint := "ruff"` beside a `lint:` recipe,
     and the assignment matches a naive name-anchored search first -- so the gate counted
     the assignment's comment block, found one line, and passed while #27 was live and
@@ -196,7 +214,7 @@ def test_the_doc_gate_is_not_fooled_by_an_assignment_sharing_a_recipe_name(tmp_p
     """
     lines = [
         "# the linter this project uses",
-        'lint := "ruff"',
+        assignment,
         "",
         "# Run the linter over the whole tree",
         "# Ruff is pinned in pyproject -- see D2.",
