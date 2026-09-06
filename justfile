@@ -89,7 +89,7 @@ clean:
 # `just` runs this through `sh`, so the body must contain no `$` at all: `sh` ate a
 # `$_` here once and an `$ErrorActionPreference` here twice. `-ErrorAction Stop`
 # does the same job as the preference variable with no sigil to be eaten.
-#
+
 # Remove build and tool caches
 [windows]
 clean:
