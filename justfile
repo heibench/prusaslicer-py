@@ -49,7 +49,7 @@ lint:
 
 # Type-check
 typecheck:
-    uv run --locked mypy prusaslicer_py/ tests/
+    uv run --locked mypy prusaslicer_py/ tests/ scripts/
 
 # Format-check + lint + typecheck -- the CI-equivalent gate
 check: fmt-check lint typecheck

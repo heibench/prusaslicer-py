@@ -8,6 +8,15 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ### Fixed
 
+- **`scripts/` is typechecked, and the typechecker now reads function bodies**
+  (#24). `scripts/` was outside the `typecheck` recipe, and it holds the
+  CLI-surface extraction that produces the data the package ships -- so the
+  checked surface could be clean while the thing generating its input was wrong.
+  Adding it alone would have checked almost nothing: mypy skips the body of any
+  unannotated function, and 12 of the 13 functions there are unannotated. With
+  `check_untyped_defs` it found three real defects in `scripts/` and six in
+  `tests/`, all now fixed.
+
 - **`just --list` describes every recipe, and describes them correctly** (#27).
   `just` publishes the LAST comment line before a recipe, so `capture-cli`'s
   three-line block published a note about D8 instead of a description, and

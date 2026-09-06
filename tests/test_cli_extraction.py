@@ -10,6 +10,7 @@ product that has drifted from its generator is worse than no build product.
 import importlib.util
 import json
 from pathlib import Path
+from types import ModuleType
 
 import pytest
 
@@ -33,10 +34,13 @@ _needs_corpus = pytest.mark.skipif(
 )
 
 
-def _load_parser():
+def _load_parser() -> ModuleType:
     spec = importlib.util.spec_from_file_location("json_cli", SCRIPTS / "02_json_cli.py")
+    # Narrowed before use, not after: `module_from_spec` takes a ModuleSpec and the
+    # loader is optional on it, so the old `assert spec.loader is not None` came a line
+    # too late to say anything about `spec` itself.
+    assert spec is not None and spec.loader is not None, "02_json_cli.py is not importable"
     module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
 
@@ -223,12 +227,12 @@ def test_fixture_non_ascii_survives_the_round_trip(tmp_path):
     assert "Â°" not in joined and "Î¼" not in joined
 
 
-def _load_restructurer():
+def _load_restructurer() -> ModuleType:
     spec = importlib.util.spec_from_file_location(
         "restructure_cli", SCRIPTS / "03_restructure_cli.py"
     )
+    assert spec is not None and spec.loader is not None, "03_restructure_cli.py is not importable"
     module = importlib.util.module_from_spec(spec)
-    assert spec.loader is not None
     spec.loader.exec_module(module)
     return module
 

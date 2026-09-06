@@ -60,3 +60,7 @@ python_version = "3.11"
 warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
+# Without this mypy skips the BODY of any function with no annotations, so adding
+# `scripts/` to the gate would have checked almost nothing: 12 of its 13 functions are
+# unannotated. It found three real ones there and six in the tests on the first run.
+check_untyped_defs = true

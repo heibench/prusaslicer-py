@@ -44,7 +44,7 @@ def split_option_line(line):
              ``description`` is the rest of the line -- empty when the
              description begins on the following line.
     """
-    flags = []
+    flags: list[list[str | None]] = []
     continues = False
     prev_end = 0
 
@@ -71,8 +71,8 @@ def parse_cli_output_with_sections(file_path, separator=";"):
     Parse the raw CLI output, extract sections, and structure the data into a dictionary.
     Each section will contain a list of options with their descriptions.
     """
-    structured_data = {}
-    current_flags = []
+    structured_data: dict[str, list[dict[str, object]]] = {}
+    current_flags: list[list[str | None]] = []
     current_description = ""
 
     # The help output is UTF-8 (it contains a degree sign and a mu). Without an
