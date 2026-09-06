@@ -62,12 +62,20 @@ test:
 test-engine:
     PRUSASLICER_PY_REQUIRE_ENGINE=1 uv run --locked pytest
 
-# Regenerate the machine-readable CLI surface from the captured help output
-# Capture PrusaSlicer's --help into scripts/01_helps (needs the engine installed).
-# The captures are PrusaSlicer's output and are not committed -- see D8.
+# Regenerating the CLI surface is two steps and only the first needs the engine, so
+# they are separate recipes. The captures are PrusaSlicer's output rather than ours
+# and are not committed -- see D8.
+#
+# One comment line each below the blank, per the rule above `lock`: these three lines
+# used to sit directly against `capture-cli`, so `just --list` published the D8
+# sentence as its description and `extract-cli`'s own line was absorbed upward,
+# leaving it with none (#27).
+
+# Capture PrusaSlicer's --help into scripts/01_helps (needs the engine installed)
 capture-cli:
     uv run --locked python scripts/01_store_helps.py
 
+# Regenerate the machine-readable CLI surface from the captured help output
 extract-cli:
     uv run --locked python scripts/02_json_cli.py
     uv run --locked python scripts/03_restructure_cli.py

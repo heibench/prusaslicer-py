@@ -86,6 +86,50 @@ one, including Ubuntu 24.04 LTS. The blank line above a recipe's doc comment doe
 the same job on any version: `just` takes the last comment line before a recipe as
 its doc string.
 
+That rule has a cost, and #27 is what it looks like: a recipe with a two-line
+comment publishes the **wrong** line, and the recipe below it can be left with
+none. So the convention is **exactly one comment line directly above each recipe,
+rationale above a blank line**, gated by
+`tests/test_repo_gates.py::test_every_recipe_has_exactly_one_doc_comment_line`.
+
+Two gates, and the second is the one that asserts the property:
+`test_every_listed_recipe_has_a_description` reads `doc` straight off `just`'s own
+output, so nothing a reader sees in `just --list` can be blank. The comment count is
+a proxy for how that happens; the doc check is the thing itself, and it caught a hole
+the proxy missed during review.
+
+Both read `just --dump --dump-format json` for the authoritative recipe list rather
+than parsing the file. The first version did parse it and skipped any line with an
+`=` before the colon -- silently excluding every recipe with a **defaulted
+parameter**, so #27 could be reintroduced verbatim on one and the test stayed green.
+A second round found the same shape again: a `lint := "ruff"` assignment sharing a
+recipe's name matched before the recipe did. Both found in review, both fail-open on
+the defect being gated. Where the tool will answer a question about itself, ask it.
+
+**This does not undercut the `[doc]` ban.** `--dump-format json` has shipped since
+just **0.10.4** (2021-11-21) and the format was stabilised in **1.15.0**
+(2023-10-09); `[doc]` only arrived in **1.27.0** (2024-05-25). Ubuntu 24.04 LTS's
+1.21.0 is above the stabilisation and below the attribute, so the contributor that
+ban protects can still run these gates. If some `just` ever cannot, the gate names
+the tool and prints its stderr rather than raising a bare `CalledProcessError`.
+
+**What the comment-count gate does and does not guarantee.** It is a best-effort
+read of the *file*, and its blind spot is text that is not code: `just` parses a
+string literal or a recipe body, this reads lines. Three shapes are known to slip
+it, all found in review, none present here:
+
+- a triple-quoted string whose interior contains a line shaped like a recipe head
+- under `allow-duplicate-recipes`, a superseded definition (mitigated: the scan runs
+  bottom-up, matching `just`'s own last-wins precedence)
+- recipes inside a `mod` submodule, which live under the dump's `modules` key rather
+  than `recipes` (mitigated: the gate refuses to run at all once a module exists,
+  rather than passing over it silently)
+
+`test_every_listed_recipe_has_a_description` has no such blind spot -- it reads
+`just`'s own answer -- which is why it is the gate to trust and the count is the one
+that explains *how* a description goes wrong. Stating the limit is the point: an
+implied completeness this cannot deliver would be the same defect one level up.
+
 ---
 
 ## D3 -- A missing engine skips; asserting it is present is opt-in
