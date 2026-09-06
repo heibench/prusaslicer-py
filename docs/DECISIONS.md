@@ -532,80 +532,52 @@ opens by arguing against -- and it was the last unguarded one.
 `test_the_check_recipe_actually_runs_the_typechecker` reads the dependency list
 out of `just --dump` and asserts `typecheck` is in it.
 
-### Where the recursion stops
+### Gate the outcome, not the instruction
 
-Each of the above was found by asking what sits one level above the last gate,
-and the answer kept being "something ungated". Four more levels turned up, and
-they are worth recording together because the pattern is the finding:
+Each version of this gate read an *instruction* and asked whether it looked right,
+and each was defeated one layer further down. The recipe's text came first. Then
+the text after `just` interpolation, via `just --dry-run` -- which still missed a
+defaulted parameter, because the default is empty and only `check` supplies the
+narrowing. Then, once `check` was resolved, the shell turned out to be below
+`just` entirely:
 
-1. **The recipe's text is not the command.** The gate read the justfile's raw
-   characters. `mypy . {{mypy_extra}}` with `mypy_extra := "--exclude scripts/"`,
-   or a defaulted parameter invoked as `(typecheck "--exclude scripts/")`, both
-   leave the text saying `mypy .` while `just` runs something narrower -- and both
-   are ordinary refactors, not evasions. The gate now asserts on
-   `just --dry-run check`, which resolves interpolation and executes nothing.
-2. **Asking the right recipe.** Resolving `typecheck` alone still missed the
-   defaulted-parameter case, because the default is empty and only `check` passes
-   the narrowing argument. The gate resolves `check` -- the same question CI asks.
-3. **The config file mypy actually reads.** `mypy.ini` supersedes
-   `[tool.mypy]` silently, taking `check_untyped_defs` and
-   `disallow_untyped_defs` with it; mypy then reports the disabled feature as a
-   *note* and exits 0. Gated by asserting no `mypy.ini`, `.mypy.ini`, or
-   `[mypy]` in `setup.cfg`.
-4. **Whether CI still calls any of it.** Changing `ci.yml`'s step to `just lint`
-   left every gate green. Gated by reading the workflow.
+```
+uv run --locked mypy . $(cat .mypyargs 2>/dev/null)   # 11 files, gate green
+uv run --locked mypy . $MYPY_EXTRA                    # 9 files, gate green
+uv run --locked mypy . "$@"                           # 11 files, gate green
+```
 
-**It terminates there, and the honest thing is to say so rather than to imply the
-chain is closed.** `set shell := ["true", "-c"]` in the justfile makes `just
-check` and `just test` both print their commands and exit `0` having run nothing,
-and no test inside pytest can catch that, because pytest never runs. A gate cannot
-verify the machinery that decides whether the gate runs. What is gated is the
-realistic failure -- a recipe or workflow edited to call something narrower -- and
-what is not is deliberate sabotage of the runner, which is a different threat
-model and is visible in a diff.
+None of those is sabotage; each is an ordinary refactor. The lesson is that
+**there is always another layer of instruction, and there is only one outcome.**
+mypy names its own scope in both the passing and the failing case -- `Success: no
+issues found in 14 source files`, `Found 2 errors in 1 file (checked 14 source
+files)` -- and that number cannot be argued with.
 
-### What was considered and not done
-
-A `NewType` for the flag spelling would catch `flags[-1] = (value, spelling)` --
-a swap between two `str`s that types clean. It is not taken. `OptionRecord.option`
-must stay `str` because D6 froze it, so a `Spelling` alias would put a second
-vocabulary in front of a frozen schema, which is the failure this entry already
-argues against two paragraphs up. Against that: two construction sites and one
-swap shape, in a generator pinned by nine parametrised `split_option_line` cases
-and reproduced byte for byte by
-`test_committed_data_matches_the_committed_parser`. A test is the right instrument
-for a same-type swap, and it already exists. Note which test does the work:
-`test_committed_data_matches_the_committed_parser` is gated on a captured corpus
-and so skips on every pull request, running only in `engine.yml`. The instrument
-that actually catches a swapped pair is the nine parametrised
-`split_option_line` cases, which are always on -- verified by swapping the pair
-and watching six of them fail. Recorded so the next reviewer does not re-raise
-it, and so the citation does not rest on a test that is usually skipped.
-
-### D6's schema is now a type, not a comment
-
-The records the extraction emits were `dict[str, object]`. `object` accepts
-anything, so the schema D6 explicitly froze -- and told consumers to rely on --
-was the one part of the pipeline the typechecker could not check. It is now a
-`TypedDict`, and a renamed key, a wrong field type, or an `option` that could be
-`None` are errors.
-
-The flag pairs feeding it are `tuple[str, str | None]`. They were
-`list[list[str | None]]`, which was wrong twice over: the shape is a pair rather
-than a variable-length list, and it declared the spelling nullable when only the
-value ever is. That second error contradicted D6 in writing -- D6 says
-`option: str` -- and it was the annotation itself that carried the contradiction,
-which is why restating a frozen schema loosely is worse than not restating it.
-`scripts/03_restructure_cli.py` therefore keeps its element type opaque
-(`dict[str, list[object]]`): it never looks inside a record, so it has no reason
-to repeat those four fields where they could drift from the parser that writes
+So `test_the_typechecker_actually_covered_every_tracked_file` runs `just check`
+and compares mypy's own count against every `.py` git tracks. A narrowing lowers
+it, whatever produced the narrowing, and the gate does not need to know which
+trick was used. It closed the three shell cases above and a
+`[tool.mypy] exclude` entry at the same time -- the last of which nothing else
+checked, because D10 routes exclusions into `pyproject.toml` and then nothing read
 them.
 
-### What this actually found on the way in
+The comparison is deliberately against *all* tracked files rather than
+tracked-minus-excluded: subtracting the declared excludes would let the exclusion
+list grow while the gate stayed green, which is the omit-by-default shape this
+entry exists to argue against. It is `>=` rather than `==` because an untracked
+scratch file legitimately raises the count and is nobody's defect.
 
-Three `var-annotated` errors on empty literals in `scripts/`, where mypy could not
-infer an element type, and six in `tests/` from calling `module_from_spec` on a
-possibly-`None` spec. Nothing had behaved wrongly. Recorded plainly because
-section 7's rule cuts both ways: a change is not more valuable for being
-described as a defect fix, and the value here is the checking that now exists
-rather than the errors it cleared.
+### Where it actually stops
+
+Not at the recipe, and not at `set shell := ["true", "-c"]` -- an earlier draft of
+this entry said the latter and was wrong, because every shell expansion above sat
+below that claim and needed no sabotage.
+
+It stops at whether the suite runs at all. `ci.yml` is gated: it must invoke
+`just check` and `just test`, the `check` and `test` jobs may carry no `if:`, and
+the `ok` job now requires upstream *success* rather than the absence of failure --
+`contains(needs.*.result, 'failure')` does not match `'skipped'`, so an `if: false`
+on `check` produced a fully green pull request with nothing checked. Past that, a
+runner told to execute nothing executes nothing, and no test can observe that from
+inside a process that was never started. That is a different threat model from
+drift, and it is visible in a diff.

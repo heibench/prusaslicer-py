@@ -41,30 +41,6 @@ def _resolved_recipe(name: str) -> str:
     return resolved
 
 
-def _recipe_body(source: str, name: str) -> str:
-    """The lines of one recipe that `just` would actually RUN.
-
-    Comments are stripped to end-of-line, which is stronger than dropping
-    commented-out lines and is the difference that matters here. A gate looking for
-    a *required* token is satisfied by that token appearing in a trailing note --
-    `mypy prusaslicer_py/ tests/  # was: mypy .` passed while `just` ran the narrow
-    command. The sibling `uv run` gate looks for a *missing* token, so a comment
-    can only cost it a false red; this one needs the text gone.
-
-    Truncating at a `#` inside a shell string would only ever produce a false red,
-    which is the safe direction for a gate to be wrong in.
-    """
-    lines = source.splitlines()
-    starts = [n for n, line in enumerate(lines) if re.match(rf"^@?{re.escape(name)}(\s|:)", line)]
-    assert len(starts) == 1, f"expected exactly one `{name}` recipe, found {len(starts)}"
-    body = []
-    for line in lines[starts[0] + 1 :]:
-        if line.strip() and not line.startswith((" ", "\t")):
-            break
-        body.append(line.split("#", 1)[0])
-    return "\n".join(body).strip()
-
-
 def test_every_uv_run_in_the_justfile_is_locked() -> None:
     """#23's guard is per-invocation, which is fail-OPEN without this.
 
@@ -333,12 +309,17 @@ _EXEC_LITERALS = (
     "prusa-slicer",
     "com.prusa3d.PrusaSlicer",
     "PrusaSlicer.app",
+    "slic3r-console.exe",
+    "slic3r",
 )
 
-#: Strings in `slicer.py` that match `prusa|slicer` and are not engine names:
+#: Strings in the package that match the engine pattern and are not engine names:
 #: prose in messages, and resource paths inside an installation.
 _NOT_A_NAME = {
     ". Ensure PrusaSlicer is installed and added to PATH.",
+    # Python identifiers in `__init__.py`'s `__all__`, not engine names.
+    "PrusaSlicer",
+    "SliceResult",
     "Contents/Resources/PrusaSlicer/shapes",
     "PrusaSlicer exited ",
     "PrusaSlicer exited 0 but ",
@@ -373,6 +354,36 @@ def _tracked_python_files() -> list[str]:
     files = [line for line in out.stdout.splitlines() if line]
     assert files, "`git ls-files '*.py'` returned nothing; the scan would assert nothing"
     return files
+
+
+def _engine_ish_literals(source: str) -> set[str]:
+    """Non-docstring string literals that could be naming the engine.
+
+    `slic3r` is in the pattern because it is a real spelling: PrusaSlicer forked
+    from Slic3r and upstream still ships `slic3r-console.exe`, which contains
+    neither "prusa" nor "slicer". `bytes` literals are decoded rather than skipped
+    -- a `b"prusa-slicer"` is the same name.
+    """
+    tree = ast.parse(source)
+    docstrings = {
+        id(node.body[0].value)
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+        and isinstance(node.body[0].value.value, str)
+    }
+    found = set()
+    for node in ast.walk(tree):
+        if not isinstance(node, ast.Constant) or id(node) in docstrings:
+            continue
+        value = node.value
+        if isinstance(value, bytes):
+            value = value.decode("utf-8", "replace")
+        if isinstance(value, str) and re.search(r"prusa|slicer|slic3r", value, re.IGNORECASE):
+            found.add(value)
+    return found
 
 
 def test_only_the_driver_names_the_engine_executable() -> None:
@@ -421,32 +432,25 @@ def test_the_engine_name_gate_knows_every_spelling_slicer_py_uses() -> None:
     spelling per platform, so a gate calling it on Linux would stop catching the
     Windows name.
     """
-    source = (ROOT / _THE_DRIVER).read_text(encoding="utf-8")
-    tree = ast.parse(source)
+    candidates: set[str] = set()
+    scanned = [f for f in _tracked_python_files() if f.startswith("prusaslicer_py/")]
+    assert scanned, "no package files found to scan"
+    for rel in scanned:
+        candidates |= _engine_ish_literals((ROOT / rel).read_text(encoding="utf-8"))
 
-    docstrings = {
-        id(node.body[0].value)
-        for node in ast.walk(tree)
-        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
-        and node.body
-        and isinstance(node.body[0], ast.Expr)
-        and isinstance(node.body[0].value, ast.Constant)
-        and isinstance(node.body[0].value.value, str)
-    }
+    assert candidates, "no engine-ish literals found in the package; did it move?"
 
-    candidates = {
-        node.value
-        for node in ast.walk(tree)
-        if isinstance(node, ast.Constant)
-        and isinstance(node.value, str)
-        and id(node) not in docstrings
-        and re.search(r"prusa|slicer", node.value, re.IGNORECASE)
-    }
-    assert candidates, "no engine-ish literals found in slicer.py; did the file move?"
+    stale = sorted(_NOT_A_NAME - candidates)
+    assert not stale, (
+        "`_NOT_A_NAME` lists literals that are no longer in the package, so the list "
+        "has drifted from what it describes and would go on vouching for strings "
+        "nobody has looked at since:\n  " + "\n  ".join(repr(x) for x in stale)
+    )
 
     unclassified = sorted(candidates - _NOT_A_NAME - set(_EXEC_LITERALS))
     assert not unclassified, (
-        "`slicer.py` contains string literals the D1 gate has not been told about, so "
+        "`prusaslicer_py/` contains string literals the D1 gate has not been told "
+        "about, so "
         "the gate would miss them everywhere else in the repository:\n  "
         + "\n  ".join(repr(u) for u in unclassified)
         + "\nAdd each to `_EXEC_LITERALS` if it names the engine, or to `_NOT_A_NAME` "
@@ -529,3 +533,74 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
             f"`ci.yml` no longer runs `{recipe}`, so the gates in this file do not "
             "run on pull requests. Every other gate here assumes it does."
         )
+
+    # A step or job that is present but never runs satisfies the check above while
+    # running nothing. `if: false` on the `check` job was a fully green PR, because
+    # the `ok` job tested for 'failure' and a skipped job reports 'skipped'.
+    for job in ("check", "test"):
+        block = re.search(rf"^  {job}:\n(?:(?:    .*)?\n)*", text, re.M)
+        assert block, f"no `{job}` job in ci.yml"
+        assert not re.search(r"^\s*if:", block.group(), re.M), (
+            f"the `{job}` job (or a step in it) carries an `if:`, so it can be made "
+            "not to run while this file's gates stay green. The `ok` job now requires "
+            "success rather than absence-of-failure, but a conditional here still "
+            "makes the result depend on something no gate reads."
+        )
+
+    assert "needs.check.result != 'success'" in text, (
+        "the `ok` job must require upstream success; testing only for 'failure' "
+        "passes a job that was skipped"
+    )
+
+
+@pytest.mark.skipif(shutil.which("just") is None, reason="needs the just binary")
+def test_the_typechecker_actually_covered_every_tracked_file() -> None:
+    """Gate what mypy COVERED, not how it was invoked. This is the one that holds.
+
+    Every earlier version of this gate read an instruction and asked whether it
+    looked right: the recipe's text, then the recipe's text after `just`
+    interpolation. Both were defeated one layer further down, because `just` hands
+    the line to a shell and everything the shell does is invisible to `--dry-run`::
+
+        uv run --locked mypy . $(cat .mypyargs 2>/dev/null)   # 11 files, gate green
+        uv run --locked mypy . $MYPY_EXTRA                    # 9 files, gate green
+        uv run --locked mypy . "$@"                           # 11 files, gate green
+
+    There is always another layer of instruction to spoof. There is no other
+    outcome: mypy names its own scope in both the passing and the failing case, and
+    that number cannot be argued with.
+
+    So this runs the real recipe and reads the count back. A narrowing anywhere --
+    command substitution, a dotenv variable, positional arguments, a
+    `[tool.mypy] exclude` entry, a hand-edited recipe -- lowers it, and the gate
+    goes red without needing to know which trick was used.
+
+    The comparison is against every *tracked* `.py`, deliberately not against
+    tracked-minus-excluded: subtracting the declared excludes would let the
+    exclusion list grow while the gate stayed green, which is the omit-by-default
+    shape D10 exists to argue against. `>=` rather than `==` because an untracked
+    scratch file legitimately raises mypy's count and is nobody's defect.
+    """
+    expected = len(_tracked_python_files())
+    # `check`, not `typecheck`: with `set positional-arguments` and a `*args`
+    # recipe, asking `typecheck` on its own resolves to the full scope while the
+    # narrowing rides in on `check`'s invocation of it. Run what CI runs.
+    out = subprocess.run(["just", "check"], cwd=ROOT, capture_output=True, text=True, check=False)
+    report = out.stdout + out.stderr
+    match = re.search(r"(?:in|checked)\s+(\d+)\s+source files?", report)
+    if not match:
+        # `check` runs fmt-check and lint first, so either of those failing means
+        # mypy never spoke. Skipping is not fail-open here: `just check` has already
+        # exited non-zero, so CI is red either way and nothing is being hidden.
+        assert out.returncode != 0, (
+            f"`just check` succeeded without mypy reporting a file count:\n{report}"
+        )
+        pytest.skip("`just check` failed before mypy ran; fix that first")
+
+    checked = int(match.group(1))
+    assert checked >= expected, (
+        f"mypy checked {checked} files but git tracks {expected} `.py` files, so "
+        "something narrowed its scope. That may be the recipe, a shell expansion "
+        "inside it, or an `exclude` entry in `pyproject.toml` -- this gate reads the "
+        f"outcome rather than the instruction, so it does not say which.\n{report}"
+    )
