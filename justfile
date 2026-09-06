@@ -89,4 +89,4 @@ clean:
 # Remove build and cache artifacts
 [windows]
 clean:
-    powershell -NoLogo -Command "'.venv','dist','.pytest_cache','.ruff_cache','.mypy_cache' | ForEach-Object { if (Test-Path $_) { Remove-Item -Recurse -Force $_ } }; Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force"
+    powershell -NoLogo -Command "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue .venv, dist, .pytest_cache, .ruff_cache, .mypy_cache; Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"

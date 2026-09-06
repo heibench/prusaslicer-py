@@ -976,3 +976,20 @@ gate requires it to.
 
 The POSIX half needs no such job: every other CI leg has a working tree and would
 break loudly.
+
+**It caught the first version on its first run**, which is the argument for it.
+`just` executes a recipe body through `sh` on Windows too, not through the
+platform shell -- so a body written as
+
+```
+powershell -NoLogo -Command "... | ForEach-Object { if (Test-Path $_) { ... } }"
+```
+
+had its `$_` expanded by `sh` before PowerShell ever saw it. The recipe ran, exited
+`0`, and deleted nothing; the assertion is what turned that into
+`just clean left: .venv` rather than a green run. A `clean` that silently cleans
+nothing is the failure this repository is named around, and reading the recipe
+would not have found it -- the `$_` is correct PowerShell and correct `just`, and
+wrong only in the seam between them.
+
+The body avoids `$_` entirely now, so there is nothing for `sh` to substitute.
