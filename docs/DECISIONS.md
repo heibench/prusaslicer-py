@@ -532,6 +532,52 @@ opens by arguing against -- and it was the last unguarded one.
 `test_the_check_recipe_actually_runs_the_typechecker` reads the dependency list
 out of `just --dump` and asserts `typecheck` is in it.
 
+### D6's schema is now a type, not a comment
+
+The records the extraction emits were `dict[str, object]`. `object` accepts
+anything, so the schema D6 explicitly froze -- and told consumers to rely on --
+was the one part of the pipeline the typechecker could not check. It is now a
+`TypedDict`, and a renamed key, a wrong field type, or an `option` that could be
+`None` are errors.
+
+The flag pairs feeding it are `tuple[str, str | None]`. They were
+`list[list[str | None]]`, which was wrong twice over: the shape is a pair rather
+than a variable-length list, and it declared the spelling nullable when only the
+value ever is. That second error contradicted D6 in writing -- D6 says
+`option: str` -- and it was the annotation itself that carried the contradiction,
+which is why restating a frozen schema loosely is worse than not restating it.
+`scripts/03_restructure_cli.py` therefore keeps its element type opaque
+(`dict[str, list[object]]`): it never looks inside a record, so it has no reason
+to repeat those four fields where they could drift from the parser that writes
+them.
+
+### What was considered and not done
+
+A `NewType` for the flag spelling would catch `flags[-1] = (value, spelling)` --
+a swap between two `str`s that types clean. It is not taken.
+`OptionRecord.option` must stay `str` because D6 froze it, so a `Spelling` alias
+would put a second vocabulary in front of a frozen schema, which is the failure
+this entry argues against above. Against that: two construction sites and one
+swap shape, in a generator pinned by nine parametrised `split_option_line` cases.
+A test is the right instrument for a same-type swap, and it already exists.
+
+Note which test does the work.
+`test_committed_data_matches_the_committed_parser` is gated on a captured corpus
+and so skips on every pull request, running only in `engine.yml`. The instrument
+that actually catches a swapped pair is those nine parametrised cases, which are
+always on -- verified by swapping the pair and watching six of them fail.
+Recorded so the next reviewer does not re-raise it, and so the citation does not
+rest on a test that is usually skipped.
+
+### What this actually found on the way in
+
+Three `var-annotated` errors on empty literals in `scripts/`, where mypy could not
+infer an element type, and six in `tests/` from calling `module_from_spec` on a
+possibly-`None` spec. Nothing had behaved wrongly. Recorded plainly because
+section 7's rule cuts both ways: a change is not more valuable for being described
+as a defect fix, and the value here is the checking that now exists rather than
+the errors it cleared.
+
 ### Gate the outcome, not the instruction
 
 Each version of this gate read an *instruction* and asked whether it looked right,

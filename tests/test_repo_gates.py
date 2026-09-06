@@ -12,6 +12,7 @@ import json
 import re
 import shutil
 import subprocess
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -300,6 +301,19 @@ def test_the_typecheck_recipe_checks_the_whole_repository() -> None:
 #: not appear in `slicer.py` itself, which is fine -- the meta-gate requires
 #: slicer.py's names to be covered, not the reverse.
 #:
+#: The longer spellings look redundant beside the shorter ones -- "prusa-slicer"
+#: already matches "prusa-slicer-console.exe" as a substring -- and they are not.
+#: This tuple has two consumers with different needs: the D1 scan matches
+#: substrings, where the shorter entry does subsume the longer; the meta-gate below
+#: compares *exact* literals against what the package contains, where it does not.
+#: Removing the longer entries made the meta-gate report slicer.py's own name as
+#: unclassified.
+#:
+#: Note the asymmetry with `_NOT_A_NAME`, which is deliberate rather than an
+#: oversight: a stale entry here can only over-refuse a string, which is
+#: fail-closed, while a stale entry in `_NOT_A_NAME` would go on vouching for a
+#: literal nobody has rechecked -- so only that list is gated for staleness.
+#:
 #: The bare capitalised binary `PrusaSlicer` is deliberately NOT here. It is a
 #: real spelling -- `engine.yml` symlinks it -- but as a substring it matches
 #: every sentence of prose that mentions the product, which would make the gate
@@ -540,16 +554,94 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     for job in ("check", "test"):
         block = re.search(rf"^  {job}:\n(?:(?:    .*)?\n)*", text, re.M)
         assert block, f"no `{job}` job in ci.yml"
-        assert not re.search(r"^\s*if:", block.group(), re.M), (
-            f"the `{job}` job (or a step in it) carries an `if:`, so it can be made "
-            "not to run while this file's gates stay green. The `ok` job now requires "
-            "success rather than absence-of-failure, but a conditional here still "
-            "makes the result depend on something no gate reads."
+        body = block.group()
+        # Banning `if:` alone was enumerating one bad state out of several.
+        # `continue-on-error: true` on the job or the step makes it report success
+        # when `just check` fails, so `needs.check.result == 'success'` holds and the
+        # `ok` job passes -- a green pull request over a red gate, with no `if:`
+        # anywhere. State the positive property instead: these two jobs run
+        # unconditionally and their result is the truth.
+        for forbidden in ("if:", "continue-on-error:"):
+            assert not re.search(rf"^\s*{re.escape(forbidden)}", body, re.M), (
+                f"the `{job}` job (or a step in it) carries `{forbidden}`, so it can "
+                "be made not to run, or to report success when it failed, while every "
+                "gate in this file stays green."
+            )
+
+    # A trigger that never fires is the same defect one level out: the workflow is
+    # present, correct, and never runs on the pull request it is supposed to gate.
+    trigger = re.search(r"^on:\n(?:(?:  .*)?\n)*", text, re.M)
+    assert trigger, "no `on:` block in ci.yml"
+    assert "pull_request" in trigger.group(), "ci.yml no longer triggers on pull_request"
+    for narrowing in ("paths:", "paths-ignore:", "types:"):
+        assert narrowing not in trigger.group(), (
+            f"the `on:` block carries `{narrowing}`, which can stop this workflow "
+            "running on a pull request entirely. Nothing else here would notice."
         )
 
     assert "needs.check.result != 'success'" in text, (
         "the `ok` job must require upstream success; testing only for 'failure' "
         "passes a job that was skipped"
+    )
+
+
+@pytest.mark.skipif(shutil.which("just") is None, reason="needs the just binary")
+def test_the_typechecker_still_objects_to_a_defect_planted_in_scripts() -> None:
+    """Ask mypy to prove it is still checking, rather than asking how it was called.
+
+    Counting files was the previous version of this and it was not enough. A count
+    says how many files were *counted*, not which ones, nor whether anything was
+    examined in them. Three configurations keep the number at 14 and remove the
+    checking:
+
+    * ``ignore_errors = true`` for the script modules -- 14 files, defect missed;
+    * ``disable_error_code = ["arg-type", ...]`` -- 14 files, defect missed;
+    * ``exclude`` the three scripts and drop three untracked ``.py`` elsewhere --
+      14 files again, and `scripts/` is the whole reason this issue exists.
+
+    That last one works precisely because the comparison was ``>=`` on cardinality.
+    Cardinality can be padded; a defect cannot. So this plants a real defect in the
+    directory #24 is about -- a call with its arguments reversed, the exact shape
+    D10 is written around -- and requires `just check` to reject it.
+
+    One probe, and it does not need to know which trick was used: under all three
+    configurations above the canary passes and this gate goes red. It is also the
+    only version of this that cannot be satisfied by a count, because it reads
+    whether mypy *objected*, and no arrangement of files produces an objection to
+    a defect that was not examined.
+    """
+    canary = ROOT / "scripts" / "zz_typecheck_canary.py"
+    assert not canary.exists(), f"{canary} already exists; refusing to overwrite it"
+    # Deliberately ruff-clean: formatted as ruff formats, and lint-clean. An earlier
+    # version used single quotes, so `fmt-check` rejected it before mypy ran and the
+    # gate passed on ruff's output with the typechecker never consulted -- the gate
+    # passing for the wrong reason, which is the thing it exists to catch.
+    canary.write_text(
+        "from pathlib import Path\n\n\n"
+        "def _writes(data: dict[str, int], path: Path) -> None:\n"
+        '    path.write_text(str(data), encoding="utf-8")\n\n\n'
+        '_writes(Path("x"), {"a": 1})\n',
+        encoding="utf-8",
+    )
+    try:
+        out = subprocess.run(
+            ["just", "check"], cwd=ROOT, capture_output=True, text=True, check=False
+        )
+        report = out.stdout + out.stderr
+    finally:
+        canary.unlink()
+
+    # `[arg-type]` is mypy's code, so this cannot be satisfied by ruff objecting to
+    # the file for its own reasons -- which is how the first version of this passed.
+    assert "[arg-type]" in report and "zz_typecheck_canary" in report, (
+        "`just check` did not object to a reversed-argument call planted in "
+        "`scripts/`, so whatever it is doing, it is not typechecking that directory. "
+        "An `exclude` entry, `ignore_errors`, or `disable_error_code` will each do "
+        f"this while leaving the file count untouched.\n{report}"
+    )
+    assert out.returncode != 0, (
+        "`just check` reported the planted defect and still exited 0, so its exit "
+        f"code does not depend on what mypy found.\n{report}"
     )
 
 
@@ -595,7 +687,13 @@ def test_the_typechecker_actually_covered_every_tracked_file() -> None:
         assert out.returncode != 0, (
             f"`just check` succeeded without mypy reporting a file count:\n{report}"
         )
-        pytest.skip("`just check` failed before mypy ran; fix that first")
+        pytest.skip(
+            "`just check` failed before mypy ran, so there is no count to read. "
+            "If this is a lint or format failure, `just check` is red in CI too and "
+            "nothing is hidden. If it is not -- this runs `just check` nested inside "
+            "`uv run pytest`, while CI runs it directly -- then the two disagree and "
+            f"that is worth knowing:\n{report}"
+        )
 
     checked = int(match.group(1))
     assert checked >= expected, (
@@ -604,3 +702,64 @@ def test_the_typechecker_actually_covered_every_tracked_file() -> None:
         "inside it, or an `exclude` entry in `pyproject.toml` -- this gate reads the "
         f"outcome rather than the instruction, so it does not say which.\n{report}"
     )
+
+
+@pytest.mark.skipif(shutil.which("just") is None, reason="needs the just binary")
+def test_mypy_actually_examined_every_tracked_module() -> None:
+    """A planted defect proves its own file, not the files beside it.
+
+    `ignore_errors = true` scoped to the script modules leaves the canary in the
+    same directory checked, so the canary gate passes while the three files #24 is
+    about are examined for nothing. The count gate passes too -- mypy still reports
+    them as source files. Both are satisfied, and nothing is being checked.
+
+    mypy will say so if asked directly. `--linecount-report` prints, per module, the
+    lines it *analysed* against the lines the module *has*, and under `ignore_errors`
+    the first column collapses while the second does not::
+
+        baseline        197 197  5  5   02_json_cli
+        ignore_errors     0 197  0  5   02_json_cli
+
+    So this asserts every tracked module appears with a non-zero analysed count. It
+    is the same "read the outcome" move as the other two gates, aimed at the one
+    property neither of them can see: not how mypy was invoked, not how many files
+    it counted, but whether it looked inside them.
+    """
+    # Only the modules `disallow_untyped_defs` covers. The first column counts lines
+    # of *typed* code, so `tests/` legitimately reads zero -- it is exempt from
+    # annotation by design, and flagging it would be reading the exemption as a
+    # defect. Everywhere else, zero typed lines in a file that is fully annotated
+    # means mypy stopped looking.
+    tracked = {
+        Path(f).stem
+        for f in _tracked_python_files()
+        if Path(f).name != "__init__.py" and not f.startswith("tests/")
+    }
+    with tempfile.TemporaryDirectory() as tmp:
+        out = subprocess.run(
+            ["uv", "run", "--locked", "mypy", ".", "--linecount-report", tmp],
+            cwd=ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        report_file = Path(tmp) / "linecount.txt"
+        assert report_file.exists(), (
+            f"mypy produced no linecount report:\n{out.stdout}\n{out.stderr}"
+        )
+        rows = report_file.read_text(encoding="utf-8").splitlines()
+
+    analysed: dict[str, int] = {}
+    for row in rows:
+        parts = row.split()
+        if len(parts) == 5 and parts[4] != "total":
+            analysed[parts[4].rsplit(".", 1)[-1]] = int(parts[0])
+
+    unexamined = sorted(name for name in tracked if analysed.get(name, 0) == 0 and name in analysed)
+    missing = sorted(name for name in tracked if name not in analysed)
+    assert not unexamined, (
+        "mypy counted these modules as source files but analysed zero lines in them, "
+        "which is what `ignore_errors` does -- they are checked for nothing while "
+        f"every count-based gate stays green: {unexamined}"
+    )
+    assert not missing, f"mypy never saw these tracked modules at all: {missing}"
