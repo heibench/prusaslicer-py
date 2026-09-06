@@ -993,6 +993,37 @@ The comments in `engine.yml` are corrected to say so.
 
 That is a claim the repository can now break, rather than one it can only read.
 
+### What the `[windows]` body is actually for
+
+Not "makes it work where there is no POSIX layer". `just` launches
+`powershell -NoLogo -Command "..."` *through* `sh` -- which is how `sh` came to eat
+a `$_` -- so on a Windows box with no POSIX layer `just` runs nothing at all,
+`[windows]` body included. Neither body delivers that, and this entry should not
+imply otherwise.
+
+The benefit is narrower and real: independence from `rm` and `find` as external
+programs. That is also why reverting `test-engine` and keeping this is coherent
+rather than arbitrary -- `VAR=1 cmd` is `sh` syntax, while `rm` and `find` are
+separate executables that have to be found. Windows ships
+`C:\Windows\System32\find.exe`, a completely different program, so which one a
+recipe gets is PATH-order dependent -- and the POSIX body would swallow the
+failure, since its `find` line ends `2>/dev/null || true`. A `clean` that exits `0`
+having removed no `__pycache__` on some machines and not others.
+
+**Measured, and the measurement cuts both ways.** The `recipes` job prints what
+`sh` actually resolves on `windows-latest`:
+
+```
+/usr/bin/rm
+/usr/bin/find
+find (GNU findutils) 4.11.0
+```
+
+So on GitHub's runner the POSIX body would have worked, and this job cannot
+demonstrate the failure it is guarding against. The `[windows]` body is kept for
+machines where PATH order differs, which is a class the runner cannot speak to --
+stated plainly rather than claimed as verified.
+
 ### `clean` dispatches per OS, and `[unix]`/`[windows]` are safe where `[doc]` was not
 
 D2.1 bans `[doc]` because an unknown attribute is a *parse* error, so one of them
