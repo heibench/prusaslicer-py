@@ -13,23 +13,25 @@
 
 Pre-1.0. The API may change; what it establishes will not be overstated.
 
-- **Linux / Flatpak (Flathub)** -- the full path is exercised, including a real
-  end-to-end slice: `slice_model` produced 133 KB of G-code from PrusaSlicer's
-  own 3DBenchy against PrusaSlicer 2.9.6.
-- **Windows** -- `generate_help` and `get_example_shapes` have been used
-  against a real `prusa-slicer-console.exe`, though not since the rewrite.
-  `check_version` cannot have been: it called `--version`, which PrusaSlicer
-  does not support on any platform (it answers `Unknown option` and exits 1),
-  so the previous claim that it was in regular use was false and is withdrawn.
-- **Linux on PATH, macOS** -- covered by the mocked suite and by stub engines;
-  not yet run against a real install. The `Engine` workflow installs PrusaSlicer
-  four different ways and runs the real tests on each; reports from real
-  machines are still welcome.
-- **CI** -- `CI` runs the gate on Linux (3.11/3.12/3.13) and Windows with no
-  engine present, so the engine tests skip and the log says how many were
-  withheld. `Engine` installs the real thing and runs them, with a missing
-  engine as a hard failure rather than a skip. See
-  [`docs/DECISIONS.md`](./docs/DECISIONS.md) D3.
+The full path -- discovery, `check_version`, `generate_help`,
+`get_example_shapes`, and a real end-to-end `slice_model` -- is exercised
+against a real PrusaSlicer on every supported install mode, in CI:
+
+| platform | install mode | engine |
+| --- | --- | --- |
+| Linux | Flathub Flatpak | 2.9.6 |
+| Linux | distro package on `PATH` | packaged build |
+| macOS | Homebrew cask (`.app` bundle) | latest cask |
+| Windows | official portable `.zip` on `PATH` | 2.9.6 |
+
+Those jobs set `PRUSASLICER_PY_REQUIRE_ENGINE=1`, so a runner that fails to
+install the engine fails the job rather than quietly skipping. The `CI`
+workflow separately runs the mocked suite on Linux 3.11/3.12/3.13 and Windows
+with no engine present, where the engine tests skip and the log says how many
+were withheld (`docs/DECISIONS.md` D3).
+
+Not covered: SLA workflows beyond `--help-sla` parsing, and any printer profile
+handling beyond passing arguments through.
 
 ## Finding the engine
 

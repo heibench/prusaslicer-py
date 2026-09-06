@@ -6,7 +6,11 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ## [Unreleased]
 
+## [0.1.0] — 2026-09-06
+
 ### Added
+
+First release. Notable, given this began as a thin `subprocess` wrapper:
 
 - Flatpak discovery. `shutil.which` cannot see a Flatpak — the app is not on
   PATH and there is no binary to find — so a Flathub install, which is how
@@ -56,4 +60,5 @@ All notable changes to prusaslicer-py are documented here. Follows
 - PrusaSlicer's captured `--help` output is no longer committed; regenerate it
   with `just capture-cli` (D8).
 
-[Unreleased]: https://github.com/heibench/prusaslicer-py/commits/main
+[Unreleased]: https://github.com/heibench/prusaslicer-py/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/heibench/prusaslicer-py/releases/tag/v0.1.0

@@ -92,22 +92,16 @@ call that did not do the thing must not return as though it did:
 Treat these lines as code: if a change makes one false, the change is not
 finished.
 
-- **Linux / Flatpak**: the full path is exercised against PrusaSlicer 2.9.6,
-  including a real end-to-end `slice_model` (D9).
-- **Windows**: `generate_help` and `get_example_shapes` have been used against
-  a real `prusa-slicer-console.exe`, not since the rewrite. `check_version`
-  cannot have been -- it called `--version`, which PrusaSlicer supports on no
-  platform. The earlier claim was false; treat Status lines as code.
-- **`slice_model` has been run against a real PrusaSlicer** (2.9.6, Flathub
-  Flatpak, Linux): 133 KB of G-code from the bundled 3DBenchy, artifact
-  verified. Not yet on Windows or macOS with a real engine.
-- **Linux**: the mocked suite passes and the engine fixture has been exercised
-  against a stub, but no part of the driver has been run against a real
-  PrusaSlicer install on Linux.
-- **macOS**: untested.
-- **CI**: runs `just check` and `just test` on Linux (3.11/3.12/3.13) and
-  Windows (3.11). No runner has PrusaSlicer installed, so the engine tests skip
-  there and the end-to-end path is **not** covered by CI.
+- **The end-to-end path runs against a real engine on four install modes**,
+  in the `Engine` workflow: Flathub Flatpak, a Linux distro package on PATH,
+  a macOS Homebrew cask `.app` bundle, and the official Windows portable zip.
+  Each runs the whole suite with `PRUSASLICER_PY_REQUIRE_ENGINE=1`, including
+  `test_slice_produces_gcode_with_the_real_engine`.
+- **`CI` runs the mocked suite** on Linux (3.11/3.12/3.13) and Windows with no
+  engine, so the engine tests skip and the count says how many were withheld.
+- Earlier revisions of this file claimed `check_version` was in regular use on
+  Windows. That was false -- it called `--version`, which PrusaSlicer supports
+  on no platform. Kept here as a reminder that a Status line is a claim.
 
 ## Constraints
 
