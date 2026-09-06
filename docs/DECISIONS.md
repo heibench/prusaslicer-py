@@ -247,11 +247,17 @@ regenerating, both go red.
 
 The copyright holder made the call D4 asked for: **Apache-2.0**.
 
-It aligns with `partspec`, `netspec` and `gerberdiff`, and with the org rule
-that Apache-2.0 is the default wherever the binding leaves the choice free.
-`orlab` is GPL-2.0 only because OpenRocket compels it through an in-process
-JPype binding; nothing compels anything here, because the engine is reached
+It aligns with `partspec`, `netspec` and `gerberdiff`. **Not with an org-wide
+default, because there is not one** -- `.github/AGENTS.md` 9 says so in as many
+words, having removed a draft that claimed Apache-2.0 across the org and was
+already false when it said it. What 9 actually says is narrower and is what
+applies here: pick Apache-2.0 *where the binding leaves the choice open*, take
+what the engine compels where it does not, and record which case you are in.
+
+This is the first case. Nothing compels anything, because the engine is reached
 through `subprocess` (D1) and a process boundary does not propagate a licence.
+`orlab` is the second: OpenRocket is reached in-process through JPype, so
+GPL-2.0 follows and no preference of ours enters into it.
 
 Apache-2.0 over MIT for the express patent grant, which matters more for a
 driver that will be embedded in other people's build pipelines than the extra
