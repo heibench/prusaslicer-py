@@ -92,12 +92,25 @@ none. So the convention is **exactly one comment line directly above each recipe
 rationale above a blank line**, gated by
 `tests/test_repo_gates.py::test_every_recipe_has_exactly_one_doc_comment_line`.
 
-The gate reads `just --dump --dump-format json` for the authoritative recipe list
-rather than parsing the file itself. The first version did parse it, and skipped
-any line with an `=` before the colon -- which silently excluded every recipe with
-a defaulted parameter, so #27 could be reintroduced verbatim on one and the test
-stayed green. Found in review. Where the tool will answer a question about itself,
-ask it.
+Two gates, and the second is the one that asserts the property:
+`test_every_listed_recipe_has_a_description` reads `doc` straight off `just`'s own
+output, so nothing a reader sees in `just --list` can be blank. The comment count is
+a proxy for how that happens; the doc check is the thing itself, and it caught a hole
+the proxy missed during review.
+
+Both read `just --dump --dump-format json` for the authoritative recipe list rather
+than parsing the file. The first version did parse it and skipped any line with an
+`=` before the colon -- silently excluding every recipe with a **defaulted
+parameter**, so #27 could be reintroduced verbatim on one and the test stayed green.
+A second round found the same shape again: a `lint := "ruff"` assignment sharing a
+recipe's name matched before the recipe did. Both found in review, both fail-open on
+the defect being gated. Where the tool will answer a question about itself, ask it.
+
+**This does not undercut the `[doc]` ban.** `--dump-format json` has shipped since
+just **0.10.4** (2021-11-21); `[doc]` only since **1.27.0** (2024-05-25). Ubuntu
+24.04 LTS's 1.21.0 has the first and not the second, so the contributor that ban
+protects can still run these gates. If some `just` ever cannot, the gate says which
+tool failed and prints its stderr rather than raising a bare `CalledProcessError`.
 
 ---
 

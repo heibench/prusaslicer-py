@@ -70,7 +70,20 @@ def _just_recipes() -> dict[str, dict]:
         cwd=ROOT,
         capture_output=True,
         text=True,
-        check=True,
+        check=False,
+    )
+    # Not `check=True`: it raises a CalledProcessError whose text names the command and
+    # the exit status and drops the stderr this call just captured -- so an unparseable
+    # justfile surfaced as a traceback instead of `just`'s own "Mismatched closing
+    # delimiter" line, twice, once per gate.
+    #
+    # `--dump-format json` has shipped since just 0.10.4 (2021-11-21), which is far
+    # older than the 1.27.0 that D2.1 refuses to depend on for `[doc]`, so this gate
+    # does not undercut that stance -- Ubuntu 24.04 LTS's 1.21.0 has this and not that.
+    # If some `just` ever lacks it, the assertion below says which tool failed and why.
+    assert out.returncode == 0, (
+        f"`just --dump --dump-format json` failed ({out.returncode}); this gate reads "
+        f"the recipe list from it:\n{out.stderr.strip()}"
     )
     return json.loads(out.stdout)["recipes"]
 
@@ -84,6 +97,13 @@ def _comment_block_above(name: str, lines: list[str]) -> list[str] | None:
     """
     for i, line in enumerate(lines):
         if not re.match(rf"^{re.escape(name)}(\s|:)", line):
+            continue
+        if re.match(rf"^{re.escape(name)}\s*:=", line):
+            # `just` allows a variable and a recipe to share a name, and `lint := "ruff"`
+            # matches the pattern above because of the space before `:=`. Matching the
+            # assignment instead of the recipe counted the wrong comment block and let
+            # #27 through with every gate green -- the `unlocatable` net does not fire,
+            # because something WAS found.
             continue
         block: list[str] = []
         j = i - 1
@@ -166,3 +186,26 @@ def test_no_doc_attribute_is_used() -> None:
         if re.match(r"\[\s*doc\s*[(\]]", line.lstrip())
     ]
     assert not offenders, f"[doc(...)] on line(s) {offenders}; see D2.1"
+
+
+def test_the_doc_gate_is_not_fooled_by_an_assignment_sharing_a_recipe_name(tmp_path) -> None:
+    """The F9 false pass, pinned. `just` allows `lint := "ruff"` beside a `lint:` recipe,
+    and the assignment matches a naive name-anchored search first -- so the gate counted
+    the assignment's comment block, found one line, and passed while #27 was live and
+    published. The `unlocatable` net does not catch it either: something WAS found.
+    """
+    lines = [
+        "# the linter this project uses",
+        'lint := "ruff"',
+        "",
+        "# Run the linter over the whole tree",
+        "# Ruff is pinned in pyproject -- see D2.",
+        "lint:",
+        "    echo hi",
+    ]
+    block = _comment_block_above("lint", lines)
+    assert block is not None, "the recipe must be found, not the assignment"
+    assert len(block) == 2, (
+        f"expected the RECIPE's two-line block, got {block!r} -- if this is one line the "
+        "helper matched the assignment and the gate has gone fail-open again"
+    )
