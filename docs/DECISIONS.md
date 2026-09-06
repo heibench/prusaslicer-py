@@ -831,9 +831,26 @@ ok: failure
 that a hyphenated job id dereferences as expected. The branch was deleted; the run
 id is the record.
 
-One thing that stays unmeasured and is labelled as such in the gate itself:
+One thing stays unmeasured and is labelled as such in the gate itself:
 `continue-on-error` and `paths-ignore` are rejected on GitHub's documented
-behaviour, not on a run anyone has watched.
+behaviour, not on a run anyone has watched. That is deliberate, and the reason is
+the general rule this entry was actually teaching.
+
+**The distinction that matters is not measured versus inferred. It is which way
+the inference fails if it is wrong.** Every inference that cost something here
+failed *open* -- it made a control weaker than the record claimed. "gitleaks scans
+history" meant it scanned zero bytes; "a substring guards `fetch-depth`" meant a
+shallow clone passed. Those two bans fail *closed*: rejecting `continue-on-error:`
+or `paths-ignore:` can only refuse a configuration, never accept one. If the
+documented behaviour is wrong, the whole consequence is that somebody writing a
+legitimate `paths-ignore:` gets a red test with an explanation and loses five
+minutes. It cannot produce a green pull request over a red gate.
+
+So the rule is not "measure everything", which would be unaffordable and would
+dilute the ones that matter. It is: **an unmeasured claim that can only tighten a
+gate is a different risk class from one that can loosen it, and only the second
+kind earns a probe.** F1 was expensive precisely because it was the second kind,
+written as though it were the first.
 
 ### The recurring failure here is a line-oriented pattern over YAML
 
@@ -859,7 +876,9 @@ not -- the rewrite changed how revs are collected and left the `== [running]`
 comparison alone, so two identical revs still failed, with a message reading "pins
 ['0.16.6', '0.16.6'] but installs 0.16.6". That claim was written from reading the
 new code rather than from watching the old complaint go green, which is the exact
-habit this whole entry is about. It is a set comparison now, verified both ways. `pyyaml` would close the class outright and
+habit this whole entry is about. It is a set comparison now, verified both ways.
+
+`pyyaml` would close the class outright and
 is deliberately not added: it would be a dependency to read four lines, and the
 line-wise reads are a dozen. That is a size judgement, not a claim that a regex is
 adequate for YAML.
