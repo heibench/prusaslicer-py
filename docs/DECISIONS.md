@@ -661,6 +661,46 @@ about it, and both are the same mistake in different clothes:
   package's public entry point checked for nothing, invisible to all four. The
   filename is now mapped to its package instead of dropped.
 
+### Accepted, and why
+
+Three gaps are known, measured, and deliberately left. Recorded because the
+difference between *measured and accepted* and *never noticed* is the whole point
+of writing any of this down, and without a line here they read as the latter.
+
+* **`warn_unused_configs`, `warn_redundant_casts` and `warn_unused_ignores` are
+  ungated.** None carries a claim this entry rests on, so switching one off is a
+  loss of hygiene rather than a directory going unchecked. Gating them would mean
+  asserting the contents of `[tool.mypy]`, which is the config-allowlist shape this
+  entry rejects everywhere else.
+* **An in-band `# mypy: ignore-errors` silences a file, and passes.** Measured.
+  Not closed, because it is visible in the diff of the very file it silences, and
+  closing it would mean rejecting a legitimate escape hatch. `warn_unused_ignores`
+  already catches a stale one.
+* **`set shell := ["true", "-c"]` makes `just` run nothing**, as described under
+  *Where it actually stops*. Listed here too so the three sit together.
+
+### Is this too much machinery?
+
+`tests/test_repo_gates.py` is larger than the `scripts/` it protects, and
+`just test` spawns three extra typechecks. That ratio is worth naming rather than
+discovering later.
+
+It is not disproportionate, and the reason is not that typechecking is
+high-stakes. It is that this repository's own standard was violated five
+consecutive times while being fixed, each violation reproducing the previous one
+exactly one level up, and **not one of them required an adversary** -- every
+attack that worked was an ordinary refactor. That is evidence the failure mode is
+live here rather than theoretical.
+
+The durable asset is the sentence, not the gates: *an instruction gate always has
+a next layer, and an outcome gate does not.* The gates are its local application.
+
+**A falsifiable test for when this has outrun the risk:** if a review of this kind
+comes back clean on its first attempt, the machinery is doing more work than the
+risk warrants and something should go. Five rounds and roughly thirty attacks
+found a live hole every round -- including two in the gates themselves, and one
+in the reviewer's own harness, which had disabled the thing it was measuring.
+
 ### Where it actually stops
 
 Not at the recipe, and not at `set shell := ["true", "-c"]` -- an earlier draft of

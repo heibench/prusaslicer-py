@@ -759,6 +759,13 @@ def test_mypy_actually_examined_every_tracked_module() -> None:
     property neither of them can see: not how mypy was invoked, not how many files
     it counted, but whether it looked inside them.
 
+    Read what the signal is, and is not: "mypy analysed zero lines of *typed* code
+    in this module", not "this module was skipped". The two coincide for a file that
+    should be fully annotated, which is why the scope is the modules
+    `disallow_untyped_defs` covers. It also means an `ignore_errors` override on a
+    module with nothing typed in it stays invisible -- and inert, since there is
+    nothing there for it to suppress. The gate fires the moment there is.
+
     Deliberately NOT routed through `just check`. Adding `--linecount-report` to the
     recipe would make every developer's `just check` write a test-only artifact, to
     answer a question the recipe does not ask. This gate's only claim is "did mypy
