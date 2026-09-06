@@ -512,6 +512,24 @@ The exemption is the part someone has to write down, which is the whole point:
 adding a directory to this repository now inherits the check instead of escaping
 it.
 
+### And something has to call it
+
+Gating a recipe's body says nothing about whether anything runs it. Every gate
+above verifies what `typecheck` contains; none verified that `check` still
+depends on it, so `check: fmt-check lint` passed all of them while
+`.github/workflows/ci.yml` ran `just check` and typechecked nothing. The sharper
+form keeps every gate green and reintroduces this issue verbatim:
+
+```
+check: fmt-check lint
+    uv run --locked mypy prusaslicer_py/ tests/
+```
+
+`check: fmt-check lint typecheck` is a hand-written list -- the shape this entry
+opens by arguing against -- and it was the last unguarded one.
+`test_the_check_recipe_actually_runs_the_typechecker` reads the dependency list
+out of `just --dump` and asserts `typecheck` is in it.
+
 ### What was considered and not done
 
 A `NewType` for the flag spelling would catch `flags[-1] = (value, spelling)` --

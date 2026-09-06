@@ -7,6 +7,7 @@ this repo makes about itself.
 
 from __future__ import annotations
 
+import ast
 import json
 import re
 import shutil
@@ -282,14 +283,45 @@ def test_the_typecheck_recipe_checks_the_whole_repository() -> None:
     )
 
 
-#: The engine's executable, as each platform spells it. `slicer.py` builds these
-#: from `_exec_name()`; anywhere else they are a literal someone typed.
-_EXEC_LITERALS = ("prusa-slicer-console.exe", "prusa-slicer")
+#: Every way this repository spells "the engine". Three, not two: `_exec_name()`
+#: gives the PATH binary per platform, `FLATPAK_APP_ID` names the Flathub app, and
+#: macOS installs it as a `.app` bundle whose binary is capitalised.
+_EXEC_LITERALS = (
+    "prusa-slicer-console.exe",
+    "prusa-slicer",
+    "com.prusa3d.PrusaSlicer",
+    "PrusaSlicer.app",
+)
 
-#: The two places allowed to contain one. `slicer.py` is the seam D1 defines;
-#: `tests/` names paths to drive a `subprocess` stand-in, which is that seam being
-#: exercised rather than a second home for the choice.
-_MAY_NAME_THE_ENGINE = ("prusaslicer_py/slicer.py", "tests/")
+#: Strings inside `_exec_name` that are not engine names.
+_NOT_A_NAME = {"nt"}
+
+#: The file allowed to contain one, and the directory allowed to. `slicer.py` is
+#: the seam D1 defines; `tests/` names paths to drive a `subprocess` stand-in,
+#: which is that seam being exercised rather than a second home for the choice.
+_THE_DRIVER = "prusaslicer_py/slicer.py"
+_MAY_NAME_THE_ENGINE = ("tests/",)
+
+
+def _tracked_python_files() -> list[str]:
+    """Every `.py` git tracks, as repo-relative posix paths.
+
+    `rglob` needed a hand-written exclusion list -- `.venv/`, `build/` -- which is
+    the omit-by-default shape D10 argues against, one directory at a time. It also
+    went red on a virtualenv at `venv/` or an unpacked sdist under `dist/`, neither
+    of which is a defect in this repository.
+
+    The narrow fail-open is a brand-new untracked file, which this cannot see. That
+    is acceptable: pre-commit runs on staged content and CI runs on a checkout, so
+    the window closes at `git add`.
+    """
+    out = subprocess.run(
+        ["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True, check=False
+    )
+    assert out.returncode == 0, f"`git ls-files` failed:\n{out.stderr}"
+    files = [line for line in out.stdout.splitlines() if line]
+    assert files, "`git ls-files '*.py'` returned nothing; the scan would assert nothing"
+    return files
 
 
 def test_only_the_driver_names_the_engine_executable() -> None:
@@ -307,15 +339,66 @@ def test_only_the_driver_names_the_engine_executable() -> None:
     applied to the sentence rather than to the code, so the sentence is now gated.
     """
     offenders = []
-    for path in sorted(ROOT.rglob("*.py")):
-        rel = path.relative_to(ROOT).as_posix()
-        if rel.startswith((".venv/", "build/")) or rel.startswith(_MAY_NAME_THE_ENGINE):
+    for rel in _tracked_python_files():
+        if rel == _THE_DRIVER or rel.startswith(_MAY_NAME_THE_ENGINE):
             continue
-        for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
+        for n, line in enumerate((ROOT / rel).read_text(encoding="utf-8").splitlines(), 1):
             if any(lit in line for lit in _EXEC_LITERALS):
                 offenders.append(f"{rel}:{n}: {line.strip()}")
 
     assert not offenders, (
         "only `prusaslicer_py/slicer.py` may name the engine executable (D1); "
         "construct `PrusaSlicer()` and let the driver find it. Found:\n  " + "\n  ".join(offenders)
+    )
+
+
+def test_the_engine_name_gate_knows_every_spelling_slicer_py_uses() -> None:
+    """The gate above encodes D1 in a literal tuple, which is its weakest point.
+
+    Deriving the tuple from `_exec_name()` at runtime would be worse, not better:
+    it returns one spelling per platform, so a gate calling it on Linux would stop
+    catching the Windows name. This reads `_exec_name`'s *source* instead, which is
+    platform-independent, and fails if a spelling is added there that the gate does
+    not know about.
+    """
+    source = (ROOT / _THE_DRIVER).read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    literals = {
+        node.value
+        for fn in ast.walk(tree)
+        if isinstance(fn, ast.FunctionDef) and fn.name == "_exec_name"
+        for node in ast.walk(fn)
+        if isinstance(node, ast.Constant) and isinstance(node.value, str)
+    }
+    assert literals, "no string literals found in `_exec_name`; did it move or get renamed?"
+
+    unknown = sorted(literals - _NOT_A_NAME - set(_EXEC_LITERALS))
+    assert not unknown, (
+        "`_exec_name` names a spelling the D1 gate does not know, so the gate would "
+        f"miss it everywhere else: {unknown}. Add it to `_EXEC_LITERALS`."
+    )
+
+
+@pytest.mark.skipif(shutil.which("just") is None, reason="needs the just binary")
+def test_the_check_recipe_actually_runs_the_typechecker() -> None:
+    """Gating a recipe's body says nothing about whether anything calls it.
+
+    Every other gate here verifies what `typecheck` *contains*. None verified that
+    `check` still depends on it -- so `check: fmt-check lint` passed all of them
+    while `.github/workflows/ci.yml` ran `just check` and typechecked nothing. The
+    sharper version keeps the gates green and reintroduces #24 exactly:
+
+        check: fmt-check lint
+            uv run --locked mypy prusaslicer_py/ tests/
+
+    `check: fmt-check lint typecheck` is a hand-written list, which is the shape
+    D10 spends its opening paragraph on. It was the last unguarded one.
+    """
+    recipes = _just_recipes()
+    assert "check" in recipes, f"no `check` recipe; found {sorted(recipes)}"
+    deps = [d["recipe"] for d in recipes["check"]["dependencies"]]
+    assert "typecheck" in deps, (
+        "`just check` is what CI runs, so it must depend on `typecheck`; "
+        f"it depends on {deps}. A `mypy` line in `check`'s own body does not count "
+        "-- that is where #24's narrowed scope came back."
     )
