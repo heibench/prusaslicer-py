@@ -6,6 +6,16 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **`just --list` describes every recipe, and describes them correctly** (#27).
+  `just` publishes the LAST comment line before a recipe, so `capture-cli`'s
+  three-line block published a note about D8 instead of a description, and
+  `extract-cli` had none at all -- its own line having been absorbed into the
+  block above it. Rationale now sits above a blank line, where `just` cannot
+  reach it, and a test asserts every recipe has exactly one comment line
+  directly above it.
+
 ### Changed
 
 - **Every recipe verifies the committed lockfile instead of silently rewriting
