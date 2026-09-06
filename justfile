@@ -39,6 +39,11 @@ test-engine:
     PRUSASLICER_PY_REQUIRE_ENGINE=1 uv run pytest
 
 # Regenerate the machine-readable CLI surface from the captured help output
+# Capture PrusaSlicer's --help into scripts/01_helps (needs the engine installed).
+# The captures are PrusaSlicer's output and are not committed -- see D8.
+capture-cli:
+    uv run python scripts/01_store_helps.py
+
 extract-cli:
     uv run python scripts/02_json_cli.py
     uv run python scripts/03_restructure_cli.py

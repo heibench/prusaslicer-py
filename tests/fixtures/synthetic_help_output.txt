@@ -1,0 +1,30 @@
+SyntheticSlicer-1.2.3 based on nothing (fixture, not a real tool)
+https://example.invalid/synthetic
+
+Usage: synthetic-slicer [ INPUT ] [ OPTIONS ] [ ACTIONS ] [ file.stl ... ]
+
+Input:
+  --load ABCD         Load configuration from the specified file. It can be used more than once to
+                      load options from multiple files.
+  --single-instance   Loads the file into an existing instance if one is running.
+
+Actions:
+  --export-gcode,     --gcode, -g Slice the model and export toolpaths as G-code.
+  --slice-only
+  --query-models      Query the printer models and exit.
+
+Options:
+  --bed-temperature N Bed temperature for layers after the first one (°C).
+  --nozzle-width N    Nozzle diameter in μm; affects extrusion width.
+  --center X,Y        Detect and center the model around the given origin point.
+  --rotate-around X,Y,Z
+                      Rotate the model around the given axis triple. The description for this
+                      option begins on the line after the flag, which is the case that used to
+                      drop options entirely.
+  --wipe-tower
+  --avoid-curled-overhangs
+                      Plan travel moves such that the extruder avoids areas where the filament may
+                      be curled up. This flag takes no value and its description begins on the
+                      following line -- the exact shape that used to be dropped entirely.
+  --fill-pattern ABCD Fill pattern for the general infill (rectilinear, grid, honeycomb; default:
+                      grid).

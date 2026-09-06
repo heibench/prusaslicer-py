@@ -71,7 +71,7 @@ the failure mode that let partspec's entire end-to-end path disappear behind
 
 ## D4 -- Licence stays MIT, and that is a choice with an owner
 
-**Decided:** 2026-09-05
+**Decided:** 2026-09-05 · **SUPERSEDED by D7, 2026-09-05**
 
 The org contract picks Apache-2.0 where the binding leaves the choice open, and
 takes what the engine compels where it does not. PrusaSlicer is AGPL-3.0, but
@@ -83,6 +83,8 @@ By the org's default that argues for Apache-2.0. The repository shipped under
 MIT and is left under MIT here, because relicensing is a decision for the
 copyright holder to make deliberately rather than a side effect of a scaffolding
 change. Flagged for the maintainer; supersede this entry either way.
+
+The maintainer took the flag. See D7.
 
 ---
 
@@ -236,3 +238,95 @@ the committed files byte for byte -- pinned by
 `tests/test_cli_extraction.py::test_committed_data_matches_the_committed_parser`,
 so hand-editing the generated data, or changing the generator without
 regenerating, both go red.
+
+---
+
+## D7 -- Apache-2.0, chosen deliberately, superseding D4
+
+**Decided:** 2026-09-05 (supersedes D4)
+
+The copyright holder made the call D4 asked for: **Apache-2.0**.
+
+It aligns with `partspec`, `netspec` and `gerberdiff`, and with the org rule
+that Apache-2.0 is the default wherever the binding leaves the choice free.
+`orlab` is GPL-2.0 only because OpenRocket compels it through an in-process
+JPype binding; nothing compels anything here, because the engine is reached
+through `subprocess` (D1) and a process boundary does not propagate a licence.
+
+Apache-2.0 over MIT for the express patent grant, which matters more for a
+driver that will be embedded in other people's build pipelines than the extra
+paragraphs cost.
+
+The licence changed before the first public release rather than after, so no
+downstream consumer relied on the previous terms. `pyproject.toml` carries the
+SPDX expression `Apache-2.0`; the redundant `License ::` classifier is removed,
+since a licence expression and a classifier are two statements of one fact and
+the classifier is the one that goes stale.
+
+---
+
+## D8 -- PrusaSlicer's captured help is not committed
+
+**Decided:** 2026-09-05
+
+`scripts/01_helps/*.txt` is PrusaSlicer's own `--help` output, verbatim.
+PrusaSlicer is AGPL-3.0; this repository is Apache-2.0 (D7). Committing that
+output was fine while the repository was private and becomes redistribution the
+moment it is public, so the captures and everything derived from them are
+generated locally and ignored: `just capture-cli` then `just extract-cli`.
+
+Nothing is lost downstream. The wheel never shipped any of it -- it contains
+`prusaslicer_py/` and nothing else -- so no consumer relied on it.
+
+**The tests that read the corpus SKIP when it is absent; they do not pass.**
+Every one of them walks a `glob`, and a glob over an empty directory makes an
+assertion loop vacuous: the test reports success having examined nothing. That
+is the failure this project exists to prevent, so the skip states the reason.
+
+The coverage those tests provided is carried by
+`tests/fixtures/synthetic_help_output.txt`, written by hand in PrusaSlicer's
+format and therefore ours to redistribute. It is not decorative: running the
+pre-fix parser against it reproduces every historical defect -- the dropped
+bare flags, the mis-split `--export-gcode, --gcode, -g`, and the flag whose
+description begins on the following line, which is the shape that lost 68
+options. A first attempt used a placeholder-carrying flag for that last case
+and the old parser *kept* it, so the fixture was checked against the real
+defect rather than assumed to reproduce it.
+
+---
+
+## D9 -- The engine is found on PATH or as a Flatpak, and paths are translated
+
+**Decided:** 2026-09-05
+
+`shutil.which` cannot see a Flatpak: the app is not on PATH and there is no
+binary to find. Flathub is how PrusaSlicer is normally installed on Linux, so
+discovery that only asked PATH reported "not installed" on machines where the
+engine was sitting right there -- including the one this was developed on.
+
+Discovery therefore tries PATH first, then probes `flatpak info`, and invokes
+via `--command=prusa-slicer` to bypass the wrapper the Flatpak runs by default,
+which swallows CLI arguments and answers `Unknown option`. `engine_kind` says
+which was found, so a caller can branch rather than infer.
+
+Two consequences a sandbox forces, both found by running the real engine rather
+than a stub:
+
+- **Filesystem grants.** A Flatpak sees only its own sandbox, so the input and
+  output directories are granted with `--filesystem=<dir>`. Only the
+  directories involved, never `--filesystem=host`: this runs inside other
+  people's build pipelines and a driver should not hand the engine the whole
+  disk to slice one part.
+- **Path translation.** The app's own files are mounted at `/app` inside the
+  sandbox, not at their host path, so a bundled example shape is real to us and
+  absent to the engine. `_to_engine_path` rewrites those, and it must resolve
+  the Flatpak root before comparing -- `current/active` is a symlink into a
+  hashed deployment directory, and comparing against the unresolved root
+  silently never matches.
+
+Related, and only visible against a real engine: `check_version` called
+`--version`, which PrusaSlicer has never supported -- 2.9.6 answers `Unknown
+option --version` and exits 1. The version appears only as the first line of
+`--help`. Every stub in the suite answered `--version`, so the tests agreed
+with the code and both were wrong.
+

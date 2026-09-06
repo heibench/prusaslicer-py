@@ -92,12 +92,15 @@ call that did not do the thing must not return as though it did:
 Treat these lines as code: if a change makes one false, the change is not
 finished.
 
-- **Windows**: `get_example_shapes`, `check_version` and `generate_help` are
-  used regularly against a real `prusa-slicer-console.exe`.
-- **`slice_model` has not been run against a real PrusaSlicer on any
-  platform since it was rewritten** to verify its output. It is covered by
-  tests against stub engines and real subprocesses; the real engine is the gap.
-  Reports especially welcome here.
+- **Linux / Flatpak**: the full path is exercised against PrusaSlicer 2.9.6,
+  including a real end-to-end `slice_model` (D9).
+- **Windows**: `generate_help` and `get_example_shapes` have been used against
+  a real `prusa-slicer-console.exe`, not since the rewrite. `check_version`
+  cannot have been -- it called `--version`, which PrusaSlicer supports on no
+  platform. The earlier claim was false; treat Status lines as code.
+- **`slice_model` has been run against a real PrusaSlicer** (2.9.6, Flathub
+  Flatpak, Linux): 133 KB of G-code from the bundled 3DBenchy, artifact
+  verified. Not yet on Windows or macOS with a real engine.
 - **Linux**: the mocked suite passes and the engine fixture has been exercised
   against a stub, but no part of the driver has been run against a real
   PrusaSlicer install on Linux.

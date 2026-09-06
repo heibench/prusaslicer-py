@@ -56,11 +56,24 @@ def create_output_jsons(structured_data_dir, common_sections=None):
         for section in common_sections
         if "transform" in section.lower()
     }
+    # Every common section that is not actions or transform belongs here.
+    #
+    # This used to match only "other options", which meant any common section
+    # whose name matched none of the three buckets was dropped with no
+    # diagnostic -- PrusaSlicer 2.9.6's "input:" section lost --load,
+    # --print-profile, --printer-profile and --material-profile exactly that
+    # way. Partition by exclusion rather than by an allow-list, so a section
+    # this script has never seen before is carried rather than discarded.
     options_common_data = {
         section: common_data[section]
         for section in common_sections
-        if "other options" in section.lower()
+        if section not in actions_data and section not in transform_data
     }
+
+    routed = set(actions_data) | set(transform_data) | set(options_common_data)
+    unrouted = set(common_sections) - routed
+    if unrouted:  # pragma: no cover - defensive; the partition above is total
+        raise RuntimeError(f"common sections routed nowhere: {sorted(unrouted)}")
 
     # Define new output directory
     output_dir = structured_data_dir.parent / "03_restructured_data"

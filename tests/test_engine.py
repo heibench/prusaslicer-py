@@ -13,10 +13,20 @@ reports as a single skipped line and takes every test in the file with it.
 import shutil
 
 
-def test_engine_resolves_from_path(engine):
-    """The executable the wrapper found is real and on PATH."""
+def test_engine_resolves_to_something_runnable(engine):
+    """Whatever the wrapper resolved, it is a real, invocable engine.
+
+    Not "is on PATH": a Flatpak has no binary on PATH at all, and asserting
+    PATH here made the test fail on the most common Linux install of
+    PrusaSlicer while the engine sat one `flatpak run` away.
+    """
     assert engine.slicer_path
-    assert shutil.which(engine.slicer_path) is not None
+    assert engine.engine_kind in {"path", "flatpak"}
+    if engine.engine_kind == "path":
+        assert shutil.which(engine.slicer_path) is not None
+    else:
+        assert engine._argv[0].endswith("flatpak")
+        assert engine.FLATPAK_APP_ID in engine._argv
 
 
 def test_check_version_against_real_engine(engine):
