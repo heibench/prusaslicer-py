@@ -82,9 +82,18 @@ jobs:
           set -euo pipefail
           sudo apt-get update
           sudo apt-get install -y libfuse2 libgtk-3-0 libwebkit2gtk-4.1-0 || true
-          url=$(curl -fsSL https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest \
-            | grep -o 'https://[^"]*GTK3[^"]*\.AppImage' | head -1)
-          test -n "$url"
+          # Match any Linux AppImage asset, not just one spelled "GTK3": the
+          # asset naming changes between releases, and a too-narrow grep here
+          # produced an empty URL and a failure that looked like "no AppImage
+          # exists" rather than "the pattern missed".
+          assets=$(curl -fsSL https://api.github.com/repos/prusa3d/PrusaSlicer/releases/latest)
+          url=$(printf '%s' "$assets" | grep -oE 'https://[^"]+\.AppImage' | head -1)
+          if [ -z "$url" ]; then
+            echo "::error::no .AppImage asset in the latest PrusaSlicer release"
+            printf '%s' "$assets" | grep -oE '"name": "[^"]+"' | head -20
+            exit 1
+          fi
+          echo "downloading $url"
           curl -fsSL "$url" -o PrusaSlicer.AppImage
           chmod +x PrusaSlicer.AppImage
           # Extract rather than mount: FUSE is unreliable on runners, and this
@@ -140,10 +149,22 @@ jobs:
         shell: pwsh
         run: |
           choco install prusaslicer -y --no-progress
-          $dir = Get-ChildItem 'C:\Program Files\Prusa3D' -Recurse -Filter 'prusa-slicer-console.exe' |
-                 Select-Object -First 1 -ExpandProperty DirectoryName
-          if (-not $dir) { throw 'prusa-slicer-console.exe not found after install' }
-          Add-Content -Path $env:GITHUB_PATH -Value $dir
+          # Do not assume the install root: Chocolatey's PrusaSlicer package has
+          # used more than one, and hardcoding C:\Program Files\Prusa3D made a
+          # successful install look like a missing binary.
+          $roots = @($env:ProgramFiles, ${env:ProgramFiles(x86)}, $env:ChocolateyInstall) |
+                   Where-Object { $_ -and (Test-Path $_) }
+          $exe = Get-ChildItem -Path $roots -Recurse -Filter 'prusa-slicer-console.exe' `
+                   -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $exe) {
+            Write-Host '::error::prusa-slicer-console.exe not found after install. Searched:'
+            $roots | ForEach-Object { Write-Host "  $_" }
+            Get-ChildItem -Path $roots -Recurse -Filter 'prusa-slicer*.exe' `
+              -ErrorAction SilentlyContinue | Select-Object -First 20 -ExpandProperty FullName
+            throw 'prusa-slicer-console.exe not found'
+          }
+          Write-Host "found: $($exe.FullName)"
+          Add-Content -Path $env:GITHUB_PATH -Value $exe.DirectoryName
       - name: Confirm it is on PATH
         shell: pwsh
         run: Get-Command prusa-slicer-console.exe | Select-Object -ExpandProperty Source

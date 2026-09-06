@@ -381,5 +381,22 @@ class PrusaSlicer:
         """
         if self.engine_kind == "flatpak":
             return [r / "share/PrusaSlicer/shapes" for r in self._flatpak_roots()]
-        binary = Path(self.slicer_path).resolve().parent
-        return [binary / "resources" / "shapes", binary.parent / "share/PrusaSlicer/shapes"]
+        binary_dir = Path(self.slicer_path).resolve().parent
+        candidates = [
+            # Windows installer, and a Linux tree that keeps resources beside
+            # the binary.
+            binary_dir / "resources" / "shapes",
+            # Unix prefix layout: <prefix>/bin/prusa-slicer, resources under
+            # <prefix>/share.
+            binary_dir.parent / "share/PrusaSlicer/shapes",
+        ]
+        # macOS .app bundle: the binary sits in Contents/MacOS and the
+        # resources in Contents/Resources -- capitalised, and NOT beside the
+        # binary. Looking only beside it made `brew install --cask prusaslicer`
+        # fail with "Shapes directory not found" on a perfectly good install.
+        for parent in binary_dir.parents:
+            if parent.suffix == ".app":
+                candidates.append(parent / "Contents/Resources/shapes")
+                candidates.append(parent / "Contents/Resources/PrusaSlicer/shapes")
+                break
+        return candidates
