@@ -770,6 +770,50 @@ the thing it checks and watch it go red before you trust it.* That was not done
 for these three, and the cost was a security control that existed only on paper --
 in a decision record, which by this repo's own rule is not to be relitigated.
 
+**All nine hooks are now measured red-capable**, one planted defect each, not
+inferred from configuration: trailing whitespace, a missing final newline, invalid
+YAML, an unfixable `F821`, an autofixable `F401`, a 146-character line, unformatted
+code, and the three above. The `E501` probe is the useful one -- it fails at 100
+characters rather than ruff's default 88, which shows the hook reads this repo's
+`[tool.ruff]` rather than merely running the same binary as `just check`.
+
+### Two gitleaks hooks, and neither is redundant
+
+They cover different things and a future reader will otherwise delete one.
+Verified on the real `git commit` path: committing a new secret fails the
+`--staged` hook while the history hook passes, because the commit in flight is not
+yet in history. The history hook covers what is already there. Neither alone is
+sufficient.
+
+**What the history hook cannot do is see past the clone.** On a shallow clone a
+secret added and later removed reports `no leaks found` at exit `0` -- no warning,
+no diagnostic. Measured: full clone and `--depth 7` catch it, `--depth 5` and
+below do not. So `fetch-depth: 0` is the whole control, and
+`test_ci_runs_the_gates_that_guard_all_of_this` asserts it: deleting that line
+reads as a cleanup and would silently remove the protection. A secret still present
+in `HEAD` is caught at any depth; it is the added-then-removed case that needs the
+history, and that is the case the hook exists for.
+
+If a real secret ever does land, `.gitleaksignore` with the reported fingerprint is
+the escape hatch. Recorded because without knowing it, the first true positive
+makes the hook permanently red for everyone and it gets deleted under pressure --
+which is how a control dies.
+
+### The recurring failure here is a line-oriented pattern over YAML
+
+Three separate defeats in this issue came from the same place, and it is worth
+naming as a class rather than three incidents: a comment supplying a decoy `rev:`;
+a folded-scalar hook `name:` doing the same; and a forbidden key written as a
+step's first key, `- if: false`, where the guard's `^\s*` could not match the `-`.
+None needed an adversary and none needed unusual YAML -- mapping keys are
+unordered, so the reordering that defeated two of them is just as valid a document.
+
+Both gates now anchor on structure -- indentation and key position -- rather than
+matching text in a flattened document. `pyyaml` would close the class outright and
+is deliberately not added: it would be a dependency to read four lines, and the
+line-wise reads are a dozen. That is a size judgement, not a claim that a regex is
+adequate for YAML.
+
 ### One ruff, exactly
 
 The pins had already drifted. pre-commit named `v0.11.12`; the dev group asked for

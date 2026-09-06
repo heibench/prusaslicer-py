@@ -27,6 +27,12 @@ repos:
       # which is empty on a CI checkout. Measured: a committed 2 MB binary and a
       # committed file full of conflict markers both passed without these.
       - id: check-merge-conflict
+        # `--assume-in-merge` makes this an always-on content scan rather than a
+        # mid-merge-only one, which is the point -- but it means any bare
+        # `=======` line fails, including a setext markdown heading or a code
+        # block quoting example conflict output. This is a prose-heavy repo and
+        # `docs/DECISIONS.md` discusses conflict markers; if that trips, the hook
+        # is working and the file needs a fence or an `exclude:`, not a revert.
         args: [--assume-in-merge]
       - id: check-added-large-files
         args: [--enforce-all]

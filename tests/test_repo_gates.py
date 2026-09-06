@@ -544,6 +544,15 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     ci = ROOT / ".github/workflows/ci.yml"
     assert ci.exists(), "ci.yml is gone; the gates in this file guard nothing"
     text = ci.read_text(encoding="utf-8")
+    pre_commit_job = re.search(r"^  pre-commit:\n(?:(?:    .*)?\n)*", text, re.M)
+    assert pre_commit_job, "no `pre-commit` job in ci.yml"
+    assert "fetch-depth: 0" in pre_commit_job.group(), (
+        "the `pre-commit` job must check out full history. `gitleaks-history` scans "
+        "what the clone contains and says nothing about what it cannot see: on a "
+        "shallow clone a secret added and later removed reports `no leaks found` at "
+        "exit 0, with no warning. Deleting this line reads as a cleanup and silently "
+        "removes the control."
+    )
     assert "pre-commit/action" in text, (
         "`ci.yml` no longer runs pre-commit, so `.pre-commit-config.yaml`'s eight "
         "hooks -- gitleaks included -- are enforced only on machines that installed "
@@ -572,7 +581,11 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
         # action turns those hooks off and reports success -- the same defeat as
         # `if: false`, one level above where the ban was looking.
         for forbidden in ("if:", "continue-on-error:", "env:"):
-            assert not re.search(rf"^\s*{re.escape(forbidden)}", body, re.M), (
+            # `(-\s*)?` because a step's first key is written `- if: false`, and
+            # `\s*` does not match `-`. Reordering the keys walked the original
+            # `if: false` defeat straight back in. The `run:` assertion above has
+            # used this idiom since it was written; this one had not.
+            assert not re.search(rf"^\s*(-\s*)?{re.escape(forbidden)}", body, re.M), (
                 f"the `{job}` job (or a step in it) carries `{forbidden}`, which per "
                 "GitHub's documented behaviour lets it not run, or report success "
                 "when it failed, while every gate in this file stays green. "
@@ -867,12 +880,30 @@ def test_both_ruff_pins_name_one_version() -> None:
         f"the dev group declares {pinned[0]!r} but `uv.lock` resolves ruff {running}"
     )
 
-    # Comments stripped first: flattening the file and searching for
-    # `ruff-pre-commit ... rev:` was satisfied by a comment saying so, while the real
-    # `rev:` sat below `hooks:` naming a different version. YAML keys are unordered,
-    # so the decoy needed no unusual layout.
-    config = (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8")
-    uncommented = " ".join(" ".join(line.split("#", 1)[0] for line in config.splitlines()).split())
-    revs = re.findall(r"ruff-pre-commit\s+(?:(?!repo:).)*?rev:\s*v?(\S+)", uncommented)
+    # Read line-wise at the repo item's key indent, rather than flattening the file
+    # and pattern-matching across it. Flattening was defeated twice: once by a
+    # comment reading `ruff-pre-commit rev: v0.16.6`, and once by a folded-scalar
+    # hook `name:` containing the same words while the real `rev:` named another
+    # version. Both worked because a flattened document has no structure left to
+    # anchor on.
+    #
+    # A block scalar's continuation must be indented deeper than its own key, so it
+    # cannot masquerade as a four-space `rev:` at repo-item level. That closes the
+    # class rather than the two instances, and fixes a false positive too: a second
+    # legitimate ruff-pre-commit block at the same rev used to read as a mismatch.
+    # pyyaml would also close it; it is not a dependency here and this is a dozen
+    # lines, so it stays out -- but the reason is the size of the fix, not that a
+    # regex is adequate for YAML.
+    revs = []
+    in_ruff_repo = False
+    for line in (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8").splitlines():
+        bare = line.split("#", 1)[0].rstrip()
+        if re.match(r"^  - repo:", bare):
+            in_ruff_repo = "ruff-pre-commit" in bare
+            continue
+        if in_ruff_repo:
+            found = re.match(r"^    rev:\s*v?(\S+)$", bare)
+            if found:
+                revs.append(found.group(1))
     assert revs, "could not find the ruff-pre-commit rev"
     assert revs == [running], f"pre-commit pins {revs} but `uv run` installs ruff {running}"
