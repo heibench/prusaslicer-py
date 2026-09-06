@@ -65,12 +65,18 @@ warn_unused_ignores = true
 # were unannotated at the time.
 check_untyped_defs = true
 
-# The scripts are the only unannotated code left, and they are the code most
-# exposed to a silent type defect: they build the extracted CLI surface D6
-# froze, and nothing downstream re-checks it. Requiring annotations there is
-# what makes the check bite -- with bodies alone, mypy accepts a call whose
-# arguments are in the wrong order. tests/ has 33 unannotated signatures and
-# is deliberately left out; pytest functions gain nothing from a "-> None".
+# `mypy .` does not read `.gitignore`, so foreign Python inside the working tree
+# is checked as if it were ours: a virtualenv at `venv/`, a `build/` tree, or the
+# repo's own sdist unpacked under `dist/` each turn `just check` red (the last two
+# abort with duplicate modules, checking nothing at all). D10 says the excluded set
+# belongs here rather than on the command line, where only a reader of the recipe
+# would find it -- and the gate on the `typecheck` recipe enforces that direction.
+exclude = [
+    "^\\.?venv/",
+    "^build/",
+    "^dist/",
+]
+
 # Bodies alone are not enough. With no signature to check a call against, mypy
 # accepts `save_json(path, data)` with the arguments reversed -- exactly the shape
 # of defect `scripts/` is exposed to, since it generates the CLI-surface data D6

@@ -20,6 +20,27 @@ ROOT = Path(__file__).resolve().parent.parent
 JUSTFILE = ROOT / "justfile"
 
 
+def _resolved_recipe(name: str) -> str:
+    """What `just` would actually RUN for a recipe, with interpolation resolved.
+
+    Reading the justfile's raw text is not enough, and the gap is an ordinary
+    refactor rather than an evasion. `mypy . {{mypy_extra}}` with
+    `mypy_extra := "--exclude scripts/"` at the top of the file, or a defaulted
+    parameter invoked as `(typecheck "--exclude scripts/")`, both leave the recipe
+    text saying `mypy .` while `just` runs a narrowed command. Both defeated the
+    `mypy .` assertion and the `--exclude` ban at once.
+
+    `--dry-run` prints the resolved command to stderr and executes nothing.
+    """
+    out = subprocess.run(
+        ["just", "--dry-run", name], cwd=ROOT, capture_output=True, text=True, check=False
+    )
+    assert out.returncode == 0, f"`just --dry-run {name}` failed:\n{out.stderr}"
+    resolved = out.stderr.strip()
+    assert resolved, f"`just --dry-run {name}` printed nothing to resolve"
+    return resolved
+
+
 def _recipe_body(source: str, name: str) -> str:
     """The lines of one recipe that `just` would actually RUN.
 
@@ -271,21 +292,42 @@ def test_the_typecheck_recipe_checks_the_whole_repository() -> None:
     """
     recipes = _just_recipes()
     assert "typecheck" in recipes, f"no `typecheck` recipe; found {sorted(recipes)}"
-    body = _recipe_body(JUSTFILE.read_text(encoding="utf-8"), "typecheck")
-    assert re.search(r"\bmypy\s+\.(?:\s|$)", body), (
-        "the `typecheck` recipe must run `mypy .` so no directory can be omitted "
-        f"by forgetting to list it; it runs:\n  {body}"
+
+    # Resolve `check`, not `typecheck`. A defaulted parameter -- `typecheck extra="":`
+    # invoked as `check: ... (typecheck "--exclude scripts/")` -- resolves to a bare
+    # `mypy .` when the recipe is asked about on its own, while what CI runs is
+    # narrowed. Asking the recipe the same question CI asks is the only version that
+    # cannot differ from it.
+    resolved = _resolved_recipe("check")
+    mypy_lines = [line for line in resolved.splitlines() if re.search(r"\bmypy\b", line)]
+    assert len(mypy_lines) == 1, (
+        f"expected exactly one mypy invocation in `just check`, found {len(mypy_lines)}:"
+        f"\n  {resolved}"
     )
-    assert "--exclude" not in body, (
+    command = mypy_lines[0]
+    assert re.search(r"\bmypy\s+\.(?:\s|$)", command), (
+        "`just check` must run `mypy .` so no directory can be omitted by forgetting "
+        f"to list it; it runs:\n  {command}"
+    )
+    assert "--exclude" not in command, (
         "narrowing on the command line puts the excluded set where only a reader of "
         "the recipe finds it; D10 says exclusions belong in `pyproject.toml`. It "
-        f"runs:\n  {body}"
+        f"runs:\n  {command}"
     )
 
 
-#: Every way this repository spells "the engine". Three, not two: `_exec_name()`
-#: gives the PATH binary per platform, `FLATPAK_APP_ID` names the Flathub app, and
-#: macOS installs it as a `.app` bundle whose binary is capitalised.
+#: Every way this repository spells "the engine". Four, and the comment is the
+#: kind of thing that goes stale, so `test_the_engine_name_gate_knows_every_
+#: spelling_slicer_py_uses` checks the tuple against `slicer.py` rather than
+#: trusting this list to be kept current. `PrusaSlicer.app` is here because a
+#: macOS bundle path is what a contributor would paste into an example; it does
+#: not appear in `slicer.py` itself, which is fine -- the meta-gate requires
+#: slicer.py's names to be covered, not the reverse.
+#:
+#: The bare capitalised binary `PrusaSlicer` is deliberately NOT here. It is a
+#: real spelling -- `engine.yml` symlinks it -- but as a substring it matches
+#: every sentence of prose that mentions the product, which would make the gate
+#: fire on documentation and train people to ignore it.
 _EXEC_LITERALS = (
     "prusa-slicer-console.exe",
     "prusa-slicer",
@@ -293,8 +335,15 @@ _EXEC_LITERALS = (
     "PrusaSlicer.app",
 )
 
-#: Strings inside `_exec_name` that are not engine names.
-_NOT_A_NAME = {"nt"}
+#: Strings in `slicer.py` that match `prusa|slicer` and are not engine names:
+#: prose in messages, and resource paths inside an installation.
+_NOT_A_NAME = {
+    ". Ensure PrusaSlicer is installed and added to PATH.",
+    "Contents/Resources/PrusaSlicer/shapes",
+    "PrusaSlicer exited ",
+    "PrusaSlicer exited 0 but ",
+    "share/PrusaSlicer/shapes",
+}
 
 #: The file allowed to contain one, and the directory allowed to. `slicer.py` is
 #: the seam D1 defines; `tests/` names paths to drive a `subprocess` stand-in,
@@ -315,6 +364,8 @@ def _tracked_python_files() -> list[str]:
     is acceptable: pre-commit runs on staged content and CI runs on a checkout, so
     the window closes at `git add`.
     """
+    if shutil.which("git") is None:
+        pytest.skip("needs the git binary")
     out = subprocess.run(
         ["git", "ls-files", "*.py"], cwd=ROOT, capture_output=True, text=True, check=False
     )
@@ -353,29 +404,53 @@ def test_only_the_driver_names_the_engine_executable() -> None:
 
 
 def test_the_engine_name_gate_knows_every_spelling_slicer_py_uses() -> None:
-    """The gate above encodes D1 in a literal tuple, which is its weakest point.
+    """`_EXEC_LITERALS` is a hand-written list, so something has to gate it.
 
-    Deriving the tuple from `_exec_name()` at runtime would be worse, not better:
-    it returns one spelling per platform, so a gate calling it on Linux would stop
-    catching the Windows name. This reads `_exec_name`'s *source* instead, which is
-    platform-independent, and fails if a spelling is added there that the gate does
-    not know about.
+    An earlier version of this read only `_exec_name`, which meant it gated almost
+    nothing: `FLATPAK_APP_ID` already lived outside that function, and adding a
+    `MACOS_BINARY = "PrusaSlicer-macos"` constant beside it -- then pasting that
+    name into an example -- passed every gate in this file. That is the defect this
+    PR fixed, reintroduced inside the test written to prevent it.
+
+    So it reads *every* non-docstring string literal in `slicer.py` that looks like
+    it could name the engine, and requires each to be either a known spelling or
+    explicitly listed as prose. A new name is then a red gate rather than a silent
+    hole, and the failure mode of forgetting to classify one is fail-closed.
+
+    Deriving the names from `_exec_name()` at runtime would be worse: it returns one
+    spelling per platform, so a gate calling it on Linux would stop catching the
+    Windows name.
     """
     source = (ROOT / _THE_DRIVER).read_text(encoding="utf-8")
     tree = ast.parse(source)
-    literals = {
-        node.value
-        for fn in ast.walk(tree)
-        if isinstance(fn, ast.FunctionDef) and fn.name == "_exec_name"
-        for node in ast.walk(fn)
-        if isinstance(node, ast.Constant) and isinstance(node.value, str)
-    }
-    assert literals, "no string literals found in `_exec_name`; did it move or get renamed?"
 
-    unknown = sorted(literals - _NOT_A_NAME - set(_EXEC_LITERALS))
-    assert not unknown, (
-        "`_exec_name` names a spelling the D1 gate does not know, so the gate would "
-        f"miss it everywhere else: {unknown}. Add it to `_EXEC_LITERALS`."
+    docstrings = {
+        id(node.body[0].value)
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.body
+        and isinstance(node.body[0], ast.Expr)
+        and isinstance(node.body[0].value, ast.Constant)
+        and isinstance(node.body[0].value.value, str)
+    }
+
+    candidates = {
+        node.value
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Constant)
+        and isinstance(node.value, str)
+        and id(node) not in docstrings
+        and re.search(r"prusa|slicer", node.value, re.IGNORECASE)
+    }
+    assert candidates, "no engine-ish literals found in slicer.py; did the file move?"
+
+    unclassified = sorted(candidates - _NOT_A_NAME - set(_EXEC_LITERALS))
+    assert not unclassified, (
+        "`slicer.py` contains string literals the D1 gate has not been told about, so "
+        "the gate would miss them everywhere else in the repository:\n  "
+        + "\n  ".join(repr(u) for u in unclassified)
+        + "\nAdd each to `_EXEC_LITERALS` if it names the engine, or to `_NOT_A_NAME` "
+        "if it is prose or a resource path."
     )
 
 
@@ -392,7 +467,7 @@ def test_the_check_recipe_actually_runs_the_typechecker() -> None:
             uv run --locked mypy prusaslicer_py/ tests/
 
     `check: fmt-check lint typecheck` is a hand-written list, which is the shape
-    D10 spends its opening paragraph on. It was the last unguarded one.
+    D10 spends its opening paragraph on.
     """
     recipes = _just_recipes()
     assert "check" in recipes, f"no `check` recipe; found {sorted(recipes)}"
@@ -402,3 +477,55 @@ def test_the_check_recipe_actually_runs_the_typechecker() -> None:
         f"it depends on {deps}. A `mypy` line in `check`'s own body does not count "
         "-- that is where #24's narrowed scope came back."
     )
+
+
+def test_pyproject_is_the_mypy_config_mypy_actually_reads() -> None:
+    """mypy prefers `mypy.ini` over `pyproject.toml`, silently.
+
+    Its precedence is `mypy.ini`, then `.mypy.ini`, then `pyproject.toml`. A
+    two-line `mypy.ini` naming only `python_version` therefore drops
+    `check_untyped_defs` and `disallow_untyped_defs` together, and a fully
+    unannotated new script passes clean at exit 0. mypy emits an
+    `[annotation-unchecked]` *note* pointing straight at the disabled feature and
+    still exits 0 -- the same note-versus-error trap D10 records for
+    `warn_unused_configs`.
+
+    Nothing else in this repository would notice, because every gate here reads
+    `pyproject.toml` and assumes mypy did too.
+    """
+    for name in ("mypy.ini", ".mypy.ini"):
+        assert not (ROOT / name).exists(), (
+            f"`{name}` silently supersedes `[tool.mypy]` in pyproject.toml, taking "
+            "`check_untyped_defs` and `disallow_untyped_defs` with it. Put mypy "
+            "configuration in pyproject.toml, where D10 and these gates can see it."
+        )
+    setup_cfg = ROOT / "setup.cfg"
+    if setup_cfg.exists():
+        assert "[mypy]" not in setup_cfg.read_text(encoding="utf-8"), (
+            "a `[mypy]` section in setup.cfg supersedes pyproject.toml's `[tool.mypy]`"
+        )
+
+
+def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
+    """The chain above is only worth anything if CI still invokes it.
+
+    `test_the_check_recipe_actually_runs_the_typechecker` asserts `check` calls
+    `typecheck`. Nothing asserted that CI calls `check` -- changing `ci.yml`'s step
+    to `just lint` left every gate in this file green while the typechecker stopped
+    running on pull requests.
+
+    **This is where the recursion stops, and that is worth saying.** `just` can be
+    made to run nothing at all -- `set shell := ["true", "-c"]` makes both `just
+    check` and `just test` print their commands and exit 0 -- and no test inside
+    pytest can catch that, because pytest never runs. A gate cannot verify the
+    machinery that decides whether the gate runs. This one closes the realistic
+    half: a workflow edited to call something narrower.
+    """
+    ci = ROOT / ".github/workflows/ci.yml"
+    assert ci.exists(), "ci.yml is gone; the gates in this file guard nothing"
+    text = ci.read_text(encoding="utf-8")
+    for recipe in ("just check", "just test"):
+        assert re.search(rf"^\s*(-\s*)?run:\s*{re.escape(recipe)}\s*$", text, re.M), (
+            f"`ci.yml` no longer runs `{recipe}`, so the gates in this file do not "
+            "run on pull requests. Every other gate here assumes it does."
+        )

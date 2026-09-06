@@ -505,8 +505,10 @@ cannot fail.
 `disallow_untyped_defs = true` therefore applies to everything, and `tests/`
 is exempted by name. It has 33 unannotated signatures and a `-> None` on a pytest
 function buys nothing; `check_untyped_defs` already reads their bodies, which is
-where test defects live. `prusaslicer_py/` and `examples/` need no mention --
-they had zero unannotated signatures already, and now cannot acquire one.
+where test defects live. `prusaslicer_py/` needs no mention -- it had zero unannotated
+signatures already, and now cannot acquire one. `examples/` has no functions at
+all, so it contributed nothing either way; it is in scope now so that it cannot
+start contributing silently.
 
 The exemption is the part someone has to write down, which is the whole point:
 adding a directory to this repository now inherits the check instead of escaping
@@ -530,18 +532,55 @@ opens by arguing against -- and it was the last unguarded one.
 `test_the_check_recipe_actually_runs_the_typechecker` reads the dependency list
 out of `just --dump` and asserts `typecheck` is in it.
 
+### Where the recursion stops
+
+Each of the above was found by asking what sits one level above the last gate,
+and the answer kept being "something ungated". Four more levels turned up, and
+they are worth recording together because the pattern is the finding:
+
+1. **The recipe's text is not the command.** The gate read the justfile's raw
+   characters. `mypy . {{mypy_extra}}` with `mypy_extra := "--exclude scripts/"`,
+   or a defaulted parameter invoked as `(typecheck "--exclude scripts/")`, both
+   leave the text saying `mypy .` while `just` runs something narrower -- and both
+   are ordinary refactors, not evasions. The gate now asserts on
+   `just --dry-run check`, which resolves interpolation and executes nothing.
+2. **Asking the right recipe.** Resolving `typecheck` alone still missed the
+   defaulted-parameter case, because the default is empty and only `check` passes
+   the narrowing argument. The gate resolves `check` -- the same question CI asks.
+3. **The config file mypy actually reads.** `mypy.ini` supersedes
+   `[tool.mypy]` silently, taking `check_untyped_defs` and
+   `disallow_untyped_defs` with it; mypy then reports the disabled feature as a
+   *note* and exits 0. Gated by asserting no `mypy.ini`, `.mypy.ini`, or
+   `[mypy]` in `setup.cfg`.
+4. **Whether CI still calls any of it.** Changing `ci.yml`'s step to `just lint`
+   left every gate green. Gated by reading the workflow.
+
+**It terminates there, and the honest thing is to say so rather than to imply the
+chain is closed.** `set shell := ["true", "-c"]` in the justfile makes `just
+check` and `just test` both print their commands and exit `0` having run nothing,
+and no test inside pytest can catch that, because pytest never runs. A gate cannot
+verify the machinery that decides whether the gate runs. What is gated is the
+realistic failure -- a recipe or workflow edited to call something narrower -- and
+what is not is deliberate sabotage of the runner, which is a different threat
+model and is visible in a diff.
+
 ### What was considered and not done
 
 A `NewType` for the flag spelling would catch `flags[-1] = (value, spelling)` --
 a swap between two `str`s that types clean. It is not taken. `OptionRecord.option`
 must stay `str` because D6 froze it, so a `Spelling` alias would put a second
 vocabulary in front of a frozen schema, which is the failure this entry already
-argues against two paragraphs up. Against that: three construction sites and one
+argues against two paragraphs up. Against that: two construction sites and one
 swap shape, in a generator pinned by nine parametrised `split_option_line` cases
 and reproduced byte for byte by
 `test_committed_data_matches_the_committed_parser`. A test is the right instrument
-for a same-type swap, and it already exists. Recorded so the next reviewer does
-not re-raise it.
+for a same-type swap, and it already exists. Note which test does the work:
+`test_committed_data_matches_the_committed_parser` is gated on a captured corpus
+and so skips on every pull request, running only in `engine.yml`. The instrument
+that actually catches a swapped pair is the nine parametrised
+`split_option_line` cases, which are always on -- verified by swapping the pair
+and watching six of them fail. Recorded so the next reviewer does not re-raise
+it, and so the citation does not rest on a test that is usually skipped.
 
 ### D6's schema is now a type, not a comment
 
