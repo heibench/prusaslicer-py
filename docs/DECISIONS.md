@@ -425,3 +425,77 @@ option --version` and exits 1. The version appears only as the first line of
 `--help`. Every stub in the suite answered `--version`, so the tests agreed
 with the code and both were wrong.
 
+
+---
+
+## D10 -- The typechecker covers the repository, and `scripts/` carries annotations
+
+**Decided:** 2026-09-06 (issue #24)
+
+`just typecheck` named `prusaslicer_py/ tests/`. Two directories were outside it:
+`scripts/`, which holds the CLI-surface extraction that produces the data D6
+froze, and `examples/`, which nothing had thought about either way. A hand-written
+path list omits by default -- the omission is invisible until someone re-reads the
+recipe, and the next directory added to the repository joins the omitted set
+automatically.
+
+The recipe is now `mypy .`. What it covers is decided by the repository's
+contents rather than by a list someone has to remember to extend, and
+`tests/test_repo_gates.py::test_the_typecheck_recipe_checks_the_whole_repository`
+asserts that spelling -- it goes red against the exact recipe this issue started
+from. Exclusions, if any are ever needed, belong in `pyproject.toml` where they
+are visible and reviewable.
+
+### Scope alone would have been close to nothing
+
+mypy skips the body of any function with no annotations. 12 of the 13 functions
+in `scripts/` were unannotated, so `scripts/` in the recipe would have bought one
+checked function. `check_untyped_defs` reads those bodies and is set for the whole
+project.
+
+That is still not enough, and the measurement is the point. With bodies checked
+but signatures absent, mypy accepts
+
+```python
+save_json(output_dir / "actions.json", actions_data)  # arguments reversed
+```
+
+with no error, because there is no signature to check the call against. That is
+the defect shape `scripts/` is most exposed to: it generates data, nothing
+downstream re-checks that data, and a wrong-order call writes a plausible file.
+So `disallow_untyped_defs` is set for the three script modules, all 12 signatures
+are annotated, and the reversed call is now an error at the call site.
+
+`tests/` is deliberately not held to `disallow_untyped_defs`. It has 33
+unannotated signatures and a `-> None` on a pytest function buys nothing;
+`check_untyped_defs` already reads their bodies, which is where test defects
+live. `prusaslicer_py/` and `examples/` need no override -- they had zero
+unannotated signatures already.
+
+### D6's schema is now a type, not a comment
+
+The records the extraction emits were `dict[str, object]`. `object` accepts
+anything, so the schema D6 explicitly froze -- and told consumers to rely on --
+was the one part of the pipeline the typechecker could not check. It is now a
+`TypedDict`, and a renamed key, a wrong field type, or an `option` that could be
+`None` are errors.
+
+The flag pairs feeding it are `tuple[str, str | None]`. They were
+`list[list[str | None]]`, which was wrong twice over: the shape is a pair rather
+than a variable-length list, and it declared the spelling nullable when only the
+value ever is. That second error contradicted D6 in writing -- D6 says
+`option: str` -- and it was the annotation itself that carried the contradiction,
+which is why restating a frozen schema loosely is worse than not restating it.
+`scripts/03_restructure_cli.py` therefore keeps its element type opaque
+(`dict[str, list[object]]`): it never looks inside a record, so it has no reason
+to repeat those four fields where they could drift from the parser that writes
+them.
+
+### What this actually found on the way in
+
+Three `var-annotated` errors on empty literals in `scripts/`, where mypy could not
+infer an element type, and six in `tests/` from calling `module_from_spec` on a
+possibly-`None` spec. Nothing had behaved wrongly. Recorded plainly because
+section 7's rule cuts both ways: a change is not more valuable for being
+described as a defect fix, and the value here is the checking that now exists
+rather than the errors it cleared.

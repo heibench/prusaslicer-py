@@ -54,52 +54,52 @@ parser = _load_parser()
         # A plain option.
         (
             " --export-3mf        Export the model(s) as 3MF.",
-            [["--export-3mf", None]],
+            [("--export-3mf", None)],
             "Export the model(s) as 3MF.",
         ),
         # Aliases, description on the same line. Splitting on the first space
         # used to put "--sla" in the description.
         (
             " --export-sla, --sla Slice and export SLA layers.",
-            [["--export-sla", None], ["--sla", None]],
+            [("--export-sla", None), ("--sla", None)],
             "Slice and export SLA layers.",
         ),
         # Aliases, description on the following line: no description here.
         (
             " --export-gcode, --gcode, -g",
-            [["--export-gcode", None], ["--gcode", None], ["-g", None]],
+            [("--export-gcode", None), ("--gcode", None), ("-g", None)],
             "",
         ),
         # A short-flag alias.
         (
             " --help, -h          Show this help.",
-            [["--help", None], ["-h", None]],
+            [("--help", None), ("-h", None)],
             "Show this help.",
         ),
         # A value placeholder is part of the option, not the description.
         (
             " --save ABCD         Save configuration to the specified file.",
-            [["--save", "ABCD"]],
+            [("--save", "ABCD")],
             "Save configuration to the specified file.",
         ),
         # A tuple-valued placeholder, whose comma is not an alias separator.
-        (" --center X,Y        Center the print.", [["--center", "X,Y"]], "Center the print."),
+        (" --center X,Y        Center the print.", [("--center", "X,Y")], "Center the print."),
         # A placeholder repeated across the alias list.
-        (" --output ABCD, -o ABCD", [["--output", "ABCD"], ["-o", "ABCD"]], ""),
+        (" --output ABCD, -o ABCD", [("--output", "ABCD"), ("-o", "ABCD")], ""),
         # Three long spellings, none of which is a description.
         (
             " --top-fill-pattern, --external-fill-pattern, --solid-fill-pattern",
             [
-                ["--top-fill-pattern", None],
-                ["--external-fill-pattern", None],
-                ["--solid-fill-pattern", None],
+                ("--top-fill-pattern", None),
+                ("--external-fill-pattern", None),
+                ("--solid-fill-pattern", None),
             ],
             "",
         ),
         # A description whose first word is capitalised like a placeholder.
         (
             " --wipe-tower-x N    X coordinate of the wipe tower.",
-            [["--wipe-tower-x", "N"]],
+            [("--wipe-tower-x", "N")],
             "X coordinate of the wipe tower.",
         ),
     ],

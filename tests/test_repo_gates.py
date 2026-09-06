@@ -19,6 +19,19 @@ ROOT = Path(__file__).resolve().parent.parent
 JUSTFILE = ROOT / "justfile"
 
 
+def _recipe_body(source: str, name: str) -> str:
+    """The indented lines of one recipe, as written in the justfile."""
+    lines = source.splitlines()
+    starts = [n for n, line in enumerate(lines) if re.match(rf"^@?{re.escape(name)}(\s|:)", line)]
+    assert len(starts) == 1, f"expected exactly one `{name}` recipe, found {len(starts)}"
+    body = []
+    for line in lines[starts[0] + 1 :]:
+        if line.strip() and not line.startswith((" ", "\t")):
+            break
+        body.append(line)
+    return "\n".join(body).strip()
+
+
 def test_every_uv_run_in_the_justfile_is_locked() -> None:
     """#23's guard is per-invocation, which is fail-OPEN without this.
 
@@ -226,4 +239,27 @@ def test_the_doc_gate_is_not_fooled_by_an_assignment_sharing_a_recipe_name(
     assert len(block) == 2, (
         f"expected the RECIPE's two-line block, got {block!r} -- if this is one line the "
         "helper matched the assignment and the gate has gone fail-open again"
+    )
+
+
+def test_the_typecheck_recipe_checks_the_whole_repository() -> None:
+    """#24 narrowed the typecheck scope by hand, which is fail-OPEN.
+
+    The recipe used to name `prusaslicer_py/ tests/`, so `scripts/` -- the code
+    that builds the extracted CLI surface D6 froze -- was never checked at all,
+    and nothing said so. Adding `scripts/` by hand would have left `examples/`
+    outside on the same terms, and the next directory after that. A bare `mypy .`
+    is the only spelling that cannot silently omit something: what it covers is
+    decided by the repository's contents, not by a list someone has to remember
+    to extend.
+
+    Exclusions belong in `pyproject.toml`, where they are visible and reviewable,
+    not in an argument list read only when a recipe is edited.
+    """
+    recipes = _just_recipes()
+    assert "typecheck" in recipes, f"no `typecheck` recipe; found {sorted(recipes)}"
+    body = _recipe_body(JUSTFILE.read_text(encoding="utf-8"), "typecheck")
+    assert re.search(r"\bmypy\s+\.(?:\s|$)", body), (
+        "the `typecheck` recipe must run `mypy .` so no directory can be omitted "
+        f"by forgetting to list it; it runs:\n  {body}"
     )

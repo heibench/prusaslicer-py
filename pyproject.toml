@@ -61,6 +61,25 @@ warn_unused_configs = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 # Without this mypy skips the BODY of any function with no annotations, so adding
-# `scripts/` to the gate would have checked almost nothing: 12 of its 13 functions are
-# unannotated. It found three real ones there and six in the tests on the first run.
+# `scripts/` to the gate would have checked almost nothing: 12 of its 13 functions
+# were unannotated at the time.
 check_untyped_defs = true
+
+# The scripts are the only unannotated code left, and they are the code most
+# exposed to a silent type defect: they build the extracted CLI surface D6
+# froze, and nothing downstream re-checks it. Requiring annotations there is
+# what makes the check bite -- with bodies alone, mypy accepts a call whose
+# arguments are in the wrong order. tests/ has 33 unannotated signatures and
+# is deliberately left out; pytest functions gain nothing from a "-> None".
+# Bodies alone are not enough. With no signature to check a call against, mypy
+# accepts `save_json(path, data)` with the arguments reversed -- which is exactly
+# the shape of defect `scripts/` is exposed to, since it generates the CLI-surface
+# data D6 froze and nothing downstream re-checks it. Annotations are what make the
+# call sites checkable, so they are required here.
+#
+# Module names, not paths: `scripts/` is not a package, so mypy names each file by
+# its stem. `tests/` is deliberately not held to this -- 33 unannotated signatures,
+# and a `-> None` on a pytest function buys nothing.
+[[tool.mypy.overrides]]
+module = ["01_store_helps", "02_json_cli", "03_restructure_cli"]
+disallow_untyped_defs = true

@@ -2,14 +2,30 @@ import json
 import os
 import re
 from pathlib import Path
+from typing import TypedDict
 
 # A value placeholder as PrusaSlicer prints it: an all-caps token, possibly a
 # comma-separated tuple (X,Y), possibly carrying the separator of an alias list
 # (the "ABCD," in "--output ABCD, -o ABCD").
 VALUE_PLACEHOLDER = re.compile(r"[A-Z]+(?:,[A-Z]+)*,?")
 
+# One spelling as printed, paired with the value placeholder that follows it
+# (``None`` when the option takes no value). The spelling is never absent --
+# a pair exists because a spelling was matched -- so only the value is
+# optional, which is what lets ``option`` below be a plain ``str``.
+Flag = tuple[str, str | None]
 
-def replace_large_gaps(description, separator=";"):
+
+class OptionRecord(TypedDict):
+    """One entry of the extracted CLI surface: the schema D6 froze."""
+
+    option: str
+    aliases: list[str]
+    value: str | None
+    description: str
+
+
+def replace_large_gaps(description: str, separator: str = ";") -> str:
     """
     Replace large gaps in the description with the specified separator.
     Large gaps are defined as multiple spaces between text.
@@ -18,7 +34,7 @@ def replace_large_gaps(description, separator=";"):
     return cleaned_description.strip()
 
 
-def split_option_line(line):
+def split_option_line(line: str) -> tuple[list[Flag], str]:
     """Split one help line into its option spellings and its description.
 
     PrusaSlicer prints an option as a comma-separated list of spellings, each
@@ -40,11 +56,11 @@ def split_option_line(line):
       description is set off by the help output's column gap.
 
     :return: ``(flags, description)``, where ``flags`` is a list of
-             ``[spelling, value_or_None]`` in the order printed and
+             ``(spelling, value_or_None)`` pairs in the order printed and
              ``description`` is the rest of the line -- empty when the
              description begins on the following line.
     """
-    flags: list[list[str | None]] = []
+    flags: list[Flag] = []
     continues = False
     prev_end = 0
 
@@ -52,13 +68,13 @@ def split_option_line(line):
         token = match.group()
         if not flags or continues:
             continues = token.endswith(",")
-            flags.append([token.rstrip(","), None])
+            flags.append((token.rstrip(","), None))
             prev_end = match.end()
             continue
         is_placeholder = match.start() == prev_end + 1 and VALUE_PLACEHOLDER.fullmatch(token)
         if is_placeholder:
             continues = token.endswith(",")
-            flags[-1][1] = token.rstrip(",")
+            flags[-1] = (flags[-1][0], token.rstrip(","))
             prev_end = match.end()
             continue
         return flags, line[match.start() :]
@@ -66,13 +82,15 @@ def split_option_line(line):
     return flags, ""
 
 
-def parse_cli_output_with_sections(file_path, separator=";"):
+def parse_cli_output_with_sections(
+    file_path: Path, separator: str = ";"
+) -> dict[str, list[OptionRecord]]:
     """
     Parse the raw CLI output, extract sections, and structure the data into a dictionary.
     Each section will contain a list of options with their descriptions.
     """
-    structured_data: dict[str, list[dict[str, object]]] = {}
-    current_flags: list[list[str | None]] = []
+    structured_data: dict[str, list[OptionRecord]] = {}
+    current_flags: list[Flag] = []
     current_description = ""
 
     # The help output is UTF-8 (it contains a degree sign and a mu). Without an
@@ -94,7 +112,7 @@ def parse_cli_output_with_sections(file_path, separator=";"):
         if section_name not in structured_data:
             structured_data[section_name] = []
 
-        def flush(flags, description, section=section_name):
+        def flush(flags: list[Flag], description: str, section: str = section_name) -> None:
             # An option with no description is still an option. PrusaSlicer
             # documents a handful of them with a blank line; dropping them
             # would make the extraction quietly incomplete.
@@ -139,7 +157,7 @@ def parse_cli_output_with_sections(file_path, separator=";"):
     return structured_data
 
 
-def process_cli_files(input_dir, output_dir, separator=";"):
+def process_cli_files(input_dir: Path, output_dir: Path, separator: str = ";") -> None:
     """
     Process all CLI output files in the input directory and output structured JSON data,
     with sections properly organized.
@@ -165,7 +183,7 @@ def process_cli_files(input_dir, output_dir, separator=";"):
             print(f"Processed {cli_file} into {json_file_name}")
 
 
-def main():
+def main() -> None:
     script_dir = Path(__file__).parent
     cli_dir = script_dir / "01_helps"  # Folder containing the .txt CLI output files
     structured_data_dir = script_dir / "02_structured_data"  # Folder for the JSON files
