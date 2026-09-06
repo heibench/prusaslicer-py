@@ -1065,3 +1065,10 @@ sweep.
 
 The probe was added deliberately without a pre-emptive fix, so that the run would
 answer the question rather than confirm a guess. It answered it against me.
+
+The first fix for that was `$ErrorActionPreference = 'Stop'` -- and `sh`, running
+with `-u`, ate that too: `ErrorActionPreference: unbound variable`, exit 127. Three
+instances of one class in a single recipe. The rule the recipe carries now is
+therefore not "escape the `$`" but **the body must contain no `$` at all**;
+`-ErrorAction Stop` on the cmdlet does the same job with no sigil for `sh` to
+find.
