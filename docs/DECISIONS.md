@@ -941,20 +941,57 @@ Windows contributor is a real contributor. A contributor who can run the tests b
 not the project's own recipes gets the second-class experience the rest of this
 repository argues against.
 
-### `test-engine` needs no shell at all
+### `test-engine` was not the problem, and the attempted fix was worse
 
-`PRUSASLICER_PY_REQUIRE_ENGINE=1 uv run --locked pytest` is shell syntax --
-the same construct `engine.yml` elsewhere calls POSIX-only, which is #30. It is now
+The issue named `test-engine` alongside `clean`, and the first version of this
+entry changed it to an exported recipe parameter:
 
 ```
 test-engine $PRUSASLICER_PY_REQUIRE_ENGINE="1":
-    uv run --locked pytest
 ```
 
-`just` exports the parameter into the child process itself, so no shell is
-involved. Verified by the contrast the recipe exists for, on a `PATH` with no
-engine reachable: `just test-engine` **errors**, while `just test` skips and stays
-green.
+**That was wrong twice, and it is recorded rather than quietly reverted.**
+
+It fixed nothing. `just` runs recipe bodies through `sh` on *every* platform --
+its own documentation says so, and this issue produced independent evidence when
+`sh` ate a `$_` out of a PowerShell body. So `VAR=1 cmd` is ordinary `sh` syntax
+that works wherever `just` works at all. `clean` was a real portability problem
+because `rm -rf` and GNU `find` are external programs that need not exist; an
+environment-variable prefix is not in that class.
+
+It also **introduced a fail-open**, in the one recipe whose entire purpose is that
+a missing engine must not read as success. A parameter is settable, and `just`
+advertised it in `--list`:
+
+```
+just test-engine       -> 4 errors, exit 1
+just test-engine ""    -> 48 passed, 7 skipped, exit 0   <- green, no engine
+```
+
+An empty string exports as empty, `os.environ.get()` returns `''`, and
+`conftest.py` skipped. A wrapper written as `just test-engine "$REQUIRE"` with
+`REQUIRE` unset is a fully green "engine required" run. On `main` the recipe took
+no arguments and could not be weakened at all. The recipe is back to its original
+form.
+
+`conftest.py` is hardened independently, because the underlying defect was its
+own: it tested truthiness, so `PRUSASLICER_PY_REQUIRE_ENGINE=` in the environment
+disabled the switch by setting it to nothing. It tests membership now.
+
+### #30 is settled by measurement, in the same job
+
+`engine.yml` carried a comment calling `VAR=x cmd` POSIX-only, and #30 records that
+nothing in the repository settled whether that mattered -- `just` documents `sh` on
+Windows, but the repo had no Windows job that could tell.
+
+The `recipes` job now runs `just test-engine` on `windows-latest`, where no engine
+is installed, and requires it to fail **with the require-engine message**. If the
+prefix did not reach the child process the variable would be unset, `conftest`
+would skip, and the run would exit `0`; the only way to get that specific failure
+is for `sh` to have handled the prefix and `conftest` to have seen the variable.
+The comments in `engine.yml` are corrected to say so.
+
+That is a claim the repository can now break, rather than one it can only read.
 
 ### `clean` dispatches per OS, and `[unix]`/`[windows]` are safe where `[doc]` was not
 
@@ -976,6 +1013,19 @@ gate requires it to.
 
 The POSIX half needs no such job: every other CI leg has a working tree and would
 break loudly.
+
+The job also **creates** every artifact `clean` claims to remove before running it.
+Without that, only `.venv` exists after `just setup` -- so the assertion was
+vacuous for five of the six, including the `__pycache__` sweep, which is the half
+of the Windows body most likely to break next and had never been exercised against
+a single input.
+
+And the gate asserts what the job *does*, not merely that it exists. Three edits
+left it named, gating `ok`, and useless: moving it to `ubuntu-latest`, which is a
+plausible cheaper-runner cleanup and silently dispatches `clean` to the POSIX body;
+deleting the assertion step; and replacing `just clean` with anything else. The
+gate's own message claims this job executes the Windows half, so something has to
+make that true -- an unmeasured claim that *loosens* a gate is the expensive kind.
 
 **It caught the first version on its first run**, which is the argument for it.
 `just` executes a recipe body through `sh` on Windows too, not through the

@@ -35,6 +35,10 @@ def engine() -> PrusaSlicer:
         return PrusaSlicer()
     except FileNotFoundError as e:
         message = f"{e} This is an environment fault, not a verdict on the code under test."
-        if os.environ.get(REQUIRE_ENGINE_ENV):
+        # Membership, not truthiness. `PRUSASLICER_PY_REQUIRE_ENGINE=` set to the
+        # empty string is falsy, so `.get()` skipped -- meaning the one switch whose
+        # job is "fail rather than skip" could be turned off by setting it to
+        # nothing, and the run reported green with no engine.
+        if REQUIRE_ENGINE_ENV in os.environ:
             pytest.fail(f"{REQUIRE_ENGINE_ENV} is set but: {message}")
         pytest.skip(message)

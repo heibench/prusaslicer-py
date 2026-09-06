@@ -122,17 +122,21 @@ def _just_recipes() -> dict[str, dict]:
     return dump["recipes"]
 
 
-def _comment_block_above(name: str, lines: list[str]) -> list[str] | None:
-    """The contiguous comment block directly above `name`'s definition.
+def _comment_blocks_above(name: str, lines: list[str]) -> list[list[str]] | None:
+    """One comment block per definition of `name`, in file order.
 
-    None when the definition cannot be located, which is a defect in this helper and
-    is asserted as such rather than skipped -- silently finding nothing is how the
-    first version of this gate passed over the recipes it could not parse.
+    None when no definition can be located, which is a defect in this helper and is
+    asserted as such rather than skipped -- silently finding nothing is how the first
+    version of this gate passed over the recipes it could not parse.
+
+    EVERY definition, not just the last. `clean` has an `[unix]` and a `[windows]`
+    body, and `just --dump` reports only the one for the running platform, so taking
+    a single block left the other unchecked on every platform: the #27 defect could
+    be planted on the `[unix]` half with both doc gates green and `just --list`
+    publishing rationale as the description. Two OS-attributed bodies are both live
+    code, unlike `allow-duplicate-recipes` where the last simply wins.
     """
-    # Scanned from the BOTTOM, because that is `just`'s own precedence: under
-    # `allow-duplicate-recipes` the LAST definition wins, and taking the first matched
-    # a superseded one. It also steps over most text-that-looks-like-code above the
-    # real recipe -- see the blind spot recorded in D2.1.
+    blocks: list[list[str]] = []
     for i in range(len(lines) - 1, -1, -1):
         line = lines[i]
         # `@name:` is a quiet recipe and is still a definition.
@@ -157,8 +161,8 @@ def _comment_block_above(name: str, lines: list[str]) -> list[str] | None:
                 j -= 1
                 continue
             break
-        return block
-    return None
+        blocks.insert(0, block)
+    return blocks or None
 
 
 @pytest.mark.skipif(shutil.which("just") is None, reason="needs the just binary")
@@ -180,11 +184,14 @@ def test_every_recipe_has_exactly_one_doc_comment_line() -> None:
     for name, recipe in sorted(_just_recipes().items()):
         if recipe.get("private"):
             continue
-        block = _comment_block_above(name, lines)
-        if block is None:
+        found = _comment_blocks_above(name, lines)
+        if found is None:
             unlocatable.append(name)
-        elif len(block) != 1:
-            wrong.append(f"{name}: {len(block)} comment line(s) directly above it")
+            continue
+        for n, block in enumerate(found, 1):
+            if len(block) != 1:
+                where = f"{name} (definition {n} of {len(found)})" if len(found) > 1 else name
+                wrong.append(f"{where}: {len(block)} comment line(s) directly above it")
 
     assert not unlocatable, (
         f"this test could not find the definition of {unlocatable} in the justfile, so "
@@ -246,7 +253,9 @@ def test_the_doc_gate_is_not_fooled_by_an_assignment_sharing_a_recipe_name(
         "lint:",
         "    echo hi",
     ]
-    block = _comment_block_above("lint", lines)
+    found = _comment_blocks_above("lint", lines)
+    assert found is not None and len(found) == 1, "expected one `lint` definition"
+    block = found[0]
     assert block is not None, "the recipe must be found, not the assignment"
     assert len(block) == 2, (
         f"expected the RECIPE's two-line block, got {block!r} -- if this is one line the "
@@ -613,6 +622,27 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     assert "needs.recipes.result != 'success'" in text, (
         "the `recipes` job must gate `ok`; it is the only place the Windows half of "
         "`just clean` is executed rather than read"
+    )
+
+    # Asserting the job EXISTS says nothing about what it does. Three edits left it
+    # named, gating, and useless: moving it to `ubuntu-latest` (a plausible "cheaper
+    # runner" cleanup, which silently dispatches `clean` to the POSIX body), deleting
+    # the assertion step, and replacing `just clean` with anything else. The message
+    # above claims this job executes the Windows half -- so something has to make
+    # that true.
+    recipes = re.search(r"^  recipes:\n(?:(?:    .*)?\n)*", text, re.M)
+    assert recipes, "no `recipes` job in ci.yml"
+    body = recipes.group()
+    assert re.search(r"^\s*runs-on:\s*windows-latest\s*$", body, re.M), (
+        "the `recipes` job must run on windows-latest; on Linux `just clean` "
+        "dispatches to the `[unix]` body and the Windows half is never executed"
+    )
+    assert re.search(r"^\s*(-\s*)?run:\s*just clean\s*$", body, re.M), (
+        "the `recipes` job must actually run `just clean`"
+    )
+    assert "just clean left:" in body, (
+        "the assertion after `just clean` is gone, so a `clean` that silently "
+        "removes nothing passes -- which is the bug this job caught on its first run"
     )
     assert "needs.check.result != 'success'" in text, (
         "the `ok` job must require upstream success; testing only for 'failure' "

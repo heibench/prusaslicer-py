@@ -8,18 +8,31 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ### Fixed
 
-- **`just clean` and `just test-engine` work on Windows** (#26). Both were
-  POSIX-only on a project that deliberately supports Windows -- `engine.yml` runs
-  the real engine on `windows-latest`, and the `prusa-slicer-console.exe` handling
-  exists so a Windows contributor is a real contributor. `test-engine` set its
-  environment variable with `VAR=1 cmd`, which is shell syntax; it now uses
-  `just`'s exported recipe parameter, which sets the variable in the child process
-  and needs no shell at all. `clean` gains a `[windows]` body beside the POSIX one.
+- **`just clean` works on Windows** (#26). It used `rm -rf` and GNU `find`, on a
+  project that deliberately supports Windows -- `engine.yml` runs the real engine
+  on `windows-latest`, and the `prusa-slicer-console.exe` handling exists so a
+  Windows contributor is a real contributor. It gains a `[windows]` body beside the
+  POSIX one, dispatched by `just`'s OS attributes.
 
   The Windows body is PowerShell that cannot be exercised on a Linux machine, so a
-  `recipes` CI job runs `just clean` on `windows-latest` and asserts the artifacts
-  are actually gone. Asserting a platform-specific body works by reading it is the
-  defect #25 turned out to be about.
+  `recipes` CI job creates every artifact `clean` claims to remove, runs
+  `just clean` on `windows-latest`, and asserts they are gone. It caught a real bug
+  on its first run: `just` executes recipe bodies through `sh` on Windows too, so a
+  `$_` in the PowerShell body was substituted by `sh` and the recipe deleted
+  nothing while exiting `0`.
+
+  `test-engine` is **unchanged**, and the same finding is why: `VAR=1 cmd` is
+  ordinary `sh` syntax and `just` uses `sh` everywhere, so it was never the
+  portability problem the issue took it for. See D12.
+
+- **`PRUSASLICER_PY_REQUIRE_ENGINE` set to the empty string no longer disables
+  itself.** `conftest.py` tested truthiness, so the one switch whose job is "fail
+  rather than skip when the engine is missing" could be turned off by setting it to
+  nothing, and the run reported green with no engine. It tests membership now.
+  Found because an earlier draft of the #26 fix made the value settable from the
+  command line and exposed it.
+
+### Fixed
 
 - **pre-commit runs in CI, three hooks that did nothing now do, and both ruffs
   are the same ruff** (#25). `.pre-commit-config.yaml` configured eight hooks and

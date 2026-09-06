@@ -91,6 +91,33 @@ jobs:
         with:
           python-version: "3.11"
       - run: just setup
+      # Settles #30 by measurement rather than by reading `just`'s documentation.
+      # `test-engine` prefixes `VAR=1 cmd`, which engine.yml called POSIX-only. If
+      # that were true on Windows the variable would be unset, conftest would SKIP,
+      # and this would exit 0. It must instead fail the way a missing engine fails
+      # -- which is only possible if `sh` handled the prefix and conftest saw the
+      # variable. No engine is installed on this runner, which is what makes the
+      # distinction visible.
+      - name: test-engine reaches conftest on Windows (#30)
+        run: |
+          $out = just test-engine 2>&1 | Out-String
+          Write-Host $out
+          if ($LASTEXITCODE -eq 0) { throw "just test-engine exited 0 with no engine installed" }
+          if ($out -notmatch 'PRUSASLICER_PY_REQUIRE_ENGINE is set but') {
+            throw "failed for some other reason than the engine being required"
+          }
+        shell: pwsh
+      # Without these, only `.venv` exists after `just setup` and the assertion
+      # below is vacuous for five of the six artifacts -- including `__pycache__`,
+      # whose sweep is the half of the Windows body most likely to break next.
+      - name: Create every artifact clean claims to remove
+        run: |
+          New-Item -ItemType Directory -Force dist, .pytest_cache, .ruff_cache, .mypy_cache | Out-Null
+          uv run --locked python -c "import prusaslicer_py"
+          if (-not (Get-ChildItem -Recurse -Directory -Filter __pycache__)) {
+            throw "no __pycache__ was produced, so the sweep would not be exercised"
+          }
+        shell: pwsh
       - run: just clean
       - name: Assert clean actually removed the artifacts
         run: |
