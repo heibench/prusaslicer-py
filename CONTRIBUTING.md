@@ -3,10 +3,16 @@
 ## Getting set up
 
 ```sh
-just setup          # sync the environment
+just setup          # sync the environment from the committed lockfile
+just lock           # re-resolve uv.lock after changing a dependency
 just check          # format check + lint + typecheck
 just test           # the suite
 ```
+
+`uv.lock` is committed and every recipe verifies it, so **changing a dependency turns
+the whole gate red until you re-lock**: `just check` exits `2` saying the lockfile
+needs updating. That is the intended friction, not a broken environment. Run
+`just lock`, commit the result, and carry on.
 
 `just check && just test` is what CI runs. Run it before every commit, and
 never bypass hooks.

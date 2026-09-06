@@ -41,6 +41,51 @@ start a process and read what comes back.
 `mypy` rather than `pyright` for type checking, matching gerberdiff, so a
 contributor moving between members does not meet two type checkers.
 
+### D2.1 -- the lock is verified, never silently repaired (amendment, #23)
+
+"Committed lock" was half a claim: nothing checked it. `just setup` ran `uv sync`,
+which **updates** a stale lockfile rather than failing, and every other recipe
+reaches `uv run`, which locks-and-syncs by default. Measured, with a dependency
+added to `pyproject.toml` and the lock left alone: `uv sync` and `just lint` both
+exited `0` and rewrote `uv.lock`, with no diagnostic on either.
+
+CI runs `just setup`, so the gate could not fail on a stale lock and its green
+said nothing about the dependency set that shipped.
+
+`setup` is `uv sync --locked`, and **every other recipe passes `--locked` to
+`uv run`** -- which matters more locally, because after the first day nobody runs
+`setup` again, so verifying only there fixes CI and leaves the contributor exactly
+where they were.
+
+Per-invocation rather than an exported `UV_LOCKED`, and the trade is real in both
+directions. The exported form needs `lock` to override it with a `VAR=x cmd`
+prefix, and `engine.yml` records that construct as POSIX-only and not runnable on
+its Windows job; whether that record is right is a separate question (#30). `lock`
+is the only way out of a stale lock, so it is the one recipe that must work
+everywhere and must not depend on the answer. `--locked` is also the more portable
+flag by version: uv has accepted it since at least 0.5.5, where `uv lock
+--no-locked` -- the purpose-built escape for the exported form -- landed only in
+0.12.9.
+
+**What it costs is that the guard is fail-open.** An exported variable protects a
+recipe added next year by default; ten explicit flags do not, and a new `uv run`
+without one would silently rewrite the lock at exit 0 -- the exact defect. So the
+convention is gated rather than remembered:
+`tests/test_repo_gates.py::test_every_uv_run_in_the_justfile_is_locked` fails on any
+unflagged `uv run`, and a sibling asserts `uv lock` appears exactly once. A check
+that cannot fail is not a check (`CONTRIBUTING.md`).
+
+**`lock` is the only recipe that writes the lock.** Separate from `setup` on
+purpose: a setup that quietly fixes the thing it is meant to verify is the same
+defect with a friendlier face, which is the whole of #23.
+
+**No `[doc(...)]` attributes anywhere in the justfile.** Unknown attributes are a
+**parse** error in every `just` -- not a warning -- and `[doc]` was only added in
+1.27.0, so one of them breaks *every recipe in the file* for anyone on an older
+one, including Ubuntu 24.04 LTS. The blank line above a recipe's doc comment does
+the same job on any version: `just` takes the last comment line before a recipe as
+its doc string.
+
 ---
 
 ## D3 -- A missing engine skips; asserting it is present is opt-in
