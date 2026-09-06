@@ -29,6 +29,26 @@ jobs:
       - run: just setup
       - run: just check
 
+  # `.pre-commit-config.yaml` claims its hooks check this repository. They ran
+  # only where someone had run `pre-commit install`, and `--no-verify` skipped
+  # them there. Three of them also did nothing even when run -- see D11; they
+  # now carry the flags that make them bite.
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # Needed by the `gitleaks-history` hook, which scans history. The
+          # stock gitleaks hook is `--staged` and scans nothing on a CI
+          # checkout, so without that hook this depth would buy nothing.
+          fetch-depth: 0
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - uses: pre-commit/action@v3.0.1
+
   test:
     name: Test (Python ${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
@@ -59,7 +79,7 @@ jobs:
   ok:
     name: ok
     if: always()
-    needs: [check, test]
+    needs: [check, test, pre-commit]
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -67,7 +87,10 @@ jobs:
       # on `check` produced a fully green PR with nothing checked. Requiring
       # success names the only acceptable state instead of enumerating bad ones.
       - name: Fail unless every upstream job succeeded
-        if: needs.check.result != 'success' || needs.test.result != 'success'
+        if: >-
+          needs.check.result != 'success' ||
+          needs.test.result != 'success' ||
+          needs.pre-commit.result != 'success'
         run: exit 1
       - name: Pass
         run: echo 'All checks passed'

@@ -318,7 +318,7 @@ dev = [
 dev = [
     { name = "mypy", specifier = ">=1.10" },
     { name = "pytest", specifier = ">=8" },
-    { name = "ruff", specifier = ">=0.11" },
+    { name = "ruff", specifier = "==0.16.6" },
 ]
 
 [[package]]

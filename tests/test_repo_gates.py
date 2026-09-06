@@ -13,12 +13,14 @@ import re
 import shutil
 import subprocess
 import tempfile
+import tomllib
 from pathlib import Path
 
 import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 JUSTFILE = ROOT / "justfile"
+PYPROJECT = ROOT / "pyproject.toml"
 
 
 def _resolved_recipe(name: str) -> str:
@@ -542,6 +544,24 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     ci = ROOT / ".github/workflows/ci.yml"
     assert ci.exists(), "ci.yml is gone; the gates in this file guard nothing"
     text = ci.read_text(encoding="utf-8")
+    pre_commit_job = re.search(r"^  pre-commit:\n(?:(?:    .*)?\n)*", text, re.M)
+    assert pre_commit_job, "no `pre-commit` job in ci.yml"
+    # Matched as a key, not as a substring. `fetch-depth: 50` under a comment reading
+    # "was fetch-depth: 0; full history is slow on this runner" satisfied the
+    # substring form -- an ordinary CI optimisation, and per the depth table below
+    # it silently loses the added-then-removed case this hook exists for.
+    assert re.search(r"^\s*(-\s*)?fetch-depth:\s*0\s*$", pre_commit_job.group(), re.M), (
+        "the `pre-commit` job must check out full history. `gitleaks-history` scans "
+        "what the clone contains and says nothing about what it cannot see: on a "
+        "shallow clone a secret added and later removed reports `no leaks found` at "
+        "exit 0, with no warning. Deleting this line reads as a cleanup and silently "
+        "removes the control."
+    )
+    assert "pre-commit/action" in text, (
+        "`ci.yml` no longer runs pre-commit, so `.pre-commit-config.yaml`'s eight "
+        "hooks -- gitleaks included -- are enforced only on machines that installed "
+        "the local hook, which `--no-verify` skips"
+    )
     for recipe in ("just check", "just test"):
         assert re.search(rf"^\s*(-\s*)?run:\s*{re.escape(recipe)}\s*$", text, re.M), (
             f"`ci.yml` no longer runs `{recipe}`, so the gates in this file do not "
@@ -551,7 +571,7 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     # A step or job that is present but never runs satisfies the check above while
     # running nothing. `if: false` on the `check` job was a fully green PR, because
     # the `ok` job tested for 'failure' and a skipped job reports 'skipped'.
-    for job in ("check", "test"):
+    for job in ("check", "test", "pre-commit"):
         block = re.search(rf"^  {job}:\n(?:(?:    .*)?\n)*", text, re.M)
         assert block, f"no `{job}` job in ci.yml"
         body = block.group()
@@ -561,8 +581,15 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
         # `ok` job passes -- a green pull request over a red gate, with no `if:`
         # anywhere. State the positive property instead: these two jobs run
         # unconditionally and their result is the truth.
-        for forbidden in ("if:", "continue-on-error:"):
-            assert not re.search(rf"^\s*{re.escape(forbidden)}", body, re.M), (
+        # `env:` is here because `SKIP=gitleaks,check-yaml` on the pre-commit
+        # action turns those hooks off and reports success -- the same defeat as
+        # `if: false`, one level above where the ban was looking.
+        for forbidden in ("if:", "continue-on-error:", "env:"):
+            # `(-\s*)?` because a step's first key is written `- if: false`, and
+            # `\s*` does not match `-`. Reordering the keys walked the original
+            # `if: false` defeat straight back in. The `run:` assertion above has
+            # used this idiom since it was written; this one had not.
+            assert not re.search(rf"^\s*(-\s*)?{re.escape(forbidden)}", body, re.M), (
                 f"the `{job}` job (or a step in it) carries `{forbidden}`, which per "
                 "GitHub's documented behaviour lets it not run, or report success "
                 "when it failed, while every gate in this file stays green. "
@@ -821,3 +848,73 @@ def test_mypy_actually_examined_every_tracked_module() -> None:
         f"every count-based gate stays green: {unexamined}"
     )
     assert not missing, f"mypy never saw these tracked modules at all: {missing}"
+
+
+def test_both_ruff_pins_name_one_version() -> None:
+    """Two ruffs formatting one repository is a `commit` / `check` split.
+
+    `.pre-commit-config.yaml` pinned ruff `v0.11.12` while the dev group asked for
+    `ruff>=0.11`, which resolved to `0.16.6`. That is not a hypothetical drift: the
+    older ruff raised `UP038` on `isinstance(node, (ast.Module, ast.ClassDef, ...))`
+    in this repository's own test file, and the newer one does not have the rule.
+    A contributor with hooks installed could not commit code that CI accepts.
+
+    So both pins are exact and this holds them equal, which means bumping one alone
+    fails here instead of drifting quietly. Ported from partspec's
+    `tests/test_lint_config.py`, which exists for the same defect.
+
+    Parsed with a regex rather than YAML: pyyaml is not a dependency of this
+    project, and adding one to read four lines would be the heavier fix.
+    """
+    dev = tomllib.loads(PYPROJECT.read_text(encoding="utf-8"))["dependency-groups"]["dev"]
+    pinned = [d for d in dev if d.startswith("ruff")]
+    assert len(pinned) == 1, f"expected one ruff pin in the dev group, got {pinned}"
+    assert pinned[0].startswith("ruff=="), f"the pin must be exact `==`, not {pinned[0]!r}"
+    assert "*" not in pinned[0], f"the pin must be exact, not {pinned[0]!r}"
+
+    # The RESOLVED version, not the declared one. A declared `ruff==0.16.6` can still
+    # run a different ruff: `[tool.uv] override-dependencies = ["ruff==0.14.0"]`
+    # resolves to 0.14.0 with every gate green, measured. `uv.lock` is what `uv run`
+    # actually installs, so it is the only version worth comparing against.
+    lock = tomllib.loads((ROOT / "uv.lock").read_text(encoding="utf-8"))
+    resolved = [pkg["version"] for pkg in lock["package"] if pkg["name"] == "ruff"]
+    assert len(resolved) == 1, f"expected one ruff in uv.lock, got {resolved}"
+    running = resolved[0]
+    assert pinned[0] == f"ruff=={running}", (
+        f"the dev group declares {pinned[0]!r} but `uv.lock` resolves ruff {running}"
+    )
+
+    # Read line-wise at the repo item's key indent, rather than flattening the file
+    # and pattern-matching across it. Flattening was defeated twice: once by a
+    # comment reading `ruff-pre-commit rev: v0.16.6`, and once by a folded-scalar
+    # hook `name:` containing the same words while the real `rev:` named another
+    # version. Both worked because a flattened document has no structure left to
+    # anchor on.
+    #
+    # A block scalar's continuation must be indented deeper than its own key, so it
+    # cannot masquerade as a four-space `rev:` at repo-item level. That closes the
+    # class rather than the two instances, and fixes a false positive too: a second
+    # legitimate ruff-pre-commit block at the same rev used to read as a mismatch.
+    # pyyaml would also close it; it is not a dependency here and this is a dozen
+    # lines, so it stays out -- but the reason is the size of the fix, not that a
+    # regex is adequate for YAML.
+    revs = []
+    in_ruff_repo = False
+    for line in (ROOT / ".pre-commit-config.yaml").read_text(encoding="utf-8").splitlines():
+        bare = line.split("#", 1)[0].rstrip()
+        if re.match(r"^  - repo:", bare):
+            in_ruff_repo = "ruff-pre-commit" in bare
+            continue
+        if in_ruff_repo:
+            found = re.match(r"^    rev:\s*v?(\S+)$", bare)
+            if found:
+                revs.append(found.group(1))
+    assert revs, "could not find the ruff-pre-commit rev"
+    # `set(...)`, because two legitimate ruff-pre-commit blocks at the same rev are
+    # not a mismatch. The line-wise rewrite changed how revs are collected and left
+    # this comparison alone, so the false positive it was credited with fixing
+    # survived it -- and the failure message read "pins ['0.16.6', '0.16.6'] but
+    # installs 0.16.6", stating the versions match while failing on them.
+    assert set(revs) == {running}, (
+        f"pre-commit pins {sorted(set(revs))} but `uv run` installs ruff {running}"
+    )

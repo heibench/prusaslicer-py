@@ -715,3 +715,214 @@ on `check` produced a fully green pull request with nothing checked. Past that, 
 runner told to execute nothing executes nothing, and no test can observe that from
 inside a process that was never started. That is a different threat model from
 drift, and it is visible in a diff.
+
+---
+
+## D11 -- pre-commit is enforced, and one ruff formats this repository
+
+**Decided:** 2026-09-06 (issue #25)
+
+`.pre-commit-config.yaml` makes a claim: eight hooks check this repository. It was
+true only on machines where somebody had run `pre-commit install`, and `--no-verify`
+skipped it there. `ruff` and `ruff-format` were covered independently by
+`just check`; the other six were not covered at all.
+
+**`gitleaks` is why this is a job and not a note.** Secret detection that runs only
+where it was opted into is not a control. A commit pushed from a fresh clone
+reaches `main` unscanned, and this repository is public.
+
+### Running a hook is not the same as the hook checking anything
+
+The first version of this entry said the job made eight hooks real, and that
+`fetch-depth: 0` mattered because gitleaks scans history. **Both were wrong**, and
+they were wrong in the way this repository is supposed to catch: stated from
+reading a config rather than from watching a check fail.
+
+Three of the eight were no-ops even once CI ran them, measured on a repository
+with a secret, a 2 MB binary and a file full of conflict markers all **committed**
+and the tree clean:
+
+```
+Detect hardcoded secrets.................................................Passed
+check for merge conflicts................................................Passed
+check for added large files..............................................Passed
+```
+
+* The stock gitleaks hook is `gitleaks git --pre-commit --redact --staged`. On a
+  CI checkout the index equals `HEAD`, so `git diff --staged` is empty and it
+  scans **zero bytes**. The positive control -- the same secret merely *staged* --
+  reports `leaks found: 1`, so the hook works and the invocation never asks it to
+  look.
+* `check-added-large-files` intersects its filenames with
+  `git diff --staged --diff-filter=A`, empty for the same reason.
+* `check-merge-conflict` returns 0 immediately unless the repository is mid-merge.
+
+So `fetch-depth: 0` was pure cost, and issue #25's actual complaint -- a commit
+reaching `main` unscanned -- was not fixed by running the hooks.
+
+A second gitleaks hook, aliased `gitleaks-history`, overrides the entry to
+`gitleaks git --redact --verbose` and scans history; the other two now carry
+`--enforce-all` and `--assume-in-merge`. On that same committed-secret tree all
+three go red, and `fetch-depth: 0` is now load-bearing rather than decorative.
+
+`CONTRIBUTING.md` says it exactly: *a check that cannot fail is not a check; break
+the thing it checks and watch it go red before you trust it.* That was not done
+for these three, and the cost was a security control that existed only on paper --
+in a decision record, which by this repo's own rule is not to be relitigated.
+
+**All nine hooks are now measured red-capable**, one planted defect each, not
+inferred from configuration: trailing whitespace, a missing final newline, invalid
+YAML, an unfixable `F821`, an autofixable `F401`, a 146-character line, unformatted
+code, and the three above. The `E501` probe is the useful one -- it fails at 100
+characters rather than ruff's default 88, which shows the hook reads this repo's
+`[tool.ruff]` rather than merely running the same binary as `just check`.
+
+### Two gitleaks hooks, and neither is redundant
+
+They cover different things and a future reader will otherwise delete one.
+Verified on the real `git commit` path: committing a new secret fails the
+`--staged` hook while the history hook passes, because the commit in flight is not
+yet in history. The history hook covers what is already there. Neither alone is
+sufficient.
+
+**What the history hook cannot do is see past the clone.** On a shallow clone a
+secret added and later removed reports `no leaks found` at exit `0` -- no warning,
+no diagnostic. Measured: full clone and `--depth 7` catch it, `--depth 5` and
+below do not. So `fetch-depth: 0` is the whole control, and
+`test_ci_runs_the_gates_that_guard_all_of_this` asserts it: deleting that line
+reads as a cleanup and would silently remove the protection. A secret still present
+in `HEAD` is caught at any depth; it is the added-then-removed case that needs the
+history, and that is the case the hook exists for.
+
+Pinning `rev:` to a commit SHA rather than a tag currently fails the pin gate,
+which compares against a version string. `pre-commit autoupdate` writes tags so it
+will not bite soon, but if this repository ever adopts supply-chain SHA pinning for
+hook repos, that test has to be taught first.
+
+If a real secret ever does land, `.gitleaksignore` with the reported fingerprint is
+the escape hatch. Recorded because without knowing it, the first true positive
+makes the hook permanently red for everyone and it gets deleted under pressure --
+which is how a control dies.
+
+### The job was watched failing, not reasoned about
+
+Every red proof in this issue was local, across three review rounds, and the one
+thing left asserted rather than observed was the part this repository has been
+burned by before: that the job *gates* rather than merely *runs*. `ci.yml` records
+that `contains(needs.*.result, 'failure')` once missed `'skipped'` and produced a
+fully green pull request with nothing checked. Reasoning about that wiring is what
+produced every other defect in this entry.
+
+So it was measured. A throwaway branch planted trailing whitespace **in a markdown
+file** -- ruff, mypy and pytest do not read `.md`, so the failure is isolated to
+one hook -- and
+[run 34062300790](https://github.com/heibench/prusaslicer-py/actions/runs/34062300790)
+gives:
+
+```
+pre-commit: failure
+Check: success
+Test (Python 3.11, 3.12, 3.13, windows-latest): success
+ok: failure
+```
+
+`ok` going red with every other job green can only be
+`needs.pre-commit.result != 'success'` evaluating correctly, which also settles
+that a hyphenated job id dereferences as expected. The branch was deleted; the run
+id is the record.
+
+One thing stays unmeasured and is labelled as such in the gate itself:
+`continue-on-error` and `paths-ignore` are rejected on GitHub's documented
+behaviour, not on a run anyone has watched. That is deliberate, and the reason is
+the general rule this entry was actually teaching.
+
+**The distinction that matters is not measured versus inferred. It is which way
+the inference fails if it is wrong.** Every inference that cost something here
+failed *open* -- it made a control weaker than the record claimed. "gitleaks scans
+history" meant it scanned zero bytes; "a substring guards `fetch-depth`" meant a
+shallow clone passed. Those two bans fail *closed*: rejecting `continue-on-error:`
+or `paths-ignore:` can only refuse a configuration, never accept one. If the
+documented behaviour is wrong, the whole consequence is that somebody writing a
+legitimate `paths-ignore:` gets a red test with an explanation and loses five
+minutes. It cannot produce a green pull request over a red gate.
+
+So the rule is not "measure everything", which would be unaffordable and would
+dilute the ones that matter. It is: **an unmeasured claim that can only tighten a
+gate is a different risk class from one that can loosen it, and only the second
+kind earns a probe.** F1 was expensive precisely because it was the second kind,
+written as though it were the first.
+
+### The recurring failure here is a line-oriented pattern over YAML
+
+Three separate defeats in this issue came from the same place, and it is worth
+naming as a class rather than three incidents: a comment supplying a decoy `rev:`;
+a folded-scalar hook `name:` doing the same; and a forbidden key written as a
+step's first key, `- if: false`, where the guard's `^\s*` could not match the `-`.
+None needed an adversary and none needed unusual YAML -- mapping keys are
+unordered, so the reordering that defeated two of them is just as valid a document.
+
+Both rev gates now anchor on structure -- indentation and key position -- rather
+than matching text in a flattened document. Note that the `fetch-depth` guard
+added alongside them did **not**: it was a substring over a block containing
+comments, so `fetch-depth: 50` under a comment reading "was fetch-depth: 0; full
+history is slow on this runner" satisfied it, and per the depth table above that
+silently loses the added-then-removed case. The class named in this section was
+reintroduced in the commit that named it, which is the strongest evidence that
+naming it was right. It is matched as a key now.
+
+A related correction: this entry credited the line-wise rewrite with fixing a false
+positive on a second legitimate `ruff-pre-commit` block at the same rev. It did
+not -- the rewrite changed how revs are collected and left the `== [running]`
+comparison alone, so two identical revs still failed, with a message reading "pins
+['0.16.6', '0.16.6'] but installs 0.16.6". That claim was written from reading the
+new code rather than from watching the old complaint go green, which is the exact
+habit this whole entry is about. It is a set comparison now, verified both ways.
+
+`pyyaml` would close the class outright and
+is deliberately not added: it would be a dependency to read four lines, and the
+line-wise reads are a dozen. That is a size judgement, not a claim that a regex is
+adequate for YAML.
+
+### One ruff, exactly
+
+The pins had already drifted. pre-commit named `v0.11.12`; the dev group asked for
+`ruff>=0.11`, which resolved to `0.16.6`. Measured rather than assumed: the older
+ruff raises `UP038` on
+
+```python
+isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
+```
+
+in `tests/test_repo_gates.py`, and the newer one does not carry that rule at all.
+So a contributor with hooks installed could not commit code that CI accepts, and
+the failure would have read as their mistake.
+
+Both pins are now exact and equal, held by
+`tests/test_repo_gates.py::test_both_ruff_pins_name_one_version`, ported from
+partspec's `tests/test_lint_config.py` -- the same defect, found there first. An
+inexact pin on either side fails it, so bumping one alone is a red gate rather than
+a quiet split between what `git commit` writes and what `just check` rejects.
+
+The gate compares the **resolved** version from `uv.lock`, not the declared one.
+Declaring `ruff==0.16.6` does not mean `uv run` installs it:
+`[tool.uv] override-dependencies = ["ruff==0.14.0"]` resolves to 0.14.0 with every
+gate green, measured. `uv.lock` is what actually gets installed, so it is the only
+version worth comparing. Comments are stripped before the `rev:` is read, because
+a comment reading `ruff-pre-commit rev: v0.16.6` satisfied the earlier regex while
+the real `rev:` sat lower in the block naming a different version.
+
+Note what this does *not* claim. The gate holds the two version strings equal; it
+does not verify that two builds of the same version format identically, which
+nothing here can. Equal versions is the strongest available guarantee, not a proof.
+
+### It found something before it was merged
+
+Adding the job to `ci.yml` introduced a YAML syntax error -- a plain-scalar `if:`
+continued on an under-indented line, which is not the value it looks like.
+`just check` cannot see that: `ruff` and `mypy` read Python, and nothing else in
+the gate reads YAML. `check-yaml` caught it on the first run, in the very file
+that adds the job.
+
+That is the argument for this entry in one line. The six unenforced hooks were not
+covering a hypothetical gap, and the first thing enforcing them found was a real
+defect in the change that enforced them.

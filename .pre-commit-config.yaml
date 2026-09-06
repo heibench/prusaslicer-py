@@ -3,6 +3,17 @@ repos:
     rev: v8.27.2
     hooks:
       - id: gitleaks
+      # The stock hook is `gitleaks git --pre-commit --staged`, which scans
+      # `git diff --staged`. On a CI checkout the index equals HEAD, so it scans
+      # zero bytes and passes -- measured: a committed secret with a clean tree
+      # gives "Passed", and the same secret staged gives "leaks found: 1". A check
+      # that cannot fail is not a check, so this second hook scans history, which
+      # is what makes `fetch-depth: 0` in ci.yml load-bearing.
+      - id: gitleaks
+        alias: gitleaks-history
+        name: Detect hardcoded secrets in history
+        entry: gitleaks git --redact --verbose
+        always_run: true
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v5.0.0
@@ -10,12 +21,25 @@ repos:
       - id: trailing-whitespace
       - id: end-of-file-fixer
       - id: check-yaml
+      # Both need a flag or they are no-ops under `--all-files`:
+      # check-merge-conflict returns 0 unless the repo is mid-merge, and
+      # check-added-large-files intersects with `git diff --staged --diff-filter=A`,
+      # which is empty on a CI checkout. Measured: a committed 2 MB binary and a
+      # committed file full of conflict markers both passed without these.
       - id: check-merge-conflict
+        # `--assume-in-merge` makes this an always-on content scan rather than a
+        # mid-merge-only one, which is the point -- but it means any bare
+        # `=======` line fails, including a setext markdown heading or a code
+        # block quoting example conflict output. This is a prose-heavy repo and
+        # `docs/DECISIONS.md` discusses conflict markers; if that trips, the hook
+        # is working and the file needs a fence or an `exclude:`, not a revert.
+        args: [--assume-in-merge]
       - id: check-added-large-files
+        args: [--enforce-all]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.11.12
+    rev: v0.16.6
     hooks:
-      - id: ruff
+      - id: ruff-check
         args: [--fix]
       - id: ruff-format
