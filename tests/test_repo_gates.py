@@ -640,9 +640,23 @@ def test_ci_runs_the_gates_that_guard_all_of_this() -> None:
     assert re.search(r"^\s*(-\s*)?run:\s*just clean\s*$", body, re.M), (
         "the `recipes` job must actually run `just clean`"
     )
-    assert "just clean left:" in body, (
+    # Matched as a line, not a substring -- the same lesson twelve lines above, and
+    # I made the same mistake again here. A comment left behind while removing the
+    # step ("the old step threw \"just clean left: $stale\"; removed as flaky")
+    # satisfies a substring test.
+    assert re.search(r'^\s*if \(\$stale\) \{ throw "just clean left:', body, re.M), (
         "the assertion after `just clean` is gone, so a `clean` that silently "
         "removes nothing passes -- which is the bug this job caught on its first run"
+    )
+    assert "no __pycache__ was produced" in body, (
+        "the step that creates the artifacts before `just clean` is gone. Without it "
+        "only `.venv` exists after `just setup`, so the assertion is vacuous for five "
+        "of the six and the `__pycache__` sweep is exercised against no input at all"
+    )
+    assert "PRUSASLICER_PY_REQUIRE_ENGINE is set but" in body, (
+        "the #30 step is gone. D12 says #30 is settled by measurement in this job, "
+        "and `engine.yml` cites it twice -- delete the step and three prose sites "
+        "assert a measurement nothing performs, which is #30's own complaint"
     )
     assert "needs.check.result != 'success'" in text, (
         "the `ok` job must require upstream success; testing only for 'failure' "

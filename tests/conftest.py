@@ -11,10 +11,25 @@ import pytest
 
 from prusaslicer_py.slicer import PrusaSlicer
 
-#: Set to a non-empty value to turn a missing engine into a hard failure.
+#: Set to ANY value, the empty string included, to turn a missing engine into a
+#: hard failure. Presence is the switch; see `engine_required`.
 #: CI sets this on runners where the engine is expected to be installed, so
 #: that "the engine is missing" cannot quietly masquerade as a green run.
 REQUIRE_ENGINE_ENV = "PRUSASLICER_PY_REQUIRE_ENGINE"
+
+
+def engine_required() -> bool:
+    """Whether a missing engine must fail rather than skip.
+
+    Membership, not truthiness. `.get()` made `PRUSASLICER_PY_REQUIRE_ENGINE=` --
+    set to the empty string -- falsy, so the one switch whose job is "a missing
+    engine must not read as green" could be turned off by setting it to nothing,
+    and the run reported green with no engine.
+
+    Extracted from the fixture so it can be tested without an engine-free machine;
+    `test_engine.py` asserts the empty string still requires.
+    """
+    return REQUIRE_ENGINE_ENV in os.environ
 
 
 @pytest.fixture
@@ -35,10 +50,6 @@ def engine() -> PrusaSlicer:
         return PrusaSlicer()
     except FileNotFoundError as e:
         message = f"{e} This is an environment fault, not a verdict on the code under test."
-        # Membership, not truthiness. `PRUSASLICER_PY_REQUIRE_ENGINE=` set to the
-        # empty string is falsy, so `.get()` skipped -- meaning the one switch whose
-        # job is "fail rather than skip" could be turned off by setting it to
-        # nothing, and the run reported green with no engine.
-        if REQUIRE_ENGINE_ENV in os.environ:
+        if engine_required():
             pytest.fail(f"{REQUIRE_ENGINE_ENV} is set but: {message}")
         pytest.skip(message)

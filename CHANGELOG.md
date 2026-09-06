@@ -32,8 +32,6 @@ All notable changes to prusaslicer-py are documented here. Follows
   Found because an earlier draft of the #26 fix made the value settable from the
   command line and exposed it.
 
-### Fixed
-
 - **pre-commit runs in CI, three hooks that did nothing now do, and both ruffs
   are the same ruff** (#25). `.pre-commit-config.yaml` configured eight hooks and
   CI ran none of them, so six were enforced only where somebody had run

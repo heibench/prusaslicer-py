@@ -111,6 +111,30 @@ jobs:
           # it was checking for and reports red on success.
           exit 0
         shell: pwsh
+      # Informational: which `rm` and `find` the POSIX body would actually get here.
+      # Windows ships C:\Windows\System32\find.exe -- a different program entirely --
+      # and `just` runs `sh` with the inherited Windows environment, so which one wins
+      # is PATH-order dependent. This step states the answer rather than guessing it.
+      - name: What the POSIX clean body would resolve to here (informational)
+        run: sh -cu 'command -v rm; command -v find; find --version 2>&1 | head -1'
+        shell: pwsh
+      # Does `clean` fail LOUDLY when a real error stops it? `rm -rf` exits non-zero
+      # and `just` aborts the recipe. PowerShell's `Remove-Item` raises a
+      # NON-terminating error, and the `__pycache__` sweep runs after it and always
+      # succeeds -- so the body may exit 0 having removed nothing. That is the failure
+      # this repository is named around, so it is measured rather than assumed.
+      - name: clean fails loudly when a real error stops it
+        run: |
+          $h = [System.IO.File]::Open("$pwd\.venv\pyvenv.cfg", 'Open', 'Read', 'None')
+          just clean
+          $ec = $LASTEXITCODE
+          $h.Close()
+          if ($ec -eq 0) {
+            throw "just clean exited 0 while .venv was locked open and could not be removed"
+          }
+          exit 0
+        shell: pwsh
+      - run: just setup
       # Without these, only `.venv` exists after `just setup` and the assertion
       # below is vacuous for five of the six artifacts -- including `__pycache__`,
       # whose sweep is the half of the Windows body most likely to break next.

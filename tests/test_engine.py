@@ -12,6 +12,10 @@ reports as a single skipped line and takes every test in the file with it.
 
 import shutil
 
+import pytest
+
+from tests.conftest import REQUIRE_ENGINE_ENV, engine_required
+
 
 def test_engine_resolves_to_something_runnable(engine):
     """Whatever the wrapper resolved, it is a real, invocable engine.
@@ -49,3 +53,25 @@ def test_slice_produces_gcode_with_the_real_engine(engine, tmp_path):
     assert result.output_path == out
     assert result.size_bytes > 0
     assert out.read_text().strip(), "slice_model returned but the G-code is blank"
+
+
+@pytest.mark.parametrize("value", ["1", "", "0", "false"])
+def test_any_value_requires_the_engine_including_the_empty_string(
+    value: str, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The switch is presence, and the empty string is the case that bit.
+
+    `os.environ.get()` returns `''` for `PRUSASLICER_PY_REQUIRE_ENGINE=`, which is
+    falsy, so the fixture skipped -- the one control that exists so a missing engine
+    cannot read as green, turned off by setting it to nothing. `"0"` and `"false"`
+    are here because they are falsy to a reader, not to this function; requiring on
+    them is the fail-closed direction and is deliberate.
+    """
+    monkeypatch.setenv(REQUIRE_ENGINE_ENV, value)
+    assert engine_required(), f"{value!r} did not require the engine"
+
+
+def test_the_switch_is_off_when_the_variable_is_absent(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The other half: without it, a missing engine skips rather than failing."""
+    monkeypatch.delenv(REQUIRE_ENGINE_ENV, raising=False)
+    assert not engine_required()
