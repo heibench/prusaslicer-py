@@ -106,6 +106,10 @@ jobs:
           if ($out -notmatch 'PRUSASLICER_PY_REQUIRE_ENGINE is set but') {
             throw "failed for some other reason than the engine being required"
           }
+          # The step asserts a NON-ZERO exit, and GitHub's pwsh wrapper ends with
+          # `exit $LASTEXITCODE` -- so without this the step leaks the very failure
+          # it was checking for and reports red on success.
+          exit 0
         shell: pwsh
       # Without these, only `.venv` exists after `just setup` and the assertion
       # below is vacuous for five of the six artifacts -- including `__pycache__`,
