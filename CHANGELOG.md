@@ -6,6 +6,8 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ## [Unreleased]
 
+## [0.2.0] — 2026-09-06
+
 ### Fixed
 
 - **`just clean` works on Windows** (#26). It used `rm -rf` and GNU `find`, on a
@@ -159,5 +161,6 @@ First release. Notable, given this began as a thin `subprocess` wrapper:
 - PrusaSlicer's captured `--help` output is no longer committed; regenerate it
   with `just capture-cli` (D8).
 
-[Unreleased]: https://github.com/heibench/prusaslicer-py/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/heibench/prusaslicer-py/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/heibench/prusaslicer-py/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/heibench/prusaslicer-py/releases/tag/v0.1.0
