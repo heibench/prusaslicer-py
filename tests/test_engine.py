@@ -35,7 +35,20 @@ def test_engine_resolves_to_something_runnable(engine):
 
 
 def test_check_version_against_real_engine(engine):
-    assert engine.check_version().strip(), "engine returned an empty version string"
+    """A real engine states a version, and it is a version rather than a line.
+
+    The banner is what identifies it; asserting only that the returned string is
+    non-empty passed against a startup preamble, which is how #34 survived a
+    green suite on every host that had an engine at all.
+    """
+    banner = engine.check_version()
+    assert banner.startswith("PrusaSlicer-"), f"not a version banner: {banner!r}"
+
+    result = engine.version_info()
+    assert result.banner == banner, "check_version is version_info().banner"
+    assert result.version, "engine returned an empty version"
+    assert result.version[0].isdigit(), f"not a version: {result.version!r}"
+    assert result.version in banner
 
 
 def test_generate_help_against_real_engine(engine):

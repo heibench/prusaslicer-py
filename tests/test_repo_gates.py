@@ -348,7 +348,12 @@ _NOT_A_NAME = {
     "Contents/Resources/PrusaSlicer/shapes",
     "PrusaSlicer exited ",
     "PrusaSlicer exited 0 but ",
+    "PrusaSlicer exited 0 but stated no version in its --help output",
     "share/PrusaSlicer/shapes",
+    # The version banner pattern (#34). It matches what the engine PRINTS about
+    # itself, which is not a name anything is invoked by -- pasting it into
+    # another module would start nothing.
+    "^PrusaSlicer-(?P<version>\\d\\S*)",
 }
 
 #: The file allowed to contain one, and the directory allowed to. `slicer.py` is

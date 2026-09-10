@@ -8,6 +8,29 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ### Fixed
 
+- **`check_version()` no longer returns a build's startup preamble as its
+  version** (#34). It took the first non-empty line of `--help`; on any build
+  that prints something above its version banner, that something came back as
+  the version at exit `0`, with no error and no way for the caller to tell. The
+  native Windows console build opens with `System OpenGL library successfully
+  released` and states its version below it, so that is what it returned there.
+  The Linux Flathub build prints no preamble, which is why every local run
+  agreed with the code.
+
+  The banner is now *matched* (`PrusaSlicer-<version>`, at column 0, in either
+  output stream) rather than counted to, and when nothing identifies itself as
+  one, `VersionUnreadableError` is raised instead of a string being returned.
+  **The signature is unchanged**: `check_version()` still returns `str`, and on
+  every build that prints no preamble it returns exactly what it returned in
+  0.2.0.
+
+- **An engine that cannot be started raises `VersionEngineError` rather than a
+  bare `OSError`.** A `slicer_path` pointing at a file that is not there raised
+  `FileNotFoundError`, and one pointing at a file that is not executable raised
+  `PermissionError` -- neither caught by `except VersionError`, under a
+  docstring promising three outcomes. `returncode` is `None` on those, because
+  there was never an exit status.
+
 - **An engine that is installed but cannot run is now an environment fault
   rather than three failing tests** (#33). `tests/conftest.py` decided whether
   to skip by catching `FileNotFoundError` from `PrusaSlicer()`, which sees an
@@ -20,6 +43,11 @@ All notable changes to prusaslicer-py are documented here. Follows
   wrong" from "the engine never started".
 
 ### Added
+
+- **`PrusaSlicer.version_info()`**, returning a `VersionResult` with the version
+  (`2.9.6+flathub.org`), the `banner` it was read from, and the engine's
+  `returncode`, `stdout` and `stderr`. `check_version()` is exactly its
+  `.banner`. Additive: nothing has to move to keep working. See D13.
 
 - **`PrusaSlicer.probe()`**, which asks the engine to answer `--help` and
   returns an `EngineProbe` describing what it said, or raises

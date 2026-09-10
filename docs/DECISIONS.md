@@ -1115,6 +1115,119 @@ find.
 
 ---
 
+## D13 -- `check_version` matches the banner, and says when there is none
+
+**Decided:** 2026-09-09 (issue #34)
+
+`check_version` took the first non-empty line of `--help` and returned it as
+the version. On any build that prints something before its banner it returned
+that something -- at exit `0`, with no error, and no channel for the caller to
+learn otherwise. The native Windows console build opens `--help` with `System
+OpenGL library successfully released` and states its version on the line below,
+so that is what it returned there.
+
+The Linux Flathub build prints no preamble. That is why the defect survived
+every local run: the shape it was measured against was one build's, and the
+comment above the code recorded that shape as though it were the format.
+
+### The line is matched, not counted to
+
+The banner identifies itself -- `PrusaSlicer-<version> based on Slic3r ...` --
+so the version is read from the first line matching
+`^PrusaSlicer-(\d\S*)`, wherever in the output it appears. Three choices
+inside that pattern, each of which had to be argued rather than assumed:
+
+- **`based on Slic3r` is not required.** It is on every build seen so far, but
+  requiring it would answer *could not tell* for a version that is plainly
+  there, and the org contract warns against refusing more than the question
+  requires (§2.3) as squarely as it warns against guessing.
+- **The digit is.** Without it the pattern matches `PrusaSlicer-Py`, which is
+  this package's own name, and a build that greeted with it would have that
+  greeting returned as its version -- the defect, one product name over.
+  `test_the_banner_needs_a_digit_not_just_the_product_name` exercises exactly
+  that, because a discriminator with no case that needs it is a comment.
+- **The match is at column 0 of the raw line.** The banner is the first thing
+  the engine prints and is not indented. Stripping first only widens what can
+  be mistaken for a banner, and an indented `PrusaSlicer-2.9.6` is help text.
+
+**Both streams are searched, stdout first.** `--help` goes to stdout on every
+build seen here, but a startup banner is exactly the kind of thing a build
+sends to stderr, and which stream it lands on is not something one host can
+establish. Both are already captured, so answering *could not tell* while
+holding the answer in a field would be a self-inflicted third outcome.
+
+### The third outcome is the exception, not the return type
+
+`-> str` was not the defect. Returning a `str` **for output that states no
+version** was. Those are separable, and separating them is what this entry
+settles:
+
+```python
+def check_version(self) -> str:  # unchanged, and 0.2.0-compatible
+    ...
+    if found is None:
+        raise VersionUnreadableError(...)  # the third outcome lives here
+    return banner
+```
+
+§2.1 is satisfied in full -- *satisfied*, *violated*, *could not tell*, and the
+third never returns a value -- with nothing broken. `VersionError` subclasses
+`RuntimeError`, which is what this method raised before any of these types
+existed, so a caller that already handled failure keeps working unchanged.
+
+**An earlier draft of this entry broke the return type and argued from
+necessity: that no `str` could be handed back, so every scheme keeping one
+reintroduced the silence. That argument was wrong**, and it was wrong in a way
+worth recording. It conflated *keeping a `str` return type* with *returning a
+`str` in the no-version case*. Raising does neither.
+
+The draft also cited §2.1 and never engaged §5 or §10, which is where the cost
+of being wrong sat. §5's second paragraph closes the pre-1.0 escape for drivers
+specifically: "For a driver the equivalent surface is **what the call returns**
+and what it guarantees about the engine's output." This is a driver, so
+`check_version`'s return value is the report-schema analogue, §10's "changing a
+report schema in a released tool" applies, and 0.1.0 and 0.2.0 are both
+published with a README documenting `print(slicer.check_version())`. The
+non-breaking shape removes that escalation rather than resolving it, which is
+strictly better than winning the argument.
+
+### `version_info()` is additive, and that is all it is
+
+The parts are genuinely useful -- the version alone (`2.9.6+flathub.org`), and
+the engine's own output beside it -- so `version_info()` returns a
+`VersionResult` carrying `version`, `banner`, `returncode`, `stdout` and
+`stderr`, matching what D5 settled for `slice_model`: failure carries the same
+fields as success, and the evidence travels with the claim. `check_version()`
+is exactly its `.banner`.
+
+A benefit is not a necessity. This ships because it is worth having, not
+because the fix required it, and nothing has to move to keep working.
+
+### Four outcomes were possible under a docstring promising three
+
+`version_info` caught only `subprocess.CalledProcessError`. A `slicer_path`
+pointing at a file that is not there raises `FileNotFoundError`; one pointing at
+a file that is not executable raises `PermissionError`. Reproduced:
+
+```
+/definitely/not/here/prusa-slicer: NOT a VersionError -> FileNotFoundError: [Errno 2] ...
+/etc/hostname:                     NOT a VersionError -> PermissionError:  [Errno 13] ...
+```
+
+Neither is a `VersionError`, and the README recommends `except VersionError`.
+`OSError` is caught and re-raised as `VersionEngineError` with `returncode=None`
+-- there was never an exit status, and a stand-in integer would be a number
+nothing measured. D14 reaches the same conclusion for `probe()` independently,
+which is the tell that it is the right one.
+
+### What is not changed
+
+`--help` is still the source. PrusaSlicer has no `--version` flag -- 2.9.6
+answers `Unknown option --version` and exits 1 -- so D9 stands. The defect was
+in which line was taken, not in the flag.
+
+---
+
 ## D14 -- Discovery establishes installed; `probe()` establishes usable
 
 **Decided:** 2026-09-09 (issue #33)
