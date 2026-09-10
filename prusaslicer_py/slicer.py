@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import subprocess
 from dataclasses import dataclass
@@ -11,6 +12,55 @@ from pathlib import Path
 # failure for a slice that succeeded. The codec itself is left as Python's
 # locale default, because no single choice is right on every platform; what
 # matters is that a byte we cannot decode never becomes a verdict.
+
+
+#: The version banner PrusaSlicer prints somewhere in `--help`:
+#:
+#:     PrusaSlicer-2.9.6+flathub.org based on Slic3r (with GUI support)
+#:
+#: Matched rather than counted to. Taking the first non-empty line instead
+#: returned a startup preamble as the version on any build that prints one --
+#: the native Windows console build opens with "System OpenGL library
+#: successfully released" and states its version below it (#34).
+#:
+#: The trailing "based on Slic3r" is deliberately NOT required. It is present on
+#: every build seen so far, but requiring it would turn a build that drops it
+#: into "could not tell" for a version that is right there; a line beginning
+#: `PrusaSlicer-` followed by a digit is already something no driver preamble
+#: produces.
+#:
+#: The digit is the discriminator and it is load-bearing: without it this
+#: matches `PrusaSlicer-Py`, which is this package's own name and not a version,
+#: and any build that greets with it would answer that as its version.
+#: `test_the_banner_needs_a_digit_not_just_the_product_name` is why that is a
+#: claim rather than an assertion.
+#:
+#: Matched at column 0 against the raw line, not a stripped one. The banner is
+#: the first thing the engine prints and is not indented; accepting a leading
+#: run of whitespace only widens what can be mistaken for it.
+_VERSION_BANNER = re.compile(r"^PrusaSlicer-(?P<version>\d\S*)")
+
+
+def _find_version_banner(*streams: str) -> tuple[str, str] | None:
+    """The (version, banner line) stated in the engine's output, or None.
+
+    Both streams are searched, in the order given. `--help` goes to stdout on
+    every build seen here, but the banner is a startup message and startup
+    messages are exactly the kind of thing a build sends to stderr -- and the
+    stream it lands on is not something this can establish from one host. A
+    build that put it there would otherwise get "could not tell" while the
+    answer sat in a field this call had already captured.
+
+    None is the answer that has to exist. There is no line that can be handed
+    back as a version when the output does not carry one, and inventing one is
+    the defect this function was written to remove.
+    """
+    for stream in streams:
+        for line in stream.splitlines():
+            match = _VERSION_BANNER.match(line)
+            if match:
+                return match.group("version"), line.rstrip()
+    return None
 
 
 @dataclass(frozen=True)
@@ -78,6 +128,17 @@ class SliceOutputError(SliceError):
     """
 
 
+# One convention, two places it shows up. `EngineUnusableError.returncode` and
+# `VersionError.returncode` are `int | None`, and the `None` is not a tidiness
+# choice: when the engine could not be STARTED there is no exit status to
+# report, and a stand-in integer there would be a number nothing measured. Both
+# arrived at it independently -- `probe()` for a launcher that will not run
+# (D14) and `version_info()` for a `slicer_path` that is not there or not
+# executable (D13) -- which is the tell that it is the right answer rather than
+# a local habit. A caller distinguishes "the engine ran and said no" from "the
+# engine never ran" by testing `returncode is None`, in either family.
+
+
 @dataclass(frozen=True)
 class EngineProbe:
     """What asking the resolved engine to identify itself established.
@@ -119,8 +180,8 @@ class EngineUnusableError(RuntimeError):
 
     :param argv: What was run.
     :param engine_kind: ``"path"`` or ``"flatpak"``.
-    :param returncode: The exit status, or ``None`` if the launcher could not
-                       be started at all and there was never one.
+    :param returncode: The exit status, or ``None`` when the engine could not
+                       be started at all and there never was one.
     :param stdout: What the engine managed to say.
     :param stderr: The launcher's own complaint, usually the whole explanation.
     """
@@ -141,6 +202,97 @@ class EngineUnusableError(RuntimeError):
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
+
+
+@dataclass(frozen=True)
+class VersionResult:
+    """A version this engine actually stated about itself.
+
+    Returned by :meth:`PrusaSlicer.version_info`. Constructing one is a claim
+    that the engine's ``--help`` carried an identifiable version banner and
+    that ``version`` was read out of it -- never that some line was there and
+    looked plausible.
+
+    :meth:`PrusaSlicer.check_version` returns this result's ``banner`` and
+    nothing else, which is what it has always returned; this is the additive
+    long form for a caller that wants the parts.
+
+    :param version: The version as the engine spells it, with no leading
+                    ``PrusaSlicer-``: ``2.9.6``, or ``2.9.6+flathub.org``.
+    :param banner: The whole line ``version`` was read from, so a caller can
+                   see the evidence rather than trust the extraction.
+    :param returncode: The engine's exit status.
+    :param stdout: The engine's standard output -- the full ``--help``.
+    :param stderr: The engine's standard error.
+    """
+
+    version: str
+    banner: str
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+class VersionError(RuntimeError):
+    """The engine did not state a version this call could read.
+
+    Carries the same ``returncode``, ``stdout`` and ``stderr`` that
+    :class:`VersionResult` carries on the success path, so a caller reads the
+    failure the same way it reads the success instead of parsing prose out of
+    a message.
+
+    Subclasses ``RuntimeError``, which ``check_version`` raised before this
+    existed, so callers that already catch ``RuntimeError`` keep working.
+
+    ``returncode`` follows the same convention as
+    :class:`EngineUnusableError`: ``None`` when the engine could not be started
+    at all and there never was an exit status.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        returncode: int | None,
+        stdout: str,
+        stderr: str,
+    ) -> None:
+        super().__init__(message)
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
+class VersionEngineError(VersionError):
+    """The engine did not answer when asked to identify itself.
+
+    Either it could not be started -- a path that is not there, not executable,
+    a launcher that fails -- or it started and exited non-zero. ``returncode``
+    tells those apart: ``None`` means there was never an exit status.
+
+    The starting case is here rather than left to escape as a bare ``OSError``
+    because the docstring on ``check_version`` promises three outcomes, and a
+    fourth one that walks past the caller's ``except VersionError`` makes that
+    promise false. Reproduced: a ``slicer_path`` pointing at a file that does
+    not exist raised ``FileNotFoundError``, and one pointing at a file that is
+    not executable raised ``PermissionError``.
+    """
+
+
+class VersionUnreadableError(VersionError):
+    """The engine ran, exited 0, and stated no version we could recognise.
+
+    This is the *could not tell* outcome, and it exists because there was no
+    channel for it: ``check_version`` returned a line of ``--help`` whatever
+    that line was, so the only thing it could do with output it did not
+    understand was hand back a line and call it a version. The channel is the
+    exception rather than the return type -- ``check_version`` still returns
+    ``str``, and a caller that never sees a version never sees a ``str``
+    either. On a build that prints a startup preamble --
+    ``System OpenGL library successfully released`` on the native Windows
+    console build -- that line was the preamble, returned at exit 0 with no
+    way for the caller to know (#34).
+    """
 
 
 class PrusaSlicer:
@@ -351,29 +503,104 @@ class PrusaSlicer:
 
     def check_version(self) -> str:
         """
-        Checks the version of PrusaSlicer.
+        Asks the engine to identify itself, and returns the banner it stated.
 
-        :return: The version string.
-        :raises RuntimeError: If the CLI command fails.
+        Returning normally is a guarantee: some line of the engine's output
+        identified itself as a PrusaSlicer version banner, and this is that
+        line -- ``PrusaSlicer-2.9.6+flathub.org based on Slic3r (with GUI
+        support)``. It is what this returned before, on every build that does
+        not print a preamble above its banner, so nothing that was reading it
+        has to change.
+
+        Three outcomes, and the third is not silent. The channel for it is the
+        exception, not the return type: there is no line to return when the
+        engine stated no version, so nothing is returned.
+
+        :return: The version banner line.
+        :raises VersionEngineError: If the engine could not be started, or
+                                    started and exited non-zero.
+        :raises VersionUnreadableError: If the engine exits 0 and its output
+                                        carries no version banner.
+
+        Both are :class:`VersionError`, which is a ``RuntimeError`` -- what
+        this method raised before any of them existed.
+
+        Use :meth:`version_info` for the version alone, or for the engine's
+        output alongside it.
         """
+        return self.version_info().banner
+
+    def version_info(self) -> VersionResult:
+        """
+        The long form of :meth:`check_version`: the parts, not just the line.
+
+        Additive. ``check_version`` is this method's ``banner``, and the
+        failures are the same ones -- this exists because the version alone
+        (``2.9.6+flathub.org``) and the engine's own output are both useful and
+        neither is recoverable from the banner string by anyone who should have
+        to parse it twice.
+
+        :return: A :class:`VersionResult` carrying the version, the banner it
+                 came from, and the engine's own output.
+        :raises VersionEngineError: If the engine could not be started, or
+                                    started and exited non-zero.
+        :raises VersionUnreadableError: If the engine exits 0 and its output
+                                        carries no version banner.
+        """
+        argv = [
+            # PrusaSlicer's CLI has NO --version flag -- 2.9.6 answers
+            # "Unknown option --version" and exits 1, so --help is the only
+            # source (D9). This went unnoticed because the stub engines used
+            # in tests answered --version; the real engine never has.
+            *self._argv,
+            "--help",
+        ]
         try:
             result = subprocess.run(
-                # PrusaSlicer's CLI has NO --version flag -- 2.9.6 answers
-                # "Unknown option --version" and exits 1. The version is only
-                # ever printed as the first line of --help:
-                #   PrusaSlicer-2.9.6+flathub.org based on Slic3r (with GUI support)
-                # This went unnoticed because the stub engines used in tests
-                # answered --version; the real engine never has.
-                [*self._argv, "--help"],
+                argv,
                 check=True,
-                stdout=subprocess.PIPE,
+                capture_output=True,
                 text=True,
                 errors="replace",
             )
-            first_line = result.stdout.strip().splitlines()
-            return first_line[0] if first_line else ""
         except subprocess.CalledProcessError as e:
-            raise RuntimeError(f"Failed to get version: {e}") from e
+            raise VersionEngineError(
+                f"PrusaSlicer exited {e.returncode} when asked for --help",
+                returncode=e.returncode,
+                stdout=e.stdout or "",
+                stderr=e.stderr or "",
+            ) from e
+        except OSError as e:
+            # The engine could not be started at all: a `slicer_path` that is
+            # not there, or is not executable. Catching only
+            # CalledProcessError left this escaping as a bare FileNotFoundError
+            # or PermissionError, past every caller doing `except VersionError`
+            # -- a fourth outcome under a docstring promising three.
+            raise VersionEngineError(
+                f"could not start the engine at {self.slicer_path}: {e}",
+                returncode=None,
+                stdout="",
+                stderr="",
+            ) from e
+
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
+        found = _find_version_banner(stdout, stderr)
+        if found is None:
+            raise VersionUnreadableError(
+                "PrusaSlicer exited 0 but stated no version in its --help output",
+                returncode=result.returncode,
+                stdout=stdout,
+                stderr=stderr,
+            )
+        version, banner = found
+        return VersionResult(
+            version=version,
+            banner=banner,
+            returncode=result.returncode,
+            stdout=stdout,
+            stderr=stderr,
+        )
 
     def slice_model(
         self,

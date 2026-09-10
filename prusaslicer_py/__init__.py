@@ -6,6 +6,10 @@ from .slicer import (
     SliceError,
     SliceOutputError,
     SliceResult,
+    VersionEngineError,
+    VersionError,
+    VersionResult,
+    VersionUnreadableError,
 )
 
 __all__ = [
@@ -16,4 +20,8 @@ __all__ = [
     "SliceError",
     "SliceOutputError",
     "SliceResult",
+    "VersionEngineError",
+    "VersionError",
+    "VersionResult",
+    "VersionUnreadableError",
 ]

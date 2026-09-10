@@ -139,6 +139,31 @@ else:
 empty. "The call did not raise" and "the artifact was produced" are not the
 same claim, and this package will not conflate them.
 
+`check_version` is the same rule applied to the engine's own identity. It
+returns the version banner PrusaSlicer prints -- the line it always returned --
+but it finds that line by *matching* it rather than by taking the first one. A
+build that prints a startup preamble above its banner used to have that
+preamble returned as its version, at exit 0, with no way for a caller to tell.
+When no line identifies itself as a banner it raises instead of returning
+something, so the *could not tell* case never arrives as a plausible string
+(D13):
+
+```python
+from prusaslicer_py import VersionError
+
+try:
+    banner = slicer.check_version()
+except VersionError as e:
+    # Either the engine would not start, or it ran and stated no version this
+    # could read. Both carry returncode, stdout and stderr as attributes;
+    # returncode is None when the engine never started.
+    print(f"no version established: {e}")
+```
+
+`slicer.version_info()` is the same call with the parts kept: `.version`
+(`2.9.6+flathub.org`), `.banner`, and the engine's own `stdout`/`stderr`.
+`check_version()` is exactly its `.banner`.
+
 Pass `slicer_path=` to point at a specific executable instead of searching:
 
 ```python

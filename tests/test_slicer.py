@@ -3,7 +3,12 @@ from unittest.mock import patch
 
 import pytest
 
-from prusaslicer_py.slicer import EngineUnusableError, PrusaSlicer
+from prusaslicer_py.slicer import (
+    EngineUnusableError,
+    PrusaSlicer,
+    VersionEngineError,
+    VersionUnreadableError,
+)
 
 #: A path that is never resolved -- these tests mock out the engine entirely,
 #: so the constructor must not be allowed to go looking for a real one.
@@ -33,22 +38,196 @@ def test_find_executable(slicer):
         slicer._find_executable()
 
 
-def test_check_version():
+#: What the native Windows console build prints. The version is on the SECOND
+#: line, under a startup message from the graphics stack -- so the first line is
+#: not the version, and taking it returned that preamble as one (#34).
+WINDOWS_HELP = (
+    "System OpenGL library successfully released\n"
+    "PrusaSlicer-2.9.6 based on Slic3r (with GUI support)\n"
+    "https://github.com/prusa3d/PrusaSlicer\n"
+    "\n"
+    "Usage: prusa-slicer [ INPUT ] [ OPTIONS ]\n"
+)
+
+#: The Linux Flatpak, which prints no preamble at all. This is the shape the old
+#: code was measured against, and the reason neither project found the defect on
+#: the host it was written on.
+FLATPAK_HELP = (
+    "PrusaSlicer-2.9.6+flathub.org based on Slic3r (with GUI support)\n"
+    "https://github.com/prusa3d/PrusaSlicer\n"
+)
+
+
+def fake_help(stdout: str, *, returncode: int = 0, stderr: str = ""):
+    """A subprocess.run stand-in that answers --help with exactly `stdout`."""
+
+    def run(command, **kwargs):
+        return subprocess.CompletedProcess(command, returncode, stdout=stdout, stderr=stderr)
+
+    return run
+
+
+def test_check_version_reads_the_banner_not_the_first_line():
+    """The defect, directly: a preamble above the banner must not be the answer."""
     slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
 
-    # Mock subprocess to simulate a successful version check
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value.stdout = "PrusaSlicer 2.6.1"
-        version = slicer.check_version()
-        assert version == "PrusaSlicer 2.6.1"
+    with patch("subprocess.run", side_effect=fake_help(WINDOWS_HELP)):
+        banner = slicer.check_version()
 
-    # Simulate failure by raising subprocess.CalledProcessError instead of a generic Exception
+    assert banner == "PrusaSlicer-2.9.6 based on Slic3r (with GUI support)"
+    assert "OpenGL" not in banner
+
+
+def test_check_version_still_returns_the_line_it_always_returned():
+    """The no-preamble build is what 0.2.0 was measured against; it is unchanged.
+
+    This is the whole reason the signature did not need to move. On every build
+    that prints no preamble, the first line IS the banner, so what callers get
+    back is byte-for-byte what they got from 0.2.0 -- including the README's
+    `print(slicer.check_version())`.
+    """
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
+    with patch("subprocess.run", side_effect=fake_help(FLATPAK_HELP)):
+        banner = slicer.check_version()
+
+    assert banner == "PrusaSlicer-2.9.6+flathub.org based on Slic3r (with GUI support)"
+    assert isinstance(banner, str)
+
+
+def test_version_info_takes_the_banner_apart():
+    """The additive long form. `check_version` is exactly its `banner`."""
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
+    with patch("subprocess.run", side_effect=fake_help(WINDOWS_HELP)):
+        result = slicer.version_info()
+    with patch("subprocess.run", side_effect=fake_help(WINDOWS_HELP)):
+        assert slicer.check_version() == result.banner
+
+    assert result.version == "2.9.6"
+    assert result.banner == "PrusaSlicer-2.9.6 based on Slic3r (with GUI support)"
+    assert result.returncode == 0
+    assert result.stdout == WINDOWS_HELP
+
+
+def test_the_banner_needs_a_digit_not_just_the_product_name():
+    """`PrusaSlicer-Py` is a name; `PrusaSlicer-2.9.6` is a version.
+
+    The digit in the pattern is the only thing separating them, and without a
+    build that greets with the former there is nothing to notice if it goes.
+    Dropping `\\d` makes this return `PrusaSlicer-Py 0.2.0 starting` -- a line
+    that is not a version, from the function whose defect was returning a line
+    that is not a version.
+    """
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+    greeting = (
+        "PrusaSlicer-Py 0.2.0 starting\nPrusaSlicer-2.9.6 based on Slic3r (with GUI support)\n"
+    )
+
+    with patch("subprocess.run", side_effect=fake_help(greeting)):
+        result = slicer.version_info()
+
+    assert result.version == "2.9.6"
+    assert result.banner == "PrusaSlicer-2.9.6 based on Slic3r (with GUI support)"
+
+
+def test_the_banner_is_found_on_stderr_too():
+    """A startup banner is exactly the kind of thing a build sends to stderr.
+
+    Both streams are already captured, so answering "could not tell" while
+    holding the answer in a field would be a self-inflicted third outcome.
+    """
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
+    with patch(
+        "subprocess.run",
+        side_effect=fake_help("Usage: prusa-slicer\n", stderr=FLATPAK_HELP),
+    ):
+        result = slicer.version_info()
+
+    assert result.version == "2.9.6+flathub.org"
+
+
+def test_an_indented_line_is_not_a_banner():
+    """The banner is printed at column 0. Anything indented is help text."""
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
+    with (
+        patch(
+            "subprocess.run",
+            side_effect=fake_help("Options:\n    PrusaSlicer-2.9.6 is the build\n"),
+        ),
+        pytest.raises(VersionUnreadableError),
+    ):
+        slicer.check_version()
+
+
+def test_check_version_refuses_output_that_states_no_version():
+    """The third outcome. There is no line here to hand back, so nothing is.
+
+    `-> str` had no way to say this, which is why the preamble came back as a
+    version instead: the only thing the signature allowed was a string.
+    """
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+    noise = "System OpenGL library successfully released\nUsage: prusa-slicer\n"
+
+    with (
+        patch("subprocess.run", side_effect=fake_help(noise)),
+        pytest.raises(VersionUnreadableError) as caught,
+    ):
+        slicer.check_version()
+
+    # The engine's own output reaches the caller, because it is the only
+    # explanation of why this could not be read.
+    assert caught.value.stdout == noise
+    assert caught.value.returncode == 0
+    assert isinstance(caught.value, RuntimeError)
+
+
+def test_check_version_refuses_empty_output():
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
+    with (
+        patch("subprocess.run", side_effect=fake_help("")),
+        pytest.raises(VersionUnreadableError),
+    ):
+        slicer.check_version()
+
+
+def test_check_version_reports_an_engine_that_exited_non_zero():
+    """Distinct from "could not tell": the engine answered, and answered badly."""
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
     with patch("subprocess.run") as mock_run:
         mock_run.side_effect = subprocess.CalledProcessError(
-            1, "command", output="Error getting version"
-        )  # Simulating the subprocess error
-        with pytest.raises(RuntimeError):
+            1, "command", output="Unknown option", stderr="boom"
+        )
+        with pytest.raises(VersionEngineError) as caught:
             slicer.check_version()
+
+    assert caught.value.returncode == 1
+    assert caught.value.stderr == "boom"
+    assert isinstance(caught.value, RuntimeError)
+
+
+def test_an_engine_that_is_not_there_is_a_version_error_not_an_os_error(tmp_path):
+    """The fourth outcome that used to walk past `except VersionError`.
+
+    No mock: a real path that does not exist, and a real one that is not
+    executable. `subprocess.run` raises FileNotFoundError and PermissionError
+    respectively, and catching only CalledProcessError let both escape -- under
+    a docstring promising three outcomes and a README recommending
+    `except VersionError`.
+    """
+    not_there = tmp_path / "not-here" / "prusa-slicer"
+    not_executable = tmp_path / "prusa-slicer"
+    not_executable.write_text("not a program\n")
+
+    for path in (not_there, not_executable):
+        with pytest.raises(VersionEngineError) as caught:
+            PrusaSlicer(slicer_path=str(path)).check_version()
+        assert caught.value.returncode is None, "there was never an exit status to report"
+        assert isinstance(caught.value, RuntimeError)
 
 
 def fake_engine_run(*, returncode: int = 0, stdout: str = "help text", stderr: str = ""):
