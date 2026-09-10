@@ -1,15 +1,24 @@
 """Shared fixtures.
 
-The distinction this file exists to enforce: *PrusaSlicer is not installed on
-this machine* is an environment fault, not a verdict on this code.  A test that
-needs the engine and cannot find it must not report as a failure.
+The distinction this file exists to enforce: *the engine on this machine is not
+usable* is an environment fault, not a verdict on this code.  A test that needs
+the engine and cannot get one must not report as a failure.
+
+Two ways to not get one, and this file used to see only the first.  *Absent* is
+a `PrusaSlicer()` that raises `FileNotFoundError`.  *Present and unusable* is a
+`PrusaSlicer()` that constructs perfectly and then will not start: `flatpak
+info` exits 0 for an app whose launcher fails before the engine runs, so
+discovery is satisfied and the engine never answers.  That went through as a
+working engine, and the environment fault was reported as three failing tests
+(#33).
 """
 
 import os
+from typing import NoReturn
 
 import pytest
 
-from prusaslicer_py.slicer import PrusaSlicer
+from prusaslicer_py.slicer import EngineUnusableError, PrusaSlicer
 
 #: Set to ANY value, the empty string included, to turn a missing engine into a
 #: hard failure. Presence is the switch; see `engine_required`.
@@ -32,26 +41,59 @@ def engine_required() -> bool:
     return REQUIRE_ENGINE_ENV in os.environ
 
 
+def environment_fault(reason: str) -> NoReturn:
+    """Skip -- or fail, if the caller said the engine should be here.
+
+    One place, because there are now two ways to be without an engine and both
+    have to be treated the same way.  Duplicating the skip-or-fail decision at
+    each of them is how one of them ends up with only half of it: the *skip*
+    half is the visible one, and dropping the *require* half leaves an
+    engine-less runner with PRUSASLICER_PY_REQUIRE_ENGINE=1 green.
+    """
+    message = f"{reason} This is an environment fault, not a verdict on the code under test."
+    if engine_required():
+        pytest.fail(f"{REQUIRE_ENGINE_ENV} is set but: {message}")
+    pytest.skip(message)
+
+
 def resolve_engine() -> PrusaSlicer:
-    """A PrusaSlicer bound to the real engine, or a skipped test.
+    """A PrusaSlicer bound to a *usable* real engine, or a skipped test.
 
     Requesting this fixture is how a test declares "I need the engine".  When
-    the engine is absent the test is skipped -- unless the caller has asserted
-    it should be there via the environment variable above, in which case the
-    absence is a hard failure rather than a silent skip.
+    there is no usable engine the test is skipped -- unless the caller has
+    asserted one should be there via the environment variable above, in which
+    case it is a hard failure rather than a silent skip.
+
+    Both checks are here because both are environment faults and only one of
+    them was being made.  Constructing the driver establishes that an engine is
+    *installed*; `probe()` establishes that it *ran*.  `flatpak info` answers
+    the first and says nothing about the second, so an engine whose launcher
+    fails -- an unwritable HOME does it -- reached the tests as a working one
+    and turned that fault into three red tests (#33).
 
     Resolution goes through PrusaSlicer itself rather than repeating the
     executable-name choice here.  A second copy of that logic in the test suite
     would drift from the one in the driver, and the tests would then be
-    checking for an engine the driver would not have used.
+    checking for an engine the driver would not have used.  The same reasoning
+    is why the probe is the driver's and not a `subprocess.run` written here.
     """
     try:
-        return PrusaSlicer()
+        slicer = PrusaSlicer()
     except FileNotFoundError as e:
-        message = f"{e} This is an environment fault, not a verdict on the code under test."
-        if engine_required():
-            pytest.fail(f"{REQUIRE_ENGINE_ENV} is set but: {message}")
-        pytest.skip(message)
+        environment_fault(str(e))
+    try:
+        slicer.probe()
+    except EngineUnusableError as e:
+        # The launcher's own complaint, not just that there was one. It is
+        # usually the entire explanation -- `error: Extension
+        # org.freedesktop.Platform.GL.default has invalid merge-dirs` names
+        # what to fix, where "it did not start" names only that something is
+        # wrong. `EngineUnusableError` carries the streams as fields precisely
+        # so this does not have to be recovered from prose, and the one
+        # consumer in this repository dropping them would make that pointless.
+        complaint = (e.stderr.strip() or e.stdout.strip()).rstrip(".")
+        environment_fault(f"{e} The engine said: {complaint}." if complaint else str(e))
+    return slicer
 
 
 @pytest.fixture

@@ -1,4 +1,6 @@
 from .slicer import (
+    EngineProbe,
+    EngineUnusableError,
     PrusaSlicer,
     SliceEngineError,
     SliceError,
@@ -7,6 +9,8 @@ from .slicer import (
 )
 
 __all__ = [
+    "EngineProbe",
+    "EngineUnusableError",
     "PrusaSlicer",
     "SliceEngineError",
     "SliceError",

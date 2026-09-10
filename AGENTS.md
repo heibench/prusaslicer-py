@@ -73,12 +73,21 @@ Run `just check && just test` before every commit. Never `--no-verify`.
 
 PrusaSlicer is not installed on most machines that will run this suite,
 including CI. A missing engine is an **environment fault, not a verdict**: it
-says nothing about whether this code is correct.
+says nothing about whether this code is correct. So is an engine that is
+installed and will not run.
 
 - Tests that need the engine request the `engine` fixture in
-  `tests/conftest.py`. It skips when PrusaSlicer is not on `PATH`.
-- Setting `PRUSASLICER_PY_REQUIRE_ENGINE` turns that skip into a hard failure.
-  Use it on any machine where the engine is supposed to be present.
+  `tests/conftest.py`. It skips when there is no usable engine -- when
+  discovery finds none, and when it finds one that does not answer `--help`.
+- **Being installed is not being usable, and only one of those is discoverable
+  without starting the engine.** `flatpak info` exits 0 for an app whose
+  launcher then fails, so `PrusaSlicer.probe()` asks the engine to answer
+  `--help` and raises `EngineUnusableError` when it does not. Discovery alone
+  let that fault through and the suite reported it as three failing tests
+  (D14, #33).
+- Setting `PRUSASLICER_PY_REQUIRE_ENGINE` turns that skip into a hard failure,
+  for either cause. Use it on any machine where the engine is supposed to be
+  present.
 - **A skipped test is not a passing test.** Guard per-test, never at module
   import: a module-level gate reports one skipped line and silently takes every
   test in the file with it.

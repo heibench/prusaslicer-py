@@ -14,7 +14,7 @@ import shutil
 
 import pytest
 
-from prusaslicer_py.slicer import PrusaSlicer
+from prusaslicer_py.slicer import EngineUnusableError, PrusaSlicer
 from tests.conftest import REQUIRE_ENGINE_ENV, engine_required, resolve_engine
 
 
@@ -54,6 +54,94 @@ def test_slice_produces_gcode_with_the_real_engine(engine, tmp_path):
     assert result.output_path == out
     assert result.size_bytes > 0
     assert out.read_text().strip(), "slice_model returned but the G-code is blank"
+
+
+def _present_but_unusable(monkeypatch: pytest.MonkeyPatch) -> None:
+    """An engine discovery is happy with, and that will not run.
+
+    Exactly the shape `flatpak info` produces: the app is installed, so the
+    constructor succeeds and nothing about it looks wrong. The failure is one
+    process launch later, which discovery never performs.
+    """
+
+    def _constructs(self: PrusaSlicer) -> None:
+        self.slicer_path = "flatpak:an.installed.app"
+        self._argv = ["flatpak", "run", "an.installed.app"]
+        self.engine_kind = "flatpak"
+
+    def _will_not_start(self: PrusaSlicer) -> None:
+        raise EngineUnusableError(
+            "the engine exited 1 when asked for --help, so it did not start",
+            argv=("flatpak", "run", "an.installed.app", "--help"),
+            engine_kind="flatpak",
+            returncode=1,
+            stdout="",
+            stderr="error: mkdirat(.var): Permission denied",
+        )
+
+    monkeypatch.setattr(PrusaSlicer, "__init__", _constructs)
+    monkeypatch.setattr(PrusaSlicer, "probe", _will_not_start)
+
+
+def test_an_engine_that_will_not_start_skips_rather_than_failing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The defect in #33, at the seam it lived at.
+
+    conftest caught `FileNotFoundError` and nothing else, so *absent* skipped and
+    *present and unusable* went straight through as a working engine -- and with
+    an unwritable HOME the suite reported that environment fault as three failing
+    tests. Same tree, working HOME: green. Nothing about the code had changed.
+
+    Each outcome is named rather than wrapped in `pytest.raises`: a `Skipped`
+    escaping a test SKIPS the test, so a test written as `raises(Skipped)` reports
+    green for the fixture doing nothing at all.
+    """
+    monkeypatch.delenv(REQUIRE_ENGINE_ENV, raising=False)
+    _present_but_unusable(monkeypatch)
+
+    try:
+        resolve_engine()
+    except pytest.skip.Exception as skipped:
+        assert "environment fault" in str(skipped)
+        assert "not a verdict" in str(skipped)
+        # The launcher's complaint, not merely that there was one. A skip line
+        # saying only "it did not start" sends the reader back to the shell to
+        # find out what this call already knows, and `EngineUnusableError`
+        # carries the streams as fields so that it does not have to.
+        assert "mkdirat(.var): Permission denied" in str(skipped)
+    except pytest.fail.Exception as failure:
+        pytest.fail(f"an unusable engine was reported as a verdict on the code: {failure}")
+    else:
+        pytest.fail("an engine that will not start was accepted as a working engine")
+
+
+def test_an_engine_that_will_not_start_fails_when_the_engine_is_required(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """The other half, and the half that is invisible if it is dropped.
+
+    PRUSASLICER_PY_REQUIRE_ENGINE exists so that "no engine was exercised" cannot
+    read as green. A skip here would defeat it exactly as a skip on an absent
+    engine does -- the mode that asserts an engine really ran would be satisfied
+    by one that never started.
+    """
+    monkeypatch.setenv(REQUIRE_ENGINE_ENV, "1")
+    _present_but_unusable(monkeypatch)
+
+    try:
+        resolve_engine()
+    except pytest.fail.Exception as failure:
+        assert "is set but" in str(failure)
+        assert "did not start" in str(failure)
+        assert "mkdirat(.var): Permission denied" in str(failure)
+    except pytest.skip.Exception:
+        pytest.fail(
+            "an unusable engine skipped with the require switch set, so the one mode "
+            "that asserts an engine was exercised is satisfied by one that never ran"
+        )
+    else:
+        pytest.fail("an engine that will not start was accepted as a working engine")
 
 
 @pytest.mark.parametrize("value", ["1", "", "0", "false"])

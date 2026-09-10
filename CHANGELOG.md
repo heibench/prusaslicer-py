@@ -6,6 +6,29 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ## [Unreleased]
 
+### Fixed
+
+- **An engine that is installed but cannot run is now an environment fault
+  rather than three failing tests** (#33). `tests/conftest.py` decided whether
+  to skip by catching `FileNotFoundError` from `PrusaSlicer()`, which sees an
+  *absent* engine and not an *unusable* one. `flatpak info` exits 0 for an app
+  whose launcher then fails before the engine starts -- an unwritable `HOME` is
+  enough -- so discovery was satisfied, the engine never ran, and the suite
+  reported the fault as a verdict on the code. Under
+  `PRUSASLICER_PY_REQUIRE_ENGINE=1` it was worse: the mode that exists to assert
+  an engine really was exercised could not tell "the engine ran and the code is
+  wrong" from "the engine never started".
+
+### Added
+
+- **`PrusaSlicer.probe()`**, which asks the engine to answer `--help` and
+  returns an `EngineProbe` describing what it said, or raises
+  `EngineUnusableError` carrying the launcher's own complaint, its `argv`, and
+  its exit status. Found-and-usable, found-and-unusable and absent are three
+  states now, and the middle one has somewhere to go. The skip and failure
+  messages carry the launcher's own complaint, which is usually the whole
+  explanation. See D14.
+
 ## [0.2.0] — 2026-09-06
 
 ### Fixed
