@@ -308,7 +308,7 @@ class PrusaSlicer:
             # executable, a broken interpreter line. `flatpak` being absent is
             # already handled in discovery; a `slicer_path` handed to us is not.
             raise EngineUnusableError(
-                f"could not start the engine at {self.slicer_path}: {e}",
+                f"could not start the engine at {self.slicer_path}: {e}.",
                 argv=tuple(argv),
                 engine_kind=self.engine_kind,
                 returncode=None,
@@ -321,7 +321,7 @@ class PrusaSlicer:
         if result.returncode != 0:
             raise EngineUnusableError(
                 f"the engine at {self.slicer_path} exited {result.returncode} "
-                "when asked for --help, so it did not start",
+                "when asked for --help, so it did not start.",
                 argv=tuple(argv),
                 engine_kind=self.engine_kind,
                 returncode=result.returncode,
@@ -334,7 +334,7 @@ class PrusaSlicer:
             # further along.
             raise EngineUnusableError(
                 f"the engine at {self.slicer_path} exited 0 but answered "
-                "--help with nothing, so it did not identify itself",
+                "--help with nothing, so it did not identify itself.",
                 argv=tuple(argv),
                 engine_kind=self.engine_kind,
                 returncode=result.returncode,

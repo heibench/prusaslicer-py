@@ -1175,6 +1175,25 @@ at all and there never was an exit status.
 with an empty stream did not identify itself, and accepting that as a working
 engine is the same error one exit code further along.
 
+**`probe()` establishes usable at a point in time, and that is all it can
+establish.** The state it rules out can come back between the probe and the
+call: a Flatpak that answered `--help` a second ago can fail to start for the
+next process. That is not hypothetical here -- 135 sequential runs of
+`tests/test_engine.py` on `main` on this host produced **1** red, with the
+launcher answering `error: Extension org.freedesktop.Platform.GL.default has
+invalid merge-dirs`, which is the same class of pre-start launcher failure this
+entry is about and not something the code under test did. The rate is not
+stable between sittings, so treat the figure as one measurement rather than a
+frequency.
+
+No probe can close that window, and this entry does not claim to. What it
+removes is the *systematic* case, where the engine was never going to start and
+the suite reported that as a verdict. The residue is a flake and is filed
+separately (#43). Note that `PRUSASLICER_PY_REQUIRE_ENGINE=1` turns it into a
+hard error rather than a skip, which is the correct trade for a mode whose job
+is to assert an engine really ran -- and the reason the flake is worth a report
+of its own rather than a retry loop.
+
 **What this deliberately does not do:**
 
 - **Discovery is unchanged.** Probing inside `__init__` would make every

@@ -105,6 +105,11 @@ def test_an_engine_that_will_not_start_skips_rather_than_failing(
     except pytest.skip.Exception as skipped:
         assert "environment fault" in str(skipped)
         assert "not a verdict" in str(skipped)
+        # The launcher's complaint, not merely that there was one. A skip line
+        # saying only "it did not start" sends the reader back to the shell to
+        # find out what this call already knows, and `EngineUnusableError`
+        # carries the streams as fields so that it does not have to.
+        assert "mkdirat(.var): Permission denied" in str(skipped)
     except pytest.fail.Exception as failure:
         pytest.fail(f"an unusable engine was reported as a verdict on the code: {failure}")
     else:
@@ -129,6 +134,7 @@ def test_an_engine_that_will_not_start_fails_when_the_engine_is_required(
     except pytest.fail.Exception as failure:
         assert "is set but" in str(failure)
         assert "did not start" in str(failure)
+        assert "mkdirat(.var): Permission denied" in str(failure)
     except pytest.skip.Exception:
         pytest.fail(
             "an unusable engine skipped with the require switch set, so the one mode "

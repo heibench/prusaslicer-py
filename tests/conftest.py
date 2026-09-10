@@ -84,7 +84,15 @@ def resolve_engine() -> PrusaSlicer:
     try:
         slicer.probe()
     except EngineUnusableError as e:
-        environment_fault(str(e))
+        # The launcher's own complaint, not just that there was one. It is
+        # usually the entire explanation -- `error: Extension
+        # org.freedesktop.Platform.GL.default has invalid merge-dirs` names
+        # what to fix, where "it did not start" names only that something is
+        # wrong. `EngineUnusableError` carries the streams as fields precisely
+        # so this does not have to be recovered from prose, and the one
+        # consumer in this repository dropping them would make that pointless.
+        complaint = (e.stderr.strip() or e.stdout.strip()).rstrip(".")
+        environment_fault(f"{e} The engine said: {complaint}." if complaint else str(e))
     return slicer
 
 

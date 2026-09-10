@@ -25,7 +25,9 @@ All notable changes to prusaslicer-py are documented here. Follows
   returns an `EngineProbe` describing what it said, or raises
   `EngineUnusableError` carrying the launcher's own complaint, its `argv`, and
   its exit status. Found-and-usable, found-and-unusable and absent are three
-  states now, and the middle one has somewhere to go. See D14.
+  states now, and the middle one has somewhere to go. The skip and failure
+  messages carry the launcher's own complaint, which is usually the whole
+  explanation. See D14.
 
 ## [0.2.0] — 2026-09-06
 
