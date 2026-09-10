@@ -78,6 +78,71 @@ class SliceOutputError(SliceError):
     """
 
 
+@dataclass(frozen=True)
+class EngineProbe:
+    """What asking the resolved engine to identify itself established.
+
+    Returned by :meth:`PrusaSlicer.probe`. Constructing one is a claim that the
+    engine started and answered ``--help``, which is a stronger claim than the
+    one discovery makes: discovery establishes that an engine is *installed*.
+
+    :param argv: Exactly what was run, including the ``flatpak run`` prefix
+                 where there is one.
+    :param engine_kind: ``"path"`` or ``"flatpak"``, as resolved.
+    :param returncode: The engine's exit status. Always 0 -- anything else is
+                       raised, not returned.
+    :param stdout: What the engine answered.
+    :param stderr: Anything it wrote alongside, including warnings from a
+                   launcher that still worked.
+    """
+
+    argv: tuple[str, ...]
+    engine_kind: str
+    returncode: int
+    stdout: str
+    stderr: str
+
+
+class EngineUnusableError(RuntimeError):
+    """An engine was found on this machine and it did not run.
+
+    The third state between "an engine is installed" and "the engine works",
+    and it exists because discovery cannot see it. ``flatpak info`` exits 0 for
+    an app whose launcher fails before the engine starts, so the driver
+    constructs, and every consumer downstream believes it is talking to an
+    engine (#33).
+
+    **This is an environment fault, not a verdict**: it says the engine on this
+    machine did not start, and nothing about whether any code is correct. It is
+    a distinct type precisely so a consumer can tell the two apart -- a test
+    suite skips on this where it would go red on a real defect.
+
+    :param argv: What was run.
+    :param engine_kind: ``"path"`` or ``"flatpak"``.
+    :param returncode: The exit status, or ``None`` if the launcher could not
+                       be started at all and there was never one.
+    :param stdout: What the engine managed to say.
+    :param stderr: The launcher's own complaint, usually the whole explanation.
+    """
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        argv: tuple[str, ...],
+        engine_kind: str,
+        returncode: int | None,
+        stdout: str,
+        stderr: str,
+    ) -> None:
+        super().__init__(message)
+        self.argv = argv
+        self.engine_kind = engine_kind
+        self.returncode = returncode
+        self.stdout = stdout
+        self.stderr = stderr
+
+
 class PrusaSlicer:
     def __init__(self, slicer_path: str | None = None):
         """
@@ -206,6 +271,83 @@ class PrusaSlicer:
                 "Ensure PrusaSlicer is installed and added to PATH."
             )
         return slicer_path
+
+    def probe(self) -> EngineProbe:
+        """Establish that the engine we resolved can actually start.
+
+        Discovery answers "is an engine installed". This answers "did one
+        answer us", and they are not the same question. ``flatpak info`` exits
+        0 for an app whose launcher then fails before the engine runs -- an
+        unwritable ``HOME`` is enough, and produces ``error: mkdirat(.var):
+        Permission denied`` at exit 1 from a ``flatpak run`` whose ``flatpak
+        info`` was perfectly happy (#33). Nothing in discovery sees that,
+        because discovery never started the engine.
+
+        ``--help`` is the probe because it is the only thing PrusaSlicer will
+        answer: there is no ``--version`` flag, and 2.9.6 answers ``Unknown
+        option --version`` and exits 1 (D9).
+
+        A failure here is an **environment fault, not a verdict**: it says the
+        engine on this machine did not run, and nothing about whether this code
+        is correct. It is raised as its own type so a caller can branch on that
+        distinction rather than read it out of a message.
+
+        :return: An :class:`EngineProbe` carrying what the engine answered.
+        :raises EngineUnusableError: The engine was found and did not run.
+        """
+        argv = [*self._argv, "--help"]
+        try:
+            result = subprocess.run(
+                argv,
+                capture_output=True,
+                text=True,
+                errors="replace",
+            )
+        except OSError as e:
+            # The launcher itself is unrunnable -- not on PATH after all, not
+            # executable, a broken interpreter line. `flatpak` being absent is
+            # already handled in discovery; a `slicer_path` handed to us is not.
+            raise EngineUnusableError(
+                f"could not start the engine at {self.slicer_path}: {e}",
+                argv=tuple(argv),
+                engine_kind=self.engine_kind,
+                returncode=None,
+                stdout="",
+                stderr="",
+            ) from e
+
+        stdout = result.stdout or ""
+        stderr = result.stderr or ""
+        if result.returncode != 0:
+            raise EngineUnusableError(
+                f"the engine at {self.slicer_path} exited {result.returncode} "
+                "when asked for --help, so it did not start",
+                argv=tuple(argv),
+                engine_kind=self.engine_kind,
+                returncode=result.returncode,
+                stdout=stdout,
+                stderr=stderr,
+            )
+        if not stdout.strip():
+            # Exit 0 and nothing said. The engine did not identify itself, and
+            # treating that as a working engine is the same error one exit code
+            # further along.
+            raise EngineUnusableError(
+                f"the engine at {self.slicer_path} exited 0 but answered "
+                "--help with nothing, so it did not identify itself",
+                argv=tuple(argv),
+                engine_kind=self.engine_kind,
+                returncode=result.returncode,
+                stdout=stdout,
+                stderr=stderr,
+            )
+        return EngineProbe(
+            argv=tuple(argv),
+            engine_kind=self.engine_kind,
+            returncode=result.returncode,
+            stdout=stdout,
+            stderr=stderr,
+        )
 
     def check_version(self) -> str:
         """

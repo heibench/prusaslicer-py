@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import pytest
 
-from prusaslicer_py.slicer import PrusaSlicer
+from prusaslicer_py.slicer import EngineUnusableError, PrusaSlicer
 
 #: A path that is never resolved -- these tests mock out the engine entirely,
 #: so the constructor must not be allowed to go looking for a real one.
@@ -49,6 +49,76 @@ def test_check_version():
         )  # Simulating the subprocess error
         with pytest.raises(RuntimeError):
             slicer.check_version()
+
+
+def fake_engine_run(*, returncode: int = 0, stdout: str = "help text", stderr: str = ""):
+    """A subprocess.run stand-in for the --help probe."""
+
+    def run(command, **kwargs):
+        return subprocess.CompletedProcess(command, returncode, stdout=stdout, stderr=stderr)
+
+    return run
+
+
+def test_probe_returns_what_a_working_engine_answered():
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
+    with patch("subprocess.run", side_effect=fake_engine_run(stdout="Usage: ...")):
+        probe = slicer.probe()
+
+    assert probe.returncode == 0
+    assert probe.stdout == "Usage: ..."
+    assert probe.engine_kind == "path"
+    assert probe.argv[-1] == "--help"
+
+
+def test_probe_reports_an_engine_that_would_not_start():
+    """The #33 case: discovery succeeded and the launcher then failed.
+
+    `flatpak info` exits 0 for an app whose `flatpak run` cannot create its
+    state directory, so the driver constructs and the engine never runs. The
+    launcher's own complaint is the whole explanation, so it travels with the
+    error rather than being dropped on the way past.
+    """
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+    complaint = "error: mkdirat(.var): Permission denied"
+
+    with (
+        patch("subprocess.run", side_effect=fake_engine_run(returncode=1, stderr=complaint)),
+        pytest.raises(EngineUnusableError) as caught,
+    ):
+        slicer.probe()
+
+    assert caught.value.returncode == 1
+    assert caught.value.stderr == complaint
+    assert caught.value.engine_kind == "path"
+
+
+def test_probe_reports_an_engine_that_answered_nothing():
+    """Exit 0 and silence is not a working engine, it is an engine that said nothing."""
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
+    with (
+        patch("subprocess.run", side_effect=fake_engine_run(stdout="   \n")),
+        pytest.raises(EngineUnusableError) as caught,
+    ):
+        slicer.probe()
+
+    assert caught.value.returncode == 0
+
+
+def test_probe_reports_a_launcher_that_cannot_be_executed():
+    """No exit status exists here, so `returncode` is None rather than a stand-in."""
+    slicer = PrusaSlicer(slicer_path=FAKE_SLICER_PATH)
+
+    with (
+        patch("subprocess.run", side_effect=PermissionError("Permission denied")),
+        pytest.raises(EngineUnusableError) as caught,
+    ):
+        slicer.probe()
+
+    assert caught.value.returncode is None
+    assert isinstance(caught.value, RuntimeError)
 
 
 def test_slice_model_rejects_a_missing_stl():

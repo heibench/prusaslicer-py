@@ -45,6 +45,13 @@ PrusaSlicer is located in this order:
 cosmetic: a Flatpak has no binary on `PATH`, so discovery that only asks `PATH`
 reports "not installed" on the most common Linux install (D9).
 
+Discovery establishes that an engine is **installed**, which is not the same as
+establishing that it **runs**: `flatpak info` exits 0 for an app whose launcher
+then fails before the engine starts. `PrusaSlicer().probe()` asks the engine to
+answer `--help` and raises `EngineUnusableError` -- carrying the launcher's own
+complaint -- when it does not. That is an environment fault about this machine,
+not a verdict on anything (D14).
+
 ---
 
 - [PrusaSlicer-Py](#prusaslicer-py)

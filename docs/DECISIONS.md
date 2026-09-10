@@ -1112,3 +1112,80 @@ instances of one class in a single recipe. The rule the recipe carries now is
 therefore not "escape the `$`" but **the body must contain no `$` at all**;
 `-ErrorAction Stop` on the cmdlet does the same job with no sigil for `sh` to
 find.
+
+---
+
+## D14 -- Discovery establishes installed; `probe()` establishes usable
+
+**Decided:** 2026-09-09 (issue #33)
+
+`tests/conftest.py` decided whether to skip an engine-dependent test by
+constructing `PrusaSlicer()` and catching `FileNotFoundError`. That sees an
+engine that is **absent**. It does not see one that is **present and will not
+run**, and there is no reason it would: `_find_flatpak` accepts a Flatpak on
+`flatpak info` exiting 0, which establishes that the app is installed and
+nothing about whether it can start.
+
+Reproduced on this machine, with an unwritable `HOME`:
+
+```
+$ HOME=$RO flatpak info com.prusa3d.PrusaSlicer          # exit 0
+$ HOME=$RO flatpak run --command=prusa-slicer com.prusa3d.PrusaSlicer --help
+error: mkdirat(.var): Permission denied
+exit 1
+
+$ HOME=$RO ./.venv/bin/python -m pytest -q
+FAILED tests/test_engine.py::test_check_version_against_real_engine
+FAILED tests/test_engine.py::test_generate_help_against_real_engine
+FAILED tests/test_engine.py::test_slice_produces_gcode_with_the_real_engine
+3 failed, 56 passed, 3 skipped
+```
+
+Same tree, working `HOME`: green. Nothing about the code had changed, and the
+suite said the code was wrong.
+
+**This is a verdict misattribution, not a silence defect, and the distinction
+is worth keeping.** The suite goes red, and D5 is why -- nothing reported a
+success it had not verified. What is wrong is the attribution: the org contract
+draws exactly this line between a finding about the code and a fault in the
+environment (§2.2), and D3 already draws it correctly for an absent engine.
+`PRUSASLICER_PY_REQUIRE_ENGINE=1` is where it costs the most, because the mode
+whose whole job is to assert an engine really was exercised could not tell
+"the engine ran and the code is wrong" from "the engine never started".
+
+**Ask the engine, not its packaging.** `PrusaSlicer.probe()` runs
+`[*argv, "--help"]` and raises `EngineUnusableError` unless the engine started
+and answered. `--help` is the probe because it is the only thing PrusaSlicer
+answers -- there is no `--version` flag (D9). Three states, and each has
+somewhere to go:
+
+| state | how it is established | what conftest does |
+| --- | --- | --- |
+| absent | `PrusaSlicer()` raises `FileNotFoundError` | skip, or fail if required |
+| found, unusable | `probe()` raises `EngineUnusableError` | skip, or fail if required |
+| found, usable | `probe()` returns an `EngineProbe` | run the test |
+
+`EngineUnusableError` carries `argv`, `engine_kind`, `returncode` and the
+engine's `stdout`/`stderr`, so the launcher's own complaint -- usually the whole
+explanation -- reaches the caller as fields rather than as prose in a message.
+`returncode` is `None`, not a stand-in, when the launcher could not be started
+at all and there never was an exit status.
+
+**Exit 0 with nothing said is unusable too.** An engine that answers `--help`
+with an empty stream did not identify itself, and accepting that as a working
+engine is the same error one exit code further along.
+
+**What this deliberately does not do:**
+
+- **Discovery is unchanged.** Probing inside `__init__` would make every
+  construction start a process -- roughly a second for a Flatpak -- and would
+  fold "found and unusable" back into `FileNotFoundError`, which is the
+  conflation this entry exists to remove. The probe is explicit and its result
+  is a value.
+- **The probe lives in the driver, not in `conftest.py`.** D1 puts the engine
+  behind one module, and a `subprocess.run` written in the test suite would be
+  checking an engine the driver would not have used.
+- **`slice_model` and `generate_help` do not call it.** They already report a
+  failed engine with its output attached; adding a probe ahead of each would be
+  a second process launch per call to establish what the call is about to
+  establish anyway.
