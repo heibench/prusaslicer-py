@@ -1322,11 +1322,11 @@ of its own rather than a retry loop.
   a second process launch per call to establish what the call is about to
   establish anyway.
 
-## D15 — `additional_args` keys are passed through verbatim; the engine names its own options
+## D15 -- `additional_args` keys are passed through verbatim; the engine names its own options
 
 `slice_model(additional_args={...})` builds `--{key}` from each key with no
-transformation. A dictionary written with Python-shaped keys — `layer_height`,
-because that is how PrusaSlicer's own config files and G-code footers spell it —
+transformation. A dictionary written with Python-shaped keys -- `layer_height`,
+because that is how PrusaSlicer's own config files and G-code footers spell it --
 therefore reaches the engine as `--layer_height` and is rejected.
 
 That is not hypothetical: every example in this repository was written that way, and
@@ -1341,13 +1341,13 @@ name that is still not an option after rewriting is still rejected.
 The reason that survives is ownership. **The engine is the sole authority on what its
 options are called**, and a translation table here is a second place that has to
 track the engine's naming. It would be wrong the first time the engine disagreed with
-it, and wrong quietly — a rewritten name that is not an option produces the same
+it, and wrong quietly -- a rewritten name that is not an option produces the same
 `Unknown option` as the name the author typed, so the driver's guess and the author's
 mistake are reported identically. A driver that does not guess cannot guess wrong.
 
 The cost is real and is accepted: the caller must read `--help-fff`, and the spelling
 in the engine's config files is not the spelling on its command line. That cost is
-visible — the engine says `Unknown option` and names it — which is the trade this
+visible -- the engine says `Unknown option` and names it -- which is the trade this
 repository makes everywhere else.
 
 *Supersedes:* if the engine ever ships a machine-readable option list, validating a
