@@ -244,10 +244,10 @@ def test_an_example_that_cannot_find_its_shape_exits_non_zero(
     done = subprocess.run([sys.executable, str(copy)], capture_output=True, text=True, timeout=600)
 
     assert done.returncode != 0, (
-        f"{example.name} could not find the shape it needs and exited 0\\n"
-        f"{done.stdout}\\n{done.stderr}"
+        f"{example.name} could not find the shape it needs and exited 0\n"
+        f"{done.stdout}\n{done.stderr}"
     )
     assert "not found in example shapes" in done.stdout + done.stderr, (
         "the run failed for some reason other than the missing shape, so this test is "
-        f"measuring the wrong thing:\\n{done.stdout}\\n{done.stderr}"
+        f"measuring the wrong thing:\n{done.stdout}\n{done.stderr}"
     )
