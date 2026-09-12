@@ -624,7 +624,10 @@ class PrusaSlicer:
         :param stl_path: Path to the input STL file.
         :param gcode_output: Path to the output G-code file.
         :param loglevel: Log severity level (e.g., "info", "warn", "error").
-        :param additional_args: Additional CLI arguments as a dictionary.
+        :param additional_args: Additional CLI arguments as a dictionary. Keys are
+            the engine's **own option names, spelled exactly as the engine spells
+            them** -- ``{"layer-height": "0.2"}``, not ``layer_height``. They are
+            passed through verbatim and never translated; see D15.
         :return: A :class:`SliceResult` describing the file that was produced
                  and carrying the engine's stdout and stderr.
         :raises FileNotFoundError: If the input STL does not exist.

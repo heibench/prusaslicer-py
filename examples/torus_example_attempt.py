@@ -1,10 +1,17 @@
 """Slice a shipped example shape, passing engine options through `additional_args`.
 
 **The keys are the engine's own option names**, spelled exactly as the engine's
-own `--help-fff` spells them. `additional_args` builds `--{key}` verbatim
-and does not translate, which is deliberate: a silent `_` to `-` rewrite would make
-a genuinely misspelled option indistinguishable from a correctly spelled one, and
-the engine's "Unknown option" is the only signal that anything was wrong.
+own `--help-fff` spells them. `additional_args` builds `--{key}` verbatim and does
+not translate.
+
+That is deliberate, and the reason is not the one that first suggests itself: a
+`_` to `-` rewrite could not collide with a real option, because none of the
+engine's option names contains an underscore. The reason is that the engine is the
+sole authority on what its options are called. A translation table is a second
+place that would have to track the engine's naming, and it would be wrong the first
+time the engine disagreed with it -- quietly, because a rewritten name that is
+still not an option produces the same "Unknown option" as the name the author
+typed.
 
 That is not a hypothetical. This example used to pass `layer_height`,
 `infill_density`, `print_speed` and `extruder_temperature`, and only the first of
@@ -48,11 +55,17 @@ output_dir.mkdir(parents=True, exist_ok=True)  # Create the output directory if 
 gcode_output = output_dir / "torus.gcode"
 
 # Engine option names, verified against the engine's own `--help-fff`.
+#
+# Every value is deliberately NOT the engine's default, so the G-code footer shows
+# the option took effect. Two of these were 20% and 60 -- which are exactly the
+# defaults for `fill-density` and `perimeter-speed`. An example that sets a value to
+# what it already was demonstrates nothing, and a check that the value "came back"
+# cannot tell that from the option never being passed at all.
 additional_args = {
-    "layer-height": "0.2",  # mm
-    "fill-density": "20%",  # the engine states this one as a percentage
-    "perimeter-speed": "60",  # mm/s. PrusaSlicer has no single "print speed"
-    "temperature": "210",  # Celsius, for layers after the first
+    "layer-height": "0.2",  # mm (default 0.3)
+    "fill-density": "35%",  # the engine states this one as a percentage (default 20%)
+    "perimeter-speed": "45",  # mm/s (default 60). There is no single "print speed"
+    "temperature": "210",  # Celsius, for layers after the first (default 200)
 }
 
 # Slice the torus.stl into G-code with the specified arguments
