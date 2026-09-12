@@ -8,26 +8,6 @@ All notable changes to prusaslicer-py are documented here. Follows
 
 ### Fixed
 
-- **The examples failed to slice and exited `0`** (#36).
-  `examples/torus_example_attempt.py` passed `layer_height`, `infill_density`,
-  `print_speed` and `extruder_temperature`; `additional_args` spells keys
-  verbatim, so the engine answered `Unknown option --layer_height` and produced
-  nothing. The example printed that and ended, exiting `0`. A person reading the
-  terminal saw the failure; a smoke test reading `$?` saw success.
-  `basic_slicing.py` had the same swallow with no wrong keys, so nothing pointed
-  at it.
-
-  Only `layer_height` becomes a real option by swapping the underscore: there is
-  no `--infill-density` (it is `--fill-density`), no `--print-speed` (speeds are
-  per-feature) and no `--extruder-temperature` (it is `--temperature`). Both
-  examples now exit non-zero when they produce no G-code, and every demo value
-  differs from the engine's default so the run demonstrates something.
-
-### Added
-
-- **D15**: `additional_args` keys are the engine's own option names, passed
-  through verbatim and never translated. `slice_model`'s docstring now says so.
-
 - **`check_version()` no longer returns a build's startup preamble as its
   version** (#34). It took the first non-empty line of `--help`; on any build
   that prints something above its version banner, that something came back as
@@ -62,6 +42,21 @@ All notable changes to prusaslicer-py are documented here. Follows
   an engine really was exercised could not tell "the engine ran and the code is
   wrong" from "the engine never started".
 
+- **The examples failed to slice and exited `0`** (#36).
+  `examples/torus_example_attempt.py` passed `layer_height`, `infill_density`,
+  `print_speed` and `extruder_temperature`; `additional_args` spells keys
+  verbatim, so the engine answered `Unknown option --layer_height` and produced
+  nothing. The example printed that and ended, exiting `0`. A person reading the
+  terminal saw the failure; a smoke test reading `$?` saw success.
+  `basic_slicing.py` had the same swallow with no wrong keys, so nothing pointed
+  at it.
+
+  Only `layer_height` becomes a real option by swapping the underscore: there is
+  no `--infill-density` (it is `--fill-density`), no `--print-speed` (speeds are
+  per-feature) and no `--extruder-temperature` (it is `--temperature`). Both
+  examples now exit non-zero when they produce no G-code, and every demo value
+  differs from the engine's default so the run demonstrates something.
+
 ### Added
 
 - **`PrusaSlicer.version_info()`**, returning a `VersionResult` with the version
@@ -76,6 +71,9 @@ All notable changes to prusaslicer-py are documented here. Follows
   states now, and the middle one has somewhere to go. The skip and failure
   messages carry the launcher's own complaint, which is usually the whole
   explanation. See D14.
+
+- **D15**: `additional_args` keys are the engine's own option names, passed
+  through verbatim and never translated. `slice_model`'s docstring now says so.
 
 ## [0.2.0] — 2026-09-06
 

@@ -55,20 +55,20 @@ def _require_the_shape_the_examples_name() -> None:
 
 
 @pytest.mark.parametrize("example", EXAMPLES, ids=lambda p: p.name)
-def test_each_example_succeeds_against_a_real_engine(example: Path) -> None:
+def test_each_example_succeeds_against_a_real_engine(example: Path, tmp_path: Path) -> None:
     """Exit 0, and the engine accepted every option the example passes.
 
     `--help-fff` is where these names come from; this is what notices when one of
     them stops being a real option, or was never one.
     """
     _require_the_shape_the_examples_name()
-    done = subprocess.run(
-        [sys.executable, str(example)],
-        capture_output=True,
-        text=True,
-        timeout=600,
-        cwd=ROOT,
-    )
+    # A copy, not the file in place: running the real one writes into the developer's
+    # own `<repo>/output/`, which is gitignored but still theirs.
+    workspace = tmp_path / "examples"
+    workspace.mkdir()
+    copy = workspace / example.name
+    copy.write_text(example.read_text(encoding="utf-8"), encoding="utf-8")
+    done = subprocess.run([sys.executable, str(copy)], capture_output=True, text=True, timeout=600)
     assert done.returncode == 0, (
         f"{example.name} exited {done.returncode}\n{done.stdout}\n{done.stderr}"
     )
@@ -88,15 +88,19 @@ def test_an_example_that_cannot_produce_its_output_exits_non_zero(
     swallow for a whole review round with the suite green.
 
     What both examples share is a destination they must write. A **directory** in its
-    place blocks the write on every platform: `chmod(0o500)` was the first attempt and
-    is POSIX-only -- Windows ignores the mode bits, and ignores the read-only attribute
-    on directories entirely -- so on the Windows engine job the write would have
-    succeeded, the example exited 0, and this test would have reported the #36 defect
-    on a platform where the example is fine. A platform fact asserted as a verdict
-    about the code is org contract 2.2, which is the thing this file is about.
+    place blocks it on every platform: `chmod(0o500)` was the first attempt and is
+    POSIX-only -- Windows ignores the mode bits, and ignores the read-only attribute on
+    directories entirely -- so on the Windows engine job the write would have succeeded,
+    the example exited 0, and this test would have reported the #36 defect on a platform
+    where the example is fine. A platform fact asserted as a verdict about the code is
+    org contract 2.2, which is the thing this file is about.
 
-    It also lands on the better branch: the engine exits **0** having written nothing,
-    which is the founding failure shape rather than a permissions error.
+    What the engine actually does is write `torus.gcode` *inside* that directory, so
+    nothing lands at the path it was given. `slice_model`'s `if not output.is_file()`
+    is what catches it, and that is false for a directory everywhere -- a stronger
+    invariant than "the write fails", which is what an earlier version of this
+    docstring claimed. Where a platform's engine errors instead, the same
+    `No G-code produced` assertion below still matches.
     """
     _require_the_shape_the_examples_name()
     # The examples derive their output directory as `<script>/../output`, so a copy one
@@ -165,7 +169,7 @@ def test_every_demo_option_actually_changes_the_output(tmp_path: Path) -> None:
 
     The two examples are run into a scratch tree and their footers compared. The
     `-` to `_` mapping below reads the engine's own footer spelling; it is not the
-    transform D15 refuses, which is about SENDING an option name slicelab invented.
+    transform D15 refuses, which is about SENDING an option name this driver invented.
     """
     _require_the_shape_the_examples_name()
     workspace = tmp_path / "examples"
@@ -208,4 +212,42 @@ def test_every_demo_option_actually_changes_the_output(tmp_path: Path) -> None:
         f"{same_as_default} are set to the engine's own default, so the example "
         "demonstrates nothing for them and 'the value came back' cannot be told "
         "from the option never being passed"
+    )
+
+
+@pytest.mark.parametrize("example", EXAMPLES, ids=lambda p: p.name)
+def test_an_example_that_cannot_find_its_shape_exits_non_zero(
+    example: Path, tmp_path: Path
+) -> None:
+    """The second `SystemExit(1)` in each example, which nothing else covers.
+
+    Each example has two: one for "the engine produced no G-code" and one for "the
+    shape I need is not in this engine's examples". Only the first had a test, and
+    turning the second into `SystemExit(0)` left the whole suite green -- while the
+    pull request and a commit message both said "either example's `raise SystemExit(1)`"
+    was verified, which was true of two of the four sites.
+
+    Reaching it needs an engine that ships no `torus.stl`, which no engine here does,
+    so the copy is prefixed with a patch making `get_example_shapes` return nothing.
+    That is a stand-in for a build with a different shape set, not a claim that one
+    exists.
+    """
+    _require_the_shape_the_examples_name()
+    workspace = tmp_path / "examples"
+    workspace.mkdir()
+    patched = (
+        "from prusaslicer_py import PrusaSlicer as _P\n_P.get_example_shapes = lambda self: []\n"
+    ) + example.read_text(encoding="utf-8")
+    copy = workspace / example.name
+    copy.write_text(patched, encoding="utf-8")
+
+    done = subprocess.run([sys.executable, str(copy)], capture_output=True, text=True, timeout=600)
+
+    assert done.returncode != 0, (
+        f"{example.name} could not find the shape it needs and exited 0\\n"
+        f"{done.stdout}\\n{done.stderr}"
+    )
+    assert "not found in example shapes" in done.stdout + done.stderr, (
+        "the run failed for some reason other than the missing shape, so this test is "
+        f"measuring the wrong thing:\\n{done.stdout}\\n{done.stderr}"
     )
