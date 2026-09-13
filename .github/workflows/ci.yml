@@ -44,7 +44,7 @@ jobs:
           # stock gitleaks hook is `--staged` and scans nothing on a CI
           # checkout, so without that hook this depth would buy nothing.
           fetch-depth: 0
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.11"
       - uses: pre-commit/action@v3.0.1
