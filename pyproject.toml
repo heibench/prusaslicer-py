@@ -32,7 +32,7 @@ Issues = "https://github.com/heibench/prusaslicer-py/issues"
 [dependency-groups]
 dev = [
     "pytest>=8",
-    "ruff==0.16.6",
+    "ruff==0.16.8",
     "mypy>=1.10",
 ]
 
