@@ -11,6 +11,20 @@ updates:
     groups:
       python:
         patterns: ["*"]
+    # ruff is pinned TWICE -- the dev group here and `.pre-commit-config.yaml`'s
+    # rev -- and `test_both_ruff_pins_name_one_version` requires them equal,
+    # because the hooks mutate (`--fix`, `ruff-format`) and a split means
+    # `git commit` writes a diff `just check` then rejects.
+    #
+    # Dependabot cannot bump both in one PR: they are different ecosystems, and
+    # groups do not span ecosystems. #47 is what that looks like -- the python
+    # group moved this half to 0.17.0 alone and the gate refused it, correctly
+    # and immediately. Left to itself that repeats every ruff release, so ruff
+    # is a deliberate two-file manual bump and both ecosystems ignore it. The
+    # gate is what makes that safe: forgetting the second file fails, it does
+    # not drift.
+    ignore:
+      - dependency-name: "ruff"
 
   - package-ecosystem: github-actions
     directory: /
@@ -18,3 +32,22 @@ updates:
       interval: weekly
     commit-message:
       prefix: ci
+
+  # The hook revs rot exactly like the action pins did, and nothing was
+  # watching them: `gitleaks` sat at v8.27.2 and `pre-commit-hooks` at v5.0.0
+  # because no ecosystem here read `.pre-commit-config.yaml` at all.
+  - package-ecosystem: pre-commit
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: chore
+    groups:
+      hooks:
+        patterns: ["*"]
+    ignore:
+      # The FULL URL, not `astral-sh/ruff-pre-commit`. The pre-commit ecosystem
+      # names a hook repo by its `repo:` URL, so the short form matches nothing
+      # and the ignore is inert from the day it is written -- which is how
+      # partspec lost a weekly cycle to the half-bump this is here to stop.
+      - dependency-name: "https://github.com/astral-sh/ruff-pre-commit"
