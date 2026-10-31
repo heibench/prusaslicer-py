@@ -94,3 +94,7 @@ clean:
 [windows]
 clean:
     powershell -NoLogo -Command "Get-Item -ErrorAction SilentlyContinue .venv, dist, .pytest_cache, .ruff_cache, .mypy_cache | Remove-Item -Recurse -Force -ErrorAction Stop; Get-ChildItem -Recurse -Directory -Filter __pycache__ | Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
+
+# Audit every package pinned in uv.lock against OSV (uv's experimental `uv audit`).
+audit:
+    uv audit --frozen --preview-features audit-command
